@@ -1,27 +1,67 @@
 const express = require('express');
 const session = require('express-session');
+const path = require('path');
 const app = express();
 
-// In production, store questions in a database or a secure JSON file
-const QUESTION_BANK = require('./questions.js').QUESTION_BANK;
+// Import question bank (make sure questions.js exports QUESTION_BANK)
+const { QUESTION_BANK } = require('./questions');
 
-app.use(session({ secret: 'your-secret', resave: false, saveUninitialized: true }));
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Login endpoint
+// Session configuration
+app.use(session({
+    secret: 'your-strong-secret-change-in-production',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false }  // set to true if using HTTPS
+}));
+
+// Serve static files from the "public" folder
+app.use(express.static(path.join(__dirname, 'public')));
+
+// -------------------- LOGIN ENDPOINT --------------------
 app.post('/login', (req, res) => {
-    // Validate credentials (e.g., against database)
-    req.session.user = { id: req.body.studentId, email: req.body.email };
+    const { email, studentId, section, firstName, lastName } = req.body;
+
+    // In a real app, validate against a database.
+    // For demo, we accept any non‑empty values.
+    if (!email || !studentId || !section) {
+        return res.status(400).json({ success: false, error: 'Missing fields' });
+    }
+
+    // Store user in session
+    req.session.user = {
+        id: studentId,
+        email,
+        section,
+        firstName,
+        lastName
+    };
+
     res.json({ success: true });
 });
 
-// Questions endpoint – protected
+// -------------------- QUESTIONS ENDPOINT --------------------
 app.get('/api/questions', (req, res) => {
-    if (!req.session.user) return res.status(401).json({ error: 'Unauthorized' });
-    // Optionally, check if student already submitted
-    // Send a random subset of 100 questions
-    const shuffled = QUESTION_BANK.sort(() => 0.5 - Math.random());
+    // Check if user is logged in
+    if (!req.session.user) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Shuffle and pick 100 questions
+    const shuffled = [...QUESTION_BANK].sort(() => 0.5 - Math.random());
     const subset = shuffled.slice(0, 100);
+
+    // (Optional) Store which subset was given to this student
+    // to prevent different questions on refresh – but we keep it simple.
+
     res.json(subset);
 });
 
-app.listen(3000);
+// -------------------- START SERVER --------------------
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+});
