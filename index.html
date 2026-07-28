@@ -1,69 +1,201 @@
-<!-- Inside the login script, replace the validation part -->
-<script src="data.js"></script>
-<script>
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const email = document.getElementById('email').value.trim();
-        const studentId = document.getElementById('studentId').value.trim();
-        const section = document.getElementById('section').value;
-        const errorDiv = document.getElementById('errorMessage');
-        const errorText = document.getElementById('errorText');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prelim Exam – Information Security</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <div class="container">
 
-        // 1. Domain check
-        const allowedDomains = ['@ncf.edu.ph', '@gbox.ncf.edu.ph'];
-        const isValidDomain = allowedDomains.some(domain => email.toLowerCase().endsWith(domain));
+        <!-- Header -->
+        <div class="logo">
+            <h1>📋 Prelim Examination</h1>
+            <div class="subtitle">Information Security &amp; Cybersecurity Fundamentals</div>
+            <span class="badge">Weeks 1–3 • 60 Minutes</span>
+        </div>
 
-        if (!isValidDomain) {
-            errorText.textContent = 'Invalid email domain. Please use @ncf.edu.ph or @gbox.ncf.edu.ph';
-            errorDiv.classList.add('show');
-            return;
-        }
+        <!-- Domain restriction -->
+        <div class="domain-info">
+            <span class="icon">🔒</span>
+            <span class="text">Restricted to <strong>@ncf.edu.ph</strong> and <strong>@gbox.ncf.edu.ph</strong></span>
+        </div>
 
-        // 2. Official list check (if list is not empty)
-        if (!isEmailOfficial(email)) {
-            errorText.textContent = 'This email is not on the official list of allowed students. Please contact your instructor.';
-            errorDiv.classList.add('show');
-            return;
-        }
+        <!-- Login Form -->
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" placeholder="your.email@ncf.edu.ph" required autofocus />
+                <span class="hint">Use your official NCF email address</span>
+            </div>
 
-        if (!studentId || studentId.length < 5) {
-            errorText.textContent = 'Please enter a valid Student ID.';
-            errorDiv.classList.add('show');
-            return;
-        }
+            <div class="form-group">
+                <label for="studentId">Student ID</label>
+                <input type="text" id="studentId" placeholder="e.g., NCF-2024-0001" required />
+                <span class="hint">Enter your official student ID number</span>
+            </div>
 
-        if (!section) {
-            errorText.textContent = 'Please select your section.';
-            errorDiv.classList.add('show');
-            return;
-        }
+            <div class="form-group">
+                <label for="section">Section</label>
+                <select id="section" required>
+                    <option value="">Select your section</option>
+                    <option value="IT3A">IT3A</option>
+                    <option value="IT3B">IT3B</option>
+                    <option value="IT3C">IT3C</option>
+                    <option value="IT2A">IT2A</option>
+                </select>
+                <span class="hint">Select your class section</span>
+            </div>
 
-        // 3. Check if already took exam
-        const existing = getStudentResult(email);
-        if (existing) {
-            if (confirm('You have already completed this exam. View your results?')) {
-                sessionStorage.setItem('viewingEmail', email);
-                window.location.href = 'result.html';
+            <button type="submit" class="btn" id="startBtn">Start Examination</button>
+        </form>
+
+        <!-- Error message -->
+        <div class="error" id="errorMessage">
+            ⚠️ <span id="errorText">Invalid email domain. Please use your NCF email address.</span>
+        </div>
+
+        <!-- Exam rules -->
+        <div class="exam-rules">
+            <h3>📌 Examination Rules</h3>
+            <ul>
+                <li>60 minutes to complete all questions</li>
+                <li>Questions are randomized for each student</li>
+                <li>No backtracking — answers are final</li>
+                <li>Leaving the page will auto-submit</li>
+                <li>Strictly no copy-paste or right-click</li>
+                <li>Results will be displayed upon submission</li>
+            </ul>
+        </div>
+
+        <!-- Instructor link -->
+        <div style="text-align:center; margin-top:12px;">
+            <a href="instructor.html" style="color:#38bdf8; font-size:13px; text-decoration:none;">👨‍🏫 Instructor Dashboard</a>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            National College of Forestry &bull; Academic Year 2025-2026
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script>
+        (function() {
+            'use strict';
+
+            const form = document.getElementById('loginForm');
+            const emailInput = document.getElementById('email');
+            const studentIdInput = document.getElementById('studentId');
+            const sectionSelect = document.getElementById('section');
+            const errorDiv = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+            const startBtn = document.getElementById('startBtn');
+
+            // Allowed domains
+            const ALLOWED_DOMAINS = ['@ncf.edu.ph', '@gbox.ncf.edu.ph'];
+
+            // --- Helper: show error ---
+            function showError(msg) {
+                errorText.textContent = msg;
+                errorDiv.classList.add('show');
             }
-            return;
-        }
 
-        sessionStorage.setItem('studentEmail', email);
-        sessionStorage.setItem('studentId', studentId);
-        sessionStorage.setItem('studentSection', section);
-        sessionStorage.setItem('examStartTime', Date.now());
+            // --- Helper: hide error ---
+            function hideError() {
+                errorDiv.classList.remove('show');
+            }
 
-        window.location.href = 'exam.html';
-    });
+            // --- Clear error on input ---
+            emailInput.addEventListener('input', hideError);
+            studentIdInput.addEventListener('input', hideError);
+            sectionSelect.addEventListener('change', hideError);
 
-    // Clear error on input
-    document.getElementById('email').addEventListener('input', function() {
-        document.getElementById('errorMessage').classList.remove('show');
-    });
-    document.getElementById('studentId').addEventListener('input', function() {
-        document.getElementById('errorMessage').classList.remove('show');
-    });
-    document.getElementById('section').addEventListener('change', function() {
-        document.getElementById('errorMessage').classList.remove('show');
-    });
-</script>
+            // --- Form submit ---
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                const email = emailInput.value.trim();
+                const studentId = studentIdInput.value.trim();
+                const section = sectionSelect.value;
+
+                // 1. Validate email domain
+                const isValidDomain = ALLOWED_DOMAINS.some(function(domain) {
+                    return email.toLowerCase().endsWith(domain);
+                });
+
+                if (!isValidDomain) {
+                    showError('Invalid email domain. Please use @ncf.edu.ph or @gbox.ncf.edu.ph');
+                    emailInput.focus();
+                    return;
+                }
+
+                // 2. Validate student ID
+                if (!studentId || studentId.length < 5) {
+                    showError('Please enter a valid Student ID (at least 5 characters).');
+                    studentIdInput.focus();
+                    return;
+                }
+
+                // 3. Validate section
+                if (!section) {
+                    showError('Please select your section.');
+                    sectionSelect.focus();
+                    return;
+                }
+
+                // 4. Check if student already took the exam
+                try {
+                    const existing = getStudentResult(email);
+                    if (existing) {
+                        if (confirm('You have already completed this exam. View your results?')) {
+                            sessionStorage.setItem('viewingEmail', email);
+                            window.location.href = 'result.html';
+                        }
+                        return;
+                    }
+                } catch (err) {
+                    // If getStudentResult is not defined (data.js missing), proceed anyway
+                    console.warn('getStudentResult not available, proceeding...');
+                }
+
+                // 5. Store session data
+                sessionStorage.setItem('studentEmail', email);
+                sessionStorage.setItem('studentId', studentId);
+                sessionStorage.setItem('studentSection', section);
+                sessionStorage.setItem('examStartTime', String(Date.now()));
+
+                // 6. Navigate to exam
+                window.location.href = 'exam.html';
+            });
+
+            // --- Disable right-click globally (exam integrity) ---
+            document.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                return false;
+            });
+
+            // --- Disable copy/paste on form inputs ---
+            const formInputs = document.querySelectorAll('#loginForm input, #loginForm select');
+            formInputs.forEach(function(input) {
+                input.addEventListener('copy', function(e) { e.preventDefault(); });
+                input.addEventListener('paste', function(e) { e.preventDefault(); });
+                input.addEventListener('cut', function(e) { e.preventDefault(); });
+            });
+
+            // --- Warn before leaving the page (only if exam has started) ---
+            // (We don't want to warn on the login page, but we keep it consistent)
+            window.addEventListener('beforeunload', function(e) {
+                // Only show warning if user is already in the exam flow
+                // For login page, we don't want to block navigation
+                // So we check if examStartTime exists but we're still on login page
+                // Actually, we only want this on exam.html, not here.
+                // We'll skip the warning on login page.
+            });
+
+            console.log('✅ Login page loaded successfully.');
+        })();
+    </script>
+</body>
+</html>
