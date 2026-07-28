@@ -37,18 +37,30 @@
     </div>
 </div>
 
-<!-- Load the encrypted questions -->
-<script src="questions.js"></script>
+<!-- Load data.js for results storage -->
 <script src="data.js"></script>
+
 <script>
-    // --- Session validation ---
+    // ============================================================
+    // 1. EMBEDDED ENCRYPTED QUESTION DATA (NO external questions.js!)
+    // ============================================================
+    // To generate this string:
+    // 1. Copy your original QUESTION_BANK array.
+    // 2. Run: btoa(JSON.stringify(QUESTION_BANK)) in browser console.
+    // 3. Paste the resulting base64 string below.
+    // 
+    // This stops students from directly accessing /questions.js
+    const ENCRYPTED_DATA = "W3siaWQiOjEsIndlZWsiOjEsImNhdGVnb3J5IjoiRGVmaW5pdGlvbnMiLCJxdWVzdGlvbiI6IldoYXQgaXMgdGhlIGZvcm1hbCBkZWZpbml0aW9uIG9mIGNvbXB1dGVyIHdhc3RlPyIsIm9wdGlvbnMiOlsiVGhlIHVuYXV0aG9yaXplZCBhY2Nlc3MgdG8gY29tcHV0ZXIgc3lzdGVtcyBmb3IgcGVyc29uYWwgZ2FpbiIsIlRoZSBpbmFwcHJvcHJpYXRlLCBpbmVmZmljaWVudCwgb3IgdW5uZWNlc3NhcnkgdXNlIG9mIGNvbXB1dGVyIHRlY2hub2xvZ3kgYW5kIHJlc291cmNlcyB0aGF0IGRvZXMgbm90IGNvbnRyaWJ1dGUgdG8gb3JnYW5pemF0aW9uYWwgb2JqZWN0aXZlcyIsIlRoZSBkZWxpYmVyYXRlIGRlc3RydWN0aW9uIG9mIGNvbXB1dGVyIGhhcmR3YXJlIiwiVGhlIHByb2Nlc3Mgb2YgcmVjeWNsaW5nIG91dGRhdGVkIGNvbXB1dGVyIGVxdWlwbWVudCJdLCJjb3JyZWN0IjoxLCJleHBsYW5hdGlvbiI6IkNvbXB1dGVyIHdhc3RlIGludm9sdmVzIHRoZSBpbmFwcHJvcHJpYXRlIHVzZSBvZiBjb21wdXRlciB0ZWNobm9sb2d5IGFuZCByZXNvdXJjZXMgdGhhdCBkb2VzIG5vdCBjb250cmlidXRlIHRvIG9yZ2FuaXphdGlvbmFsIG9iamVjdGl2ZXMuIn0seyJpZCI6Miwid2VlayI6MSwiY2F0ZWdvcnkiOiJEZWZpbml0aW9ucyIsInF1ZXN0aW9uIjoiV2hhdCBpcyB0aGUgR0lHTyBwcmluY2lwbGUgaW4gY29tcHV0aW5nPyIsIm9wdGlvbnMiOlsiR2FyYmFnZSBJbiwgR29zcGVsIE91dCAtLSBmbGF3ZWQgZGF0YSBwcm9kdWNlcyByZWxpYWJsZSByZXN1bHRzIiwiR2FyYmFnZSBJbiwgR2FyYmFnZSBPdXQgLS0gZmxhd2VkIGlucHV0IGRhdGEgd2lsbCBpbnZhcmlhYmx5IHByb2R1Y2UgZmxhd2VkIG91dHB1dCIsIkdvb2QgSW5wdXQsIEdyZWF0IE91dHB1dCAtLSBoaWdoLXF1YWxpdHkgZGF0YSBhbHdheXMgcHJvZHVjZXMgcGVyZmVjdCByZXN1bHRzIiwiR3JhcGhpY2FsIEludGVyZmFjZSwgR3JhcGhpY2FsIE91dHB1dCAtLSB2aXN1YWwgc3lzdGVtcyBhcmUgYWx3YXlzIGFjY3VyYXRlIl0sImNvcnJlY3QiOjEsImV4cGxhbmF0aW9uIjoiR0lHTyAoR2FyYmFnZSBJbiwgR2FyYmFnZSBPdXQpIGlzIHRoZSBwcmluY2lwbGUgdGhhdCBmbGF3ZWQgaW5wdXQgZGF0YSB3aWxsIGludmFyaWFibHkgcHJvZHVjZSBmbGF3ZWQgb3V0cHV0LiJ9XQ=="; // <-- PASTE YOUR BASE64 HERE!
+
+    // ============================================================
+    // 2. DECRYPTION & SESSION VALIDATION
+    // ============================================================
     const email = sessionStorage.getItem('studentEmail');
     const studentId = sessionStorage.getItem('studentId');
     const section = sessionStorage.getItem('studentSection');
     const startTime = parseInt(sessionStorage.getItem('examStartTime'));
-    const decryptionKey = sessionStorage.getItem('examDecryptionKey');
 
-    if (!email || !studentId || !section || !startTime || !decryptionKey) {
+    if (!email || !studentId || !section || !startTime) {
         alert('Invalid session. Please login again.');
         window.location.href = 'index.html';
     }
@@ -61,49 +73,24 @@
     document.getElementById('studentName').textContent = email.split('@')[0];
     document.getElementById('studentSection').textContent = section;
 
-    // --- Decrypt the question bank using the key ---
-    // The global variable ENCRYPTED_DATA is defined in questions.js
-    function xorDecrypt(encrypted, key) {
-        // Key is a hex string; convert to numeric array
-        const keyBytes = [];
-        for (let i = 0; i < key.length; i += 2) {
-            keyBytes.push(parseInt(key.substr(i, 2), 16));
-        }
-        let result = '';
-        for (let i = 0; i < encrypted.length; i++) {
-            const charCode = encrypted.charCodeAt(i) ^ keyBytes[i % keyBytes.length];
-            result += String.fromCharCode(charCode);
-        }
-        return result;
-    }
-
+    // Decrypt the base64 data (which is just plain JSON encoded in base64)
     let QUESTION_BANK = [];
     try {
-        const decrypted = xorDecrypt(ENCRYPTED_DATA, decryptionKey);
-        const parsed = JSON.parse(decrypted);
+        const jsonString = atob(ENCRYPTED_DATA);
+        const parsed = JSON.parse(jsonString);
         if (Array.isArray(parsed) && parsed.length > 0) {
             QUESTION_BANK = parsed;
         } else {
-            throw new Error('Invalid decrypted data');
+            throw new Error('Invalid data');
         }
     } catch (e) {
         alert('Failed to load exam questions. Please contact the instructor.');
         window.location.href = 'index.html';
     }
 
-    // --- Rest of the exam logic (same as before, using QUESTION_BANK) ---
-    // Timer, question rendering, answer tracking, submission, etc.
-
-    // We need to keep the existing code but reference QUESTION_BANK now.
-    // Since we have the decrypted bank, we can proceed.
-
-    // Copy the rest of the exam logic from your original exam.html here.
-    // For brevity, I'll include the essential parts, but you should use your original code.
-
-    // (The full exam logic is exactly the same as before, just using the decrypted QUESTION_BANK)
-    // I'll paste the minimal working skeleton below; you can replace with your full code.
-
-    // --- Timer ---
+    // ============================================================
+    // 3. FULL EXAM LOGIC (Timer, Rendering, Submission)
+    // ============================================================
     const EXAM_DURATION = 60 * 60;
     let timeLeft = EXAM_DURATION;
     let timerInterval;
@@ -122,17 +109,13 @@
         const secs = timeLeft % 60;
         document.getElementById('timerDisplay').textContent =
             `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-        if (timeLeft < 300) {
-            document.getElementById('timerDisplay').classList.add('danger');
-        } else if (timeLeft < 600) {
-            document.getElementById('timerDisplay').classList.add('warning');
-        }
+        if (timeLeft < 300) document.getElementById('timerDisplay').classList.add('danger');
+        else if (timeLeft < 600) document.getElementById('timerDisplay').classList.add('warning');
     }
 
     timerInterval = setInterval(updateTimer, 1000);
     updateTimer();
 
-    // --- Questions ---
     let questions = [];
     let currentIndex = 0;
     let answers = {};
@@ -205,8 +188,7 @@
         const answered = Object.keys(answers).length;
         document.getElementById('progressText').textContent =
             `${answered} / ${totalQuestions} answered`;
-        const pct = (answered / totalQuestions) * 100;
-        document.getElementById('progressFill').style.width = `${pct}%`;
+        document.getElementById('progressFill').style.width = `${(answered / totalQuestions) * 100}%`;
     }
 
     // Anti-cheat
@@ -254,14 +236,10 @@
         window.location.href = 'result.html';
     }
 
-    // Start
     loadQuestions();
 
-    // Keyboard shortcut: Alt+S to submit
     document.addEventListener('keydown', function(e) {
-        if (e.altKey && e.key === 's') {
-            document.getElementById('submitBtn').click();
-        }
+        if (e.altKey && e.key === 's') document.getElementById('submitBtn').click();
     });
 </script>
 </body>
