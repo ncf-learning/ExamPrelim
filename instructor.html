@@ -8,9 +8,7 @@
 </head>
 <body style="display:block; background:#0f172a; min-height:100vh;">
 
-    <!-- ============================================================
-         PASSWORD OVERLAY
-    ============================================================ -->
+    <!-- PASSWORD OVERLAY -->
     <div id="loginOverlay" class="overlay">
         <div class="login-box">
             <h2>🔒 Instructor Access</h2>
@@ -24,16 +22,15 @@
         </div>
     </div>
 
-    <!-- ============================================================
-         DASHBOARD (hidden until login)
-    ============================================================ -->
+    <!-- DASHBOARD -->
     <div id="instructorDashboard" style="display:none;">
 
         <div class="instructor-container">
+            <!-- Header -->
             <div class="instructor-header">
                 <div>
                     <h1>👨‍🏫 Instructor Dashboard</h1>
-                    <p style="color:#94a3b8; font-size:14px;">Exam Results Overview</p>
+                    <p style="color:#94a3b8; font-size:14px;">Exam Results &amp; Analytics</p>
                 </div>
                 <div style="display:flex; gap:12px; flex-wrap:wrap;">
                     <button class="btn" onclick="window.location.href='index.html'" style="width:auto; padding:10px 24px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15);">
@@ -53,54 +50,70 @@
 
             <!-- Section filters -->
             <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
-                <button class="btn btn-secondary" onclick="filterTable('all')" style="width:auto; padding:8px 20px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">
-                    All Sections
-                </button>
-                <button class="btn btn-secondary" onclick="filterTable('IT3A')" style="width:auto; padding:8px 20px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">
-                    IT3A
-                </button>
-                <button class="btn btn-secondary" onclick="filterTable('IT3B')" style="width:auto; padding:8px 20px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">
-                    IT3B
-                </button>
-                <button class="btn btn-secondary" onclick="filterTable('IT3C')" style="width:auto; padding:8px 20px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">
-                    IT3C
-                </button>
-                <button class="btn btn-secondary" onclick="filterTable('IT2A')" style="width:auto; padding:8px 20px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">
-                    IT2A
-                </button>
+                <button class="btn btn-secondary" onclick="filterTable('all')" style="width:auto; padding:8px 20px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">All Sections</button>
+                <button class="btn btn-secondary" onclick="filterTable('IT3A')" style="width:auto; padding:8px 20px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">IT3A</button>
+                <button class="btn btn-secondary" onclick="filterTable('IT3B')" style="width:auto; padding:8px 20px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">IT3B</button>
+                <button class="btn btn-secondary" onclick="filterTable('IT3C')" style="width:auto; padding:8px 20px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">IT3C</button>
+                <button class="btn btn-secondary" onclick="filterTable('IT2A')" style="width:auto; padding:8px 20px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">IT2A</button>
             </div>
 
-            <!-- Results table -->
+            <!-- Results Table -->
             <div class="table-container">
                 <table>
                     <thead>
-                        <tr>
-                            <th>Email</th>
-                            <th>Student ID</th>
-                            <th>Section</th>
-                            <th>Score</th>
-                            <th>Percentage</th>
-                            <th>Status</th>
-                            <th>Date</th>
-                        </tr>
+                        <tr><th>Email</th><th>Student ID</th><th>Section</th><th>Score</th><th>Percentage</th><th>Status</th><th>Date</th></tr>
                     </thead>
                     <tbody id="resultsTable"></tbody>
                 </table>
             </div>
+            <div style="text-align:center; margin-top:8px; color:#64748b; font-size:13px;" id="rowCount"></div>
 
-            <div style="text-align:center; margin-top:16px; color:#64748b; font-size:13px;" id="rowCount"></div>
+            <hr style="border-color:rgba(255,255,255,0.08); margin:32px 0;">
 
             <!-- ============================================================
-                 CHANGE PASSWORD SECTION
+                 OFFICIAL EMAIL LIST MANAGER
             ============================================================ -->
-            <div style="margin-top:40px; border-top:1px solid rgba(255,255,255,0.08); padding-top:24px;">
+            <div style="margin-bottom:40px;">
+                <h3 style="color:#e2e8f0; font-size:18px; margin-bottom:8px;">📧 Official Email List</h3>
+                <p style="color:#94a3b8; font-size:14px; margin-bottom:12px;">
+                    Only emails on this list can take the exam. Leave empty to allow any @ncf.edu.ph / @gbox.ncf.edu.ph email.
+                </p>
+                <textarea id="emailListArea" rows="10" style="width:100%; padding:14px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:12px; color:#e2e8f0; font-size:14px; font-family:monospace; resize:vertical;"></textarea>
+                <div style="display:flex; gap:12px; margin-top:12px; flex-wrap:wrap;">
+                    <button class="btn" onclick="saveOfficialEmailList()" style="width:auto; padding:10px 24px;">💾 Save List</button>
+                    <button class="btn" onclick="clearOfficialEmailList()" style="width:auto; padding:10px 24px; background:rgba(239,68,68,0.2); border:1px solid rgba(239,68,68,0.3); color:#f87171;">🗑️ Clear List</button>
+                    <span id="emailListStatus" style="color:#94a3b8; font-size:14px; align-self:center;"></span>
+                </div>
+            </div>
+
+            <hr style="border-color:rgba(255,255,255,0.08); margin:32px 0;">
+
+            <!-- ============================================================
+                 ITEM ANALYSIS
+            ============================================================ -->
+            <div style="margin-bottom:40px;">
+                <h3 style="color:#e2e8f0; font-size:18px; margin-bottom:8px;">📊 Item Analysis</h3>
+                <p style="color:#94a3b8; font-size:14px; margin-bottom:12px;">
+                    Difficulty = % of students who answered correctly. Lower = harder.
+                    Distractor distribution shows which options were chosen.
+                </p>
+                <div id="itemAnalysisContainer">
+                    <button class="btn" onclick="renderItemAnalysis()" style="width:auto; padding:10px 24px;">🔄 Refresh Analysis</button>
+                    <div id="itemAnalysisTable" style="margin-top:16px; overflow-x:auto;"></div>
+                </div>
+            </div>
+
+            <hr style="border-color:rgba(255,255,255,0.08); margin:32px 0;">
+
+            <!-- ============================================================
+                 CHANGE PASSWORD
+            ============================================================ -->
+            <div>
                 <h3 style="color:#e2e8f0; font-size:18px; margin-bottom:12px;">🔑 Change Dashboard Password</h3>
                 <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
                     <input type="password" id="newPwd1" placeholder="New password" style="padding:10px 16px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:#f1f5f9; min-width:200px;">
                     <input type="password" id="newPwd2" placeholder="Confirm new password" style="padding:10px 16px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:#f1f5f9; min-width:200px;">
-                    <button class="btn" onclick="changePassword()" style="width:auto; padding:10px 24px;">
-                        Update Password
-                    </button>
+                    <button class="btn" onclick="changePassword()" style="width:auto; padding:10px 24px;">Update Password</button>
                 </div>
                 <p id="pwdChangeMessage" style="margin-top:8px; font-size:14px; color:#94a3b8;"></p>
                 <p style="margin-top:4px; font-size:12px; color:#475569;">
@@ -116,25 +129,16 @@
         // ============================================================
         // PASSWORD MANAGEMENT
         // ============================================================
-
         const PASS_KEY = 'instructor_password';
 
-        // Get stored password; default to '1111' if none exists
         function getStoredPassword() {
             let pwd = localStorage.getItem(PASS_KEY);
-            if (!pwd) {
-                pwd = '1111';
-                localStorage.setItem(PASS_KEY, pwd);
-            }
+            if (!pwd) { pwd = '1111'; localStorage.setItem(PASS_KEY, pwd); }
             return pwd;
         }
 
-        // Verify entered password
-        function verifyPassword(input) {
-            return input === getStoredPassword();
-        }
+        function verifyPassword(input) { return input === getStoredPassword(); }
 
-        // Handle login button click
         function handleInstructorLogin() {
             const input = document.getElementById('instructorPwdInput');
             const error = document.getElementById('loginError');
@@ -142,11 +146,10 @@
                 error.style.display = 'none';
                 document.getElementById('loginOverlay').style.display = 'none';
                 document.getElementById('instructorDashboard').style.display = 'block';
-                // Display current password (masked) on dashboard
                 document.getElementById('currentPwdDisplay').textContent = '••••';
-                // Render dashboard content
                 renderStats();
                 renderTable('all');
+                loadEmailList();
             } else {
                 error.style.display = 'block';
                 input.value = '';
@@ -154,138 +157,179 @@
             }
         }
 
-        // Allow Enter key on password field
         document.addEventListener('DOMContentLoaded', function() {
             const pwdInput = document.getElementById('instructorPwdInput');
             if (pwdInput) {
                 pwdInput.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter') {
-                        handleInstructorLogin();
-                    }
+                    if (e.key === 'Enter') handleInstructorLogin();
                 });
             }
-            // Check if already logged in? For simplicity, always show overlay.
-            // Ensure overlay is visible on load.
             document.getElementById('loginOverlay').style.display = 'flex';
             document.getElementById('instructorDashboard').style.display = 'none';
-            pwdInput.focus();
+            if (pwdInput) pwdInput.focus();
         });
 
-        // Change password function
         function changePassword() {
             const p1 = document.getElementById('newPwd1').value;
             const p2 = document.getElementById('newPwd2').value;
             const msg = document.getElementById('pwdChangeMessage');
-
             if (p1.length < 4) {
                 msg.style.color = '#f87171';
                 msg.textContent = 'Password must be at least 4 characters.';
                 return;
             }
-
             if (p1 !== p2) {
                 msg.style.color = '#f87171';
                 msg.textContent = 'Passwords do not match.';
                 return;
             }
-
             localStorage.setItem(PASS_KEY, p1);
             msg.style.color = '#34d399';
             msg.textContent = '✅ Password updated successfully!';
             document.getElementById('newPwd1').value = '';
             document.getElementById('newPwd2').value = '';
             document.getElementById('currentPwdDisplay').textContent = '••••';
-
-            // Optionally re-lock the dashboard? No, keep logged in.
-            // But if they want, they can click "Back" and re-enter.
         }
 
         // ============================================================
-        // DASHBOARD LOGIC (unchanged from before)
+        // DASHBOARD LOGIC
         // ============================================================
-
         let currentFilter = 'all';
 
         function renderStats() {
             const stats = getStats();
-            const container = document.getElementById('statsContainer');
-            container.innerHTML = `
-                <div class="stat-card">
-                    <div class="number">${stats.total}</div>
-                    <div class="label">Total Students</div>
-                </div>
-                <div class="stat-card">
-                    <div class="number" style="color:#34d399;">${stats.passed}</div>
-                    <div class="label">Passed</div>
-                </div>
-                <div class="stat-card">
-                    <div class="number" style="color:#f87171;">${stats.failed}</div>
-                    <div class="label">Failed</div>
-                </div>
-                <div class="stat-card">
-                    <div class="number" style="color:#38bdf8;">${stats.passRate}%</div>
-                    <div class="label">Pass Rate</div>
-                </div>
+            document.getElementById('statsContainer').innerHTML = `
+                <div class="stat-card"><div class="number">${stats.total}</div><div class="label">Total Students</div></div>
+                <div class="stat-card"><div class="number" style="color:#34d399;">${stats.passed}</div><div class="label">Passed</div></div>
+                <div class="stat-card"><div class="number" style="color:#f87171;">${stats.failed}</div><div class="label">Failed</div></div>
+                <div class="stat-card"><div class="number" style="color:#38bdf8;">${stats.passRate}%</div><div class="label">Pass Rate</div></div>
             `;
         }
 
         function renderTable(filter = 'all') {
             const results = getAllResults();
             const filtered = filter === 'all' ? results : results.filter(r => r.section === filter);
-
             const tbody = document.getElementById('resultsTable');
             if (filtered.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="7" style="text-align:center; padding:32px; color:#64748b;">
-                            No results found${filter !== 'all' ? ` for section ${filter}` : ''}.
-                        </td>
-                    </tr>
-                `;
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:32px; color:#64748b;">No results found${filter !== 'all' ? ' for section '+filter : ''}.</td></tr>`;
                 document.getElementById('rowCount').textContent = '0 records';
                 return;
             }
-
             tbody.innerHTML = filtered.map(r => {
                 const pct = ((r.score / r.total) * 100).toFixed(1);
                 const passed = pct >= 60;
-                return `
-                    <tr>
-                        <td>${r.email}</td>
-                        <td>${r.studentId}</td>
-                        <td>${r.section}</td>
-                        <td>${r.score}/${r.total}</td>
-                        <td>${pct}%</td>
-                        <td>
-                            <span class="score-badge ${passed ? 'pass' : 'fail'}">
-                                ${passed ? '✅ Passed' : '❌ Failed'}
-                            </span>
-                        </td>
-                        <td>${new Date(r.date).toLocaleDateString()}</td>
-                    </tr>
-                `;
+                return `<tr>
+                    <td>${r.email}</td><td>${r.studentId}</td><td>${r.section}</td>
+                    <td>${r.score}/${r.total}</td><td>${pct}%</td>
+                    <td><span class="score-badge ${passed ? 'pass' : 'fail'}">${passed ? '✅ Passed' : '❌ Failed'}</span></td>
+                    <td>${new Date(r.date).toLocaleDateString()}</td>
+                </tr>`;
             }).join('');
-
             document.getElementById('rowCount').textContent = `${filtered.length} record(s)`;
         }
 
-        function filterTable(section) {
-            currentFilter = section;
-            renderTable(section);
-        }
+        function filterTable(section) { currentFilter = section; renderTable(section); }
 
         function clearAllData() {
-            if (confirm('⚠️ Are you sure you want to delete ALL exam data? This cannot be undone.')) {
-                if (confirm('Final confirmation: Delete all student results?')) {
+            if (confirm('⚠️ Delete ALL exam data? This cannot be undone.')) {
+                if (confirm('Final confirmation:')) {
                     localStorage.removeItem(STORAGE_KEY);
                     renderStats();
                     renderTable(currentFilter);
-                    alert('All data has been cleared.');
+                    alert('All data cleared.');
                 }
             }
         }
 
-        // Note: renderStats and renderTable are called after successful login above.
+        // ============================================================
+        // OFFICIAL EMAIL LIST
+        // ============================================================
+        function loadEmailList() {
+            const list = getOfficialEmails();
+            document.getElementById('emailListArea').value = list.join('\n');
+            document.getElementById('emailListStatus').textContent = `${list.length} emails in list.`;
+        }
+
+        function saveOfficialEmailList() {
+            const raw = document.getElementById('emailListArea').value;
+            const emails = raw.split('\n')
+                .map(e => e.trim().toLowerCase())
+                .filter(e => e.length > 0 && e.includes('@'));
+            setOfficialEmails(emails);
+            document.getElementById('emailListStatus').textContent = `✅ ${emails.length} emails saved.`;
+        }
+
+        function clearOfficialEmailList() {
+            if (confirm('Remove all official emails?')) {
+                setOfficialEmails([]);
+                document.getElementById('emailListArea').value = '';
+                document.getElementById('emailListStatus').textContent = '🗑️ List cleared. Domain restriction only.';
+            }
+        }
+
+        // ============================================================
+        // ITEM ANALYSIS
+        // ============================================================
+        function renderItemAnalysis() {
+            const container = document.getElementById('itemAnalysisTable');
+            const data = getItemAnalysis();
+
+            if (data.length === 0) {
+                container.innerHTML = `<p style="color:#94a3b8; padding:20px;">No exam results yet. Item analysis will appear here after students take the test.</p>`;
+                return;
+            }
+
+            let html = `<table style="width:100%; border-collapse:collapse; font-size:14px;">
+                <thead style="background:rgba(255,255,255,0.06);">
+                    <tr>
+                        <th style="padding:10px 12px; text-align:left; color:#e2e8f0;">#</th>
+                        <th style="padding:10px 12px; text-align:left; color:#e2e8f0;">Question</th>
+                        <th style="padding:10px 12px; text-align:center; color:#e2e8f0;">Attempts</th>
+                        <th style="padding:10px 12px; text-align:center; color:#e2e8f0;">Correct</th>
+                        <th style="padding:10px 12px; text-align:center; color:#e2e8f0;">Difficulty</th>
+                        <th style="padding:10px 12px; text-align:center; color:#e2e8f0;">A %</th>
+                        <th style="padding:10px 12px; text-align:center; color:#e2e8f0;">B %</th>
+                        <th style="padding:10px 12px; text-align:center; color:#e2e8f0;">C %</th>
+                        <th style="padding:10px 12px; text-align:center; color:#e2e8f0;">D %</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+            data.forEach((item, idx) => {
+                const difficultyColor = item.difficulty < 30 ? '#f87171' : (item.difficulty < 60 ? '#fbbf24' : '#34d399');
+                html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:8px 12px; color:#94a3b8;">${idx+1}</td>
+                    <td style="padding:8px 12px; color:#e2e8f0; max-width:300px; word-break:break-word;">${item.question.substring(0, 80)}${item.question.length > 80 ? '...' : ''}</td>
+                    <td style="padding:8px 12px; text-align:center; color:#94a3b8;">${item.totalAttempts}</td>
+                    <td style="padding:8px 12px; text-align:center; color:#94a3b8;">${item.correctAttempts}</td>
+                    <td style="padding:8px 12px; text-align:center; font-weight:600; color:${difficultyColor};">${item.difficulty}%</td>
+                    <td style="padding:8px 12px; text-align:center; color:#94a3b8;">${item.distPct[0]}%</td>
+                    <td style="padding:8px 12px; text-align:center; color:#94a3b8;">${item.distPct[1]}%</td>
+                    <td style="padding:8px 12px; text-align:center; color:#94a3b8;">${item.distPct[2]}%</td>
+                    <td style="padding:8px 12px; text-align:center; color:#94a3b8;">${item.distPct[3]}%</td>
+                </tr>`;
+            });
+
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+
+            // Add legend
+            container.innerHTML += `
+                <div style="margin-top:12px; display:flex; gap:16px; flex-wrap:wrap; font-size:13px; color:#94a3b8;">
+                    <span>🟢 <span style="color:#34d399;">≥60%</span> Easy</span>
+                    <span>🟡 <span style="color:#fbbf24;">30–59%</span> Moderate</span>
+                    <span>🔴 <span style="color:#f87171;">&lt;30%</span> Hard</span>
+                    <span>💡 Low difficulty + high distractor spread = question may be confusing.</span>
+                </div>
+            `;
+        }
+
+        // ============================================================
+        // INIT
+        // ============================================================
+        // renderStats and renderTable are called after login.
+        // We also expose renderItemAnalysis globally for the button.
+        window.renderItemAnalysis = renderItemAnalysis;
     </script>
 
 </body>
