@@ -37,16 +37,19 @@
     </div>
 </div>
 
+<!-- Load the encrypted questions -->
 <script src="questions.js"></script>
 <script src="data.js"></script>
 <script>
-    // Check login
+    // --- Session validation ---
     const email = sessionStorage.getItem('studentEmail');
     const studentId = sessionStorage.getItem('studentId');
     const section = sessionStorage.getItem('studentSection');
     const startTime = parseInt(sessionStorage.getItem('examStartTime'));
+    const decryptionKey = sessionStorage.getItem('examDecryptionKey');
 
-    if (!email || !studentId || !section || !startTime) {
+    if (!email || !studentId || !section || !startTime || !decryptionKey) {
+        alert('Invalid session. Please login again.');
         window.location.href = 'index.html';
     }
 
@@ -58,7 +61,49 @@
     document.getElementById('studentName').textContent = email.split('@')[0];
     document.getElementById('studentSection').textContent = section;
 
-    // Timer
+    // --- Decrypt the question bank using the key ---
+    // The global variable ENCRYPTED_DATA is defined in questions.js
+    function xorDecrypt(encrypted, key) {
+        // Key is a hex string; convert to numeric array
+        const keyBytes = [];
+        for (let i = 0; i < key.length; i += 2) {
+            keyBytes.push(parseInt(key.substr(i, 2), 16));
+        }
+        let result = '';
+        for (let i = 0; i < encrypted.length; i++) {
+            const charCode = encrypted.charCodeAt(i) ^ keyBytes[i % keyBytes.length];
+            result += String.fromCharCode(charCode);
+        }
+        return result;
+    }
+
+    let QUESTION_BANK = [];
+    try {
+        const decrypted = xorDecrypt(ENCRYPTED_DATA, decryptionKey);
+        const parsed = JSON.parse(decrypted);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+            QUESTION_BANK = parsed;
+        } else {
+            throw new Error('Invalid decrypted data');
+        }
+    } catch (e) {
+        alert('Failed to load exam questions. Please contact the instructor.');
+        window.location.href = 'index.html';
+    }
+
+    // --- Rest of the exam logic (same as before, using QUESTION_BANK) ---
+    // Timer, question rendering, answer tracking, submission, etc.
+
+    // We need to keep the existing code but reference QUESTION_BANK now.
+    // Since we have the decrypted bank, we can proceed.
+
+    // Copy the rest of the exam logic from your original exam.html here.
+    // For brevity, I'll include the essential parts, but you should use your original code.
+
+    // (The full exam logic is exactly the same as before, just using the decrypted QUESTION_BANK)
+    // I'll paste the minimal working skeleton below; you can replace with your full code.
+
+    // --- Timer ---
     const EXAM_DURATION = 60 * 60;
     let timeLeft = EXAM_DURATION;
     let timerInterval;
@@ -87,14 +132,21 @@
     timerInterval = setInterval(updateTimer, 1000);
     updateTimer();
 
-    // Questions
+    // --- Questions ---
     let questions = [];
     let currentIndex = 0;
     let answers = {};
     let totalQuestions = 0;
 
+    function shuffleArray(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
     function loadQuestions() {
-        // Get 100 random questions from the bank
         const all = [...QUESTION_BANK];
         const shuffled = shuffleArray(all);
         questions = shuffled.slice(0, 100);
@@ -200,15 +252,6 @@
         sessionStorage.setItem('examDetails', JSON.stringify(details));
         sessionStorage.removeItem('examStartTime');
         window.location.href = 'result.html';
-    }
-
-    // Shuffle helper
-    function shuffleArray(arr) {
-        for (let i = arr.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [arr[i], arr[j]] = [arr[j], arr[i]];
-        }
-        return arr;
     }
 
     // Start
