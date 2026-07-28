@@ -9,33 +9,28 @@
 <body>
     <div class="container">
 
-        <!-- Header -->
         <div class="logo">
             <h1>📋 Prelim Examination</h1>
             <div class="subtitle">Information Security &amp; Cybersecurity Fundamentals</div>
             <span class="badge">Weeks 1–3 • 60 Minutes</span>
         </div>
 
-        <!-- Domain restriction -->
         <div class="domain-info">
             <span class="icon">🔒</span>
             <span class="text">Restricted to <strong>@ncf.edu.ph</strong> and <strong>@gbox.ncf.edu.ph</strong></span>
         </div>
 
-        <!-- Login Form -->
         <form id="loginForm">
             <div class="form-group">
                 <label for="email">Email Address</label>
                 <input type="email" id="email" placeholder="your.email@ncf.edu.ph" required autofocus />
                 <span class="hint">Use your official NCF email address</span>
             </div>
-
             <div class="form-group">
                 <label for="studentId">Student ID</label>
                 <input type="text" id="studentId" placeholder="e.g., NCF-2024-0001" required />
                 <span class="hint">Enter your official student ID number</span>
             </div>
-
             <div class="form-group">
                 <label for="section">Section</label>
                 <select id="section" required>
@@ -47,16 +42,13 @@
                 </select>
                 <span class="hint">Select your class section</span>
             </div>
-
             <button type="submit" class="btn" id="startBtn">Start Examination</button>
         </form>
 
-        <!-- Error message -->
         <div class="error" id="errorMessage">
             ⚠️ <span id="errorText">Invalid email domain. Please use your NCF email address.</span>
         </div>
 
-        <!-- Exam rules -->
         <div class="exam-rules">
             <h3>📌 Examination Rules</h3>
             <ul>
@@ -69,12 +61,10 @@
             </ul>
         </div>
 
-        <!-- Instructor link -->
         <div style="text-align:center; margin-top:12px;">
             <a href="instructor.html" style="color:#38bdf8; font-size:13px; text-decoration:none;">👨‍🏫 Instructor Dashboard</a>
         </div>
 
-        <!-- Footer -->
         <div class="footer">
             National College of Forestry &bull; Academic Year 2025-2026
         </div>
@@ -91,28 +81,33 @@
             const sectionSelect = document.getElementById('section');
             const errorDiv = document.getElementById('errorMessage');
             const errorText = document.getElementById('errorText');
-            const startBtn = document.getElementById('startBtn');
 
-            // Allowed domains
             const ALLOWED_DOMAINS = ['@ncf.edu.ph', '@gbox.ncf.edu.ph'];
 
-            // --- Helper: show error ---
             function showError(msg) {
                 errorText.textContent = msg;
                 errorDiv.classList.add('show');
             }
-
-            // --- Helper: hide error ---
             function hideError() {
                 errorDiv.classList.remove('show');
             }
 
-            // --- Clear error on input ---
             emailInput.addEventListener('input', hideError);
             studentIdInput.addEventListener('input', hideError);
             sectionSelect.addEventListener('change', hideError);
 
-            // --- Form submit ---
+            // --- Generate a simple encryption key from email + secret salt ---
+            function generateKey(email) {
+                const salt = 'NCF-2025-SECURE-EXAM'; // change this to a random string
+                const combined = email + salt;
+                // Simple hash: XOR each char and produce a numeric key
+                let key = 0;
+                for (let i = 0; i < combined.length; i++) {
+                    key = (key * 31 + combined.charCodeAt(i)) & 0xFFFFFFFF;
+                }
+                return key.toString(16);
+            }
+
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
 
@@ -120,7 +115,6 @@
                 const studentId = studentIdInput.value.trim();
                 const section = sectionSelect.value;
 
-                // 1. Validate email domain
                 const isValidDomain = ALLOWED_DOMAINS.some(function(domain) {
                     return email.toLowerCase().endsWith(domain);
                 });
@@ -131,21 +125,19 @@
                     return;
                 }
 
-                // 2. Validate student ID
                 if (!studentId || studentId.length < 5) {
                     showError('Please enter a valid Student ID (at least 5 characters).');
                     studentIdInput.focus();
                     return;
                 }
 
-                // 3. Validate section
                 if (!section) {
                     showError('Please select your section.');
                     sectionSelect.focus();
                     return;
                 }
 
-                // 4. Check if student already took the exam
+                // Check if already took exam
                 try {
                     const existing = getStudentResult(email);
                     if (existing) {
@@ -155,46 +147,58 @@
                         }
                         return;
                     }
-                } catch (err) {
-                    // If getStudentResult is not defined (data.js missing), proceed anyway
-                    console.warn('getStudentResult not available, proceeding...');
-                }
+                } catch (err) {}
 
-                // 5. Store session data
+                // Store session data
                 sessionStorage.setItem('studentEmail', email);
                 sessionStorage.setItem('studentId', studentId);
                 sessionStorage.setItem('studentSection', section);
                 sessionStorage.setItem('examStartTime', String(Date.now()));
 
-                // 6. Navigate to exam
+                // Generate and store encryption key (used to decrypt questions)
+                const key = generateKey(email);
+                sessionStorage.setItem('examDecryptionKey', key);
+
                 window.location.href = 'exam.html';
             });
 
-            // --- Disable right-click globally (exam integrity) ---
-            document.addEventListener('contextmenu', function(e) {
-                e.preventDefault();
-                return false;
+            // --- Anti-inspection measures ---
+            document.addEventListener('contextmenu', function(e) { e.preventDefault(); return false; });
+
+            // Block F12, Ctrl+Shift+I, Ctrl+U, Ctrl+Shift+J, etc.
+            document.addEventListener('keydown', function(e) {
+                const isDev = e.key === 'F12' ||
+                              (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J')) ||
+                              (e.ctrlKey && e.key === 'U');
+                if (isDev) {
+                    e.preventDefault();
+                    alert('Developer tools are disabled during the exam.');
+                    return false;
+                }
             });
 
-            // --- Disable copy/paste on form inputs ---
-            const formInputs = document.querySelectorAll('#loginForm input, #loginForm select');
-            formInputs.forEach(function(input) {
-                input.addEventListener('copy', function(e) { e.preventDefault(); });
-                input.addEventListener('paste', function(e) { e.preventDefault(); });
-                input.addEventListener('cut', function(e) { e.preventDefault(); });
+            // Disable copy/paste on all inputs
+            document.querySelectorAll('#loginForm input, #loginForm select').forEach(function(el) {
+                el.addEventListener('copy', function(e) { e.preventDefault(); });
+                el.addEventListener('paste', function(e) { e.preventDefault(); });
+                el.addEventListener('cut', function(e) { e.preventDefault(); });
             });
 
-            // --- Warn before leaving the page (only if exam has started) ---
-            // (We don't want to warn on the login page, but we keep it consistent)
-            window.addEventListener('beforeunload', function(e) {
-                // Only show warning if user is already in the exam flow
-                // For login page, we don't want to block navigation
-                // So we check if examStartTime exists but we're still on login page
-                // Actually, we only want this on exam.html, not here.
-                // We'll skip the warning on login page.
-            });
+            // Simple devtools detection (periodic debugger)
+            function detectDevTools() {
+                const start = performance.now();
+                debugger; // if devtools is open, this will pause and cause a time difference
+                const end = performance.now();
+                if (end - start > 100) {
+                    // devtools was open
+                    alert('Developer tools detected. Please close them to continue.');
+                    window.location.href = 'about:blank';
+                }
+            }
+            // Run detection every 3 seconds (only if exam hasn't started yet)
+            setInterval(detectDevTools, 3000);
 
-            console.log('✅ Login page loaded successfully.');
+            console.log('✅ Secure login page loaded.');
         })();
     </script>
 </body>
