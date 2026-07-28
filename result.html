@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Results</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body style="display:block; background:#0f172a; min-height:100vh;">
+
+<div style="max-width:800px; margin:0 auto; padding:24px;">
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
+        <h1 style="color:#f1f5f9; font-size:24px;">📊 Exam Results</h1>
+        <a href="index.html" class="btn" style="width:auto; padding:10px 24px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15); text-decoration:none; color:#f1f5f9; border-radius:12px;">
+            🔙 Back to Login
+        </a>
+    </div>
+
+    <div id="resultContent"></div>
+
+</div>
+
+<script src="data.js"></script>
+<script>
+    const email = sessionStorage.getItem('studentEmail');
+    const viewingEmail = sessionStorage.getItem('viewingEmail');
+    const resultEmail = viewingEmail || email;
+
+    if (!resultEmail) {
+        window.location.href = 'index.html';
+    }
+
+    const result = getStudentResult(resultEmail);
+
+    if (!result) {
+        document.getElementById('resultContent').innerHTML = `
+            <div style="text-align:center; padding:60px 24px; background:rgba(255,255,255,0.04); border-radius:16px; border:1px solid rgba(255,255,255,0.08);">
+                <p style="color:#94a3b8; font-size:18px;">No exam record found for this email.</p>
+                <a href="index.html" class="btn" style="width:auto; padding:12px 32px; margin-top:16px; text-decoration:none; display:inline-block;">
+                    Go to Login
+                </a>
+            </div>
+        `;
+    } else {
+        const pct = ((result.score / result.total) * 100).toFixed(1);
+        const passed = pct >= 60;
+        const details = result.questions ? result.questions.map((q, idx) => {
+            const selected = result.answers ? result.answers[q.id] : undefined;
+            const isCorrect = selected === q.correct;
+            return {
+                question: q.question,
+                selected: selected !== undefined ? q.options[selected] : 'Not answered',
+                correct: q.options[q.correct],
+                isCorrect: isCorrect
+            };
+        }) : [];
+
+        let html = `
+            <div class="result-score">
+                <div class="score-number">${result.score}/${result.total}</div>
+                <div class="score-label">${pct}%</div>
+                <div class="score-status ${passed ? 'pass' : 'fail'}">
+                    ${passed ? '✅ PASSED' : '❌ FAILED'}
+                </div>
+                <div style="margin-top:12px; color:#94a3b8; font-size:14px;">
+                    ${result.email} · ${result.section} · ${result.studentId}
+                </div>
+                <div style="color:#64748b; font-size:13px; margin-top:4px;">
+                    Completed: ${new Date(result.date).toLocaleString()}
+                </div>
+            </div>
+        `;
+
+        const incorrect = details.filter(d => !d.isCorrect);
+        if (incorrect.length > 0) {
+            html += `
+                <div class="result-detail">
+                    <h3>❌ Incorrect Answers (${incorrect.length})</h3>
+            `;
+            incorrect.forEach((d, i) => {
+                html += `
+                    <div class="item">
+                        <div>
+                            <strong>${i+1}.</strong> ${d.question}
+                            <div style="font-size:13px; color:#94a3b8; margin-top:4px;">
+                                Your answer: <span class="wrong">${d.selected}</span>
+                            </div>
+                            <div style="font-size:13px; color:#94a3b8;">
+                                Correct answer: <span class="correct">${d.correct}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+        } else {
+            html += `
+                <div class="result-detail" style="text-align:center; padding:32px;">
+                    <h3>🎉 Perfect Score! All answers correct!</h3>
+                </div>
+            `;
+        }
+
+        html += `
+            <div class="result-detail">
+                <h3>📝 Answer Summary</h3>
+                ${details.map((d, i) => `
+                    <div class="item">
+                        <span>${i+1}. ${d.question.substring(0, 60)}${d.question.length > 60 ? '...' : ''}</span>
+                        <span class="${d.isCorrect ? 'correct' : 'wrong'}">${d.isCorrect ? '✅' : '❌'}</span>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        document.getElementById('resultContent').innerHTML = html;
+    }
+
+    sessionStorage.removeItem('viewingEmail');
+</script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prelim Exam - Information Security</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>📋 Prelim Examination</h1>
+            <div class="subtitle">Information Security &amp; Cybersecurity Fundamentals</div>
+            <span class="badge">Weeks 1–3 • 60 Minutes</span>
+        </div>
+
+        <div class="domain-info">
+            <span class="icon">🔒</span>
+            <span class="text">Restricted to <strong>@ncf.edu.ph</strong> and <strong>@gbox.ncf.edu.ph</strong></span>
+        </div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" placeholder="your.email@ncf.edu.ph" required>
+                <span class="hint">Use your official NCF email address</span>
+            </div>
+            <div class="form-group">
+                <label for="studentId">Student ID</label>
+                <input type="text" id="studentId" placeholder="e.g., NCF-2024-0001" required>
+                <span class="hint">Enter your official student ID number</span>
+            </div>
+            <div class="form-group">
+                <label for="section">Section</label>
+                <select id="section" required>
+                    <option value="">Select your section</option>
+                    <option value="IT3A">IT3A</option>
+                    <option value="IT3B">IT3B</option>
+                    <option value="IT3C">IT3C</option>
+                    <option value="IT2A">IT2A</option>
+                </select>
+                <span class="hint">Select your class section</span>
+            </div>
+            <button type="submit" class="btn" id="startBtn">Start Examination</button>
+        </form>
+
+        <div class="error" id="errorMessage">
+            ⚠️ <span id="errorText">Invalid email domain. Please use your NCF email address.</span>
+        </div>
+
+        <div class="exam-rules">
+            <h3>📌 Examination Rules</h3>
+            <ul>
+                <li>60 minutes to complete all questions</li>
+                <li>Questions are randomized for each student</li>
+                <li>No backtracking — answers are final</li>
+                <li>Leaving the page will auto-submit</li>
+                <li>Strictly no copy-paste or right-click</li>
+                <li>Results will be displayed upon submission</li>
+            </ul>
+        </div>
+
+        <div style="text-align:center; margin-top:12px;">
+            <a href="instructor.html" style="color:#38bdf8; font-size:13px; text-decoration:none;">👨‍🏫 Instructor Dashboard</a>
+        </div>
+
+        <div class="footer">
+            National College of Forestry &bull; Academic Year 2025-2026
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value.trim();
+            const studentId = document.getElementById('studentId').value.trim();
+            const section = document.getElementById('section').value;
+            const errorDiv = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+
+            const allowedDomains = ['@ncf.edu.ph', '@gbox.ncf.edu.ph'];
+            const isValidDomain = allowedDomains.some(domain => email.toLowerCase().endsWith(domain));
+
+            if (!isValidDomain) {
+                errorText.textContent = 'Invalid email domain. Please use @ncf.edu.ph or @gbox.ncf.edu.ph';
+                errorDiv.classList.add('show');
+                return;
+            }
+
+            if (!studentId || studentId.length < 5) {
+                errorText.textContent = 'Please enter a valid Student ID.';
+                errorDiv.classList.add('show');
+                return;
+            }
+
+            if (!section) {
+                errorText.textContent = 'Please select your section.';
+                errorDiv.classList.add('show');
+                return;
+            }
+
+            const existing = getStudentResult(email);
+            if (existing) {
+                if (confirm('You have already completed this exam. View your results?')) {
+                    sessionStorage.setItem('viewingEmail', email);
+                    window.location.href = 'result.html';
+                }
+                return;
+            }
+
+            sessionStorage.setItem('studentEmail', email);
+            sessionStorage.setItem('studentId', studentId);
+            sessionStorage.setItem('studentSection', section);
+            sessionStorage.setItem('examStartTime', Date.now());
+
+            window.location.href = 'exam.html';
+        });
+
+        document.getElementById('email').addEventListener('input', function() {
+            document.getElementById('errorMessage').classList.remove('show');
+        });
+        document.getElementById('studentId').addEventListener('input', function() {
+            document.getElementById('errorMessage').classList.remove('show');
+        });
+        document.getElementById('section').addEventListener('change', function() {
+            document.getElementById('errorMessage').classList.remove('show');
+        });
+    </script>
+</body>
+</html>

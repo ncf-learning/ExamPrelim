@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instructor Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body style="display:block; background:#0f172a; min-height:100vh;">
+
+    <!-- ============================================================
+         PASSWORD OVERLAY
+    ============================================================ -->
+    <div id="loginOverlay" class="overlay">
+        <div class="login-box">
+            <h2>🔒 Instructor Access</h2>
+            <p style="color:#94a3b8; margin-bottom:16px;">Enter the dashboard password</p>
+            <input type="password" id="instructorPwdInput" placeholder="Enter password" autofocus>
+            <button class="btn" onclick="handleInstructorLogin()" style="margin-top:12px;">Unlock Dashboard</button>
+            <p id="loginError" style="color:#f87171; margin-top:12px; display:none;">❌ Incorrect password. Try again.</p>
+            <div style="margin-top:16px; font-size:12px; color:#475569;">
+                Default password: <strong>1111</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         DASHBOARD (hidden until login)
+    ============================================================ -->
+    <div id="instructorDashboard" style="display:none;">
+
+        <div class="instructor-container">
+            <div class="instructor-header">
+                <div>
+                    <h1>👨‍🏫 Instructor Dashboard</h1>
+                    <p style="color:#94a3b8; font-size:14px;">Exam Results Overview</p>
+                </div>
+                <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                    <button class="btn" onclick="window.location.href='index.html'" style="width:auto; padding:10px 24px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15);">
+                        🔙 Back
+                    </button>
+                    <button class="btn" onclick="downloadResultsCSV()" style="width:auto; padding:10px 24px;">
+                        📥 Download CSV
+                    </button>
+                    <button class="btn" onclick="clearAllData()" style="width:auto; padding:10px 24px; background:rgba(239,68,68,0.2); border:1px solid rgba(239,68,68,0.3); color:#f87171;">
+                        🗑️ Clear All Data
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="instructor-stats" id="statsContainer"></div>
+
+            <!-- Section filters -->
+            <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
+                <button class="btn btn-secondary" onclick="filterTable('all')" style="width:auto; padding:8px 20px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">
+                    All Sections
+                </button>
+                <button class="btn btn-secondary" onclick="filterTable('IT3A')" style="width:auto; padding:8px 20px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">
+                    IT3A
+                </button>
+                <button class="btn btn-secondary" onclick="filterTable('IT3B')" style="width:auto; padding:8px 20px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">
+                    IT3B
+                </button>
+                <button class="btn btn-secondary" onclick="filterTable('IT3C')" style="width:auto; padding:8px 20px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">
+                    IT3C
+                </button>
+                <button class="btn btn-secondary" onclick="filterTable('IT2A')" style="width:auto; padding:8px 20px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">
+                    IT2A
+                </button>
+            </div>
+
+            <!-- Results table -->
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Student ID</th>
+                            <th>Section</th>
+                            <th>Score</th>
+                            <th>Percentage</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsTable"></tbody>
+                </table>
+            </div>
+
+            <div style="text-align:center; margin-top:16px; color:#64748b; font-size:13px;" id="rowCount"></div>
+
+            <!-- ============================================================
+                 CHANGE PASSWORD SECTION
+            ============================================================ -->
+            <div style="margin-top:40px; border-top:1px solid rgba(255,255,255,0.08); padding-top:24px;">
+                <h3 style="color:#e2e8f0; font-size:18px; margin-bottom:12px;">🔑 Change Dashboard Password</h3>
+                <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+                    <input type="password" id="newPwd1" placeholder="New password" style="padding:10px 16px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:#f1f5f9; min-width:200px;">
+                    <input type="password" id="newPwd2" placeholder="Confirm new password" style="padding:10px 16px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:#f1f5f9; min-width:200px;">
+                    <button class="btn" onclick="changePassword()" style="width:auto; padding:10px 24px;">
+                        Update Password
+                    </button>
+                </div>
+                <p id="pwdChangeMessage" style="margin-top:8px; font-size:14px; color:#94a3b8;"></p>
+                <p style="margin-top:4px; font-size:12px; color:#475569;">
+                    Current password: <span id="currentPwdDisplay">••••</span>
+                </p>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script>
+        // ============================================================
+        // PASSWORD MANAGEMENT
+        // ============================================================
+
+        const PASS_KEY = 'instructor_password';
+
+        // Get stored password; default to '1111' if none exists
+        function getStoredPassword() {
+            let pwd = localStorage.getItem(PASS_KEY);
+            if (!pwd) {
+                pwd = '1111';
+                localStorage.setItem(PASS_KEY, pwd);
+            }
+            return pwd;
+        }
+
+        // Verify entered password
+        function verifyPassword(input) {
+            return input === getStoredPassword();
+        }
+
+        // Handle login button click
+        function handleInstructorLogin() {
+            const input = document.getElementById('instructorPwdInput');
+            const error = document.getElementById('loginError');
+            if (verifyPassword(input.value)) {
+                error.style.display = 'none';
+                document.getElementById('loginOverlay').style.display = 'none';
+                document.getElementById('instructorDashboard').style.display = 'block';
+                // Display current password (masked) on dashboard
+                document.getElementById('currentPwdDisplay').textContent = '••••';
+                // Render dashboard content
+                renderStats();
+                renderTable('all');
+            } else {
+                error.style.display = 'block';
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        // Allow Enter key on password field
+        document.addEventListener('DOMContentLoaded', function() {
+            const pwdInput = document.getElementById('instructorPwdInput');
+            if (pwdInput) {
+                pwdInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        handleInstructorLogin();
+                    }
+                });
+            }
+            // Check if already logged in? For simplicity, always show overlay.
+            // Ensure overlay is visible on load.
+            document.getElementById('loginOverlay').style.display = 'flex';
+            document.getElementById('instructorDashboard').style.display = 'none';
+            pwdInput.focus();
+        });
+
+        // Change password function
+        function changePassword() {
+            const p1 = document.getElementById('newPwd1').value;
+            const p2 = document.getElementById('newPwd2').value;
+            const msg = document.getElementById('pwdChangeMessage');
+
+            if (p1.length < 4) {
+                msg.style.color = '#f87171';
+                msg.textContent = 'Password must be at least 4 characters.';
+                return;
+            }
+
+            if (p1 !== p2) {
+                msg.style.color = '#f87171';
+                msg.textContent = 'Passwords do not match.';
+                return;
+            }
+
+            localStorage.setItem(PASS_KEY, p1);
+            msg.style.color = '#34d399';
+            msg.textContent = '✅ Password updated successfully!';
+            document.getElementById('newPwd1').value = '';
+            document.getElementById('newPwd2').value = '';
+            document.getElementById('currentPwdDisplay').textContent = '••••';
+
+            // Optionally re-lock the dashboard? No, keep logged in.
+            // But if they want, they can click "Back" and re-enter.
+        }
+
+        // ============================================================
+        // DASHBOARD LOGIC (unchanged from before)
+        // ============================================================
+
+        let currentFilter = 'all';
+
+        function renderStats() {
+            const stats = getStats();
+            const container = document.getElementById('statsContainer');
+            container.innerHTML = `
+                <div class="stat-card">
+                    <div class="number">${stats.total}</div>
+                    <div class="label">Total Students</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" style="color:#34d399;">${stats.passed}</div>
+                    <div class="label">Passed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" style="color:#f87171;">${stats.failed}</div>
+                    <div class="label">Failed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" style="color:#38bdf8;">${stats.passRate}%</div>
+                    <div class="label">Pass Rate</div>
+                </div>
+            `;
+        }
+
+        function renderTable(filter = 'all') {
+            const results = getAllResults();
+            const filtered = filter === 'all' ? results : results.filter(r => r.section === filter);
+
+            const tbody = document.getElementById('resultsTable');
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align:center; padding:32px; color:#64748b;">
+                            No results found${filter !== 'all' ? ` for section ${filter}` : ''}.
+                        </td>
+                    </tr>
+                `;
+                document.getElementById('rowCount').textContent = '0 records';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(r => {
+                const pct = ((r.score / r.total) * 100).toFixed(1);
+                const passed = pct >= 60;
+                return `
+                    <tr>
+                        <td>${r.email}</td>
+                        <td>${r.studentId}</td>
+                        <td>${r.section}</td>
+                        <td>${r.score}/${r.total}</td>
+                        <td>${pct}%</td>
+                        <td>
+                            <span class="score-badge ${passed ? 'pass' : 'fail'}">
+                                ${passed ? '✅ Passed' : '❌ Failed'}
+                            </span>
+                        </td>
+                        <td>${new Date(r.date).toLocaleDateString()}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            document.getElementById('rowCount').textContent = `${filtered.length} record(s)`;
+        }
+
+        function filterTable(section) {
+            currentFilter = section;
+            renderTable(section);
+        }
+
+        function clearAllData() {
+            if (confirm('⚠️ Are you sure you want to delete ALL exam data? This cannot be undone.')) {
+                if (confirm('Final confirmation: Delete all student results?')) {
+                    localStorage.removeItem(STORAGE_KEY);
+                    renderStats();
+                    renderTable(currentFilter);
+                    alert('All data has been cleared.');
+                }
+            }
+        }
+
+        // Note: renderStats and renderTable are called after successful login above.
+    </script>
+
+</body>
+</html>

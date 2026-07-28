@@ -1,0 +1,696 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    margin: 0;
+}
+
+.container {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 48px;
+    max-width: 540px;
+    width: 100%;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+}
+
+.logo {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.logo h1 {
+    color: #f1f5f9;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+.logo .subtitle {
+    color: #94a3b8;
+    font-size: 14px;
+    font-weight: 400;
+    margin-top: 4px;
+}
+
+.badge {
+    background: rgba(56, 189, 248, 0.15);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    color: #38bdf8;
+    padding: 8px 16px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-block;
+    margin-top: 8px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.domain-info {
+    background: rgba(56, 189, 248, 0.08);
+    border: 1px solid rgba(56, 189, 248, 0.12);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.domain-info .icon {
+    font-size: 18px;
+}
+
+.domain-info .text {
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+.domain-info .text strong {
+    color: #e2e8f0;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    color: #e2e8f0;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 14px 18px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    color: #f1f5f9;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    font-family: inherit;
+    appearance: auto;
+}
+
+.form-group select option {
+    background: #1e293b;
+    color: #f1f5f9;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #38bdf8;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+}
+
+.form-group input::placeholder {
+    color: #64748b;
+}
+
+.form-group .hint {
+    color: #94a3b8;
+    font-size: 12px;
+    margin-top: 4px;
+    display: block;
+}
+
+.btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #38bdf8, #2563eb);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: inherit;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(56, 189, 248, 0.3);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.18);
+    box-shadow: none;
+}
+
+.error {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 10px;
+    padding: 12px 16px;
+    color: #fca5a5;
+    font-size: 14px;
+    margin-top: 16px;
+    display: none;
+}
+
+.error.show {
+    display: block;
+}
+
+.exam-rules {
+    margin-top: 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding-top: 20px;
+}
+
+.exam-rules h3 {
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+}
+
+.exam-rules ul {
+    list-style: none;
+    padding: 0;
+}
+
+.exam-rules ul li {
+    color: #94a3b8;
+    font-size: 13px;
+    padding: 4px 0;
+    padding-left: 20px;
+    position: relative;
+}
+
+.exam-rules ul li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: #38bdf8;
+}
+
+.footer {
+    text-align: center;
+    margin-top: 24px;
+    color: #475569;
+    font-size: 12px;
+}
+
+/* Exam page styles */
+.exam-header {
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(20px);
+}
+
+.exam-header .student-info {
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+.exam-header .student-info strong {
+    color: #e2e8f0;
+}
+
+.exam-header .timer {
+    font-size: 20px;
+    font-weight: 700;
+    color: #38bdf8;
+    font-variant-numeric: tabular-nums;
+}
+
+.exam-header .timer.warning {
+    color: #fbbf24;
+}
+
+.exam-header .timer.danger {
+    color: #f87171;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.exam-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.question-container {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 24px;
+}
+
+.question-number {
+    color: #38bdf8;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.question-text {
+    color: #f1f5f9;
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 1.6;
+    margin-bottom: 24px;
+}
+
+.options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.options label {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 20px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 2px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    color: #e2e8f0;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.options label:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.options input[type="radio"] {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    border: 2px solid #64748b;
+    border-radius: 50%;
+    position: relative;
+    transition: all 0.2s ease;
+    margin-top: 1px;
+}
+
+.options input[type="radio"]:checked {
+    border-color: #38bdf8;
+    background: #38bdf8;
+}
+
+.options input[type="radio"]:checked::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px;
+    height: 6px;
+    background: white;
+    border-radius: 50%;
+}
+
+.options input[type="radio"]:checked + span {
+    color: #f1f5f9;
+}
+
+.options input[type="radio"]:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.options label:has(input:checked) {
+    background: rgba(56, 189, 248, 0.1);
+    border-color: #38bdf8;
+}
+
+.options label:has(input:disabled) {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.exam-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.exam-nav .btn {
+    width: auto;
+    padding: 12px 32px;
+}
+
+.exam-nav .progress {
+    color: #94a3b8;
+    font-size: 14px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    margin-top: 12px;
+    overflow: hidden;
+}
+
+.progress-bar .fill {
+    height: 100%;
+    background: linear-gradient(90deg, #38bdf8, #2563eb);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+/* Result page */
+.result-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.result-score {
+    text-align: center;
+    padding: 48px 24px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    margin-bottom: 24px;
+}
+
+.result-score .score-number {
+    font-size: 72px;
+    font-weight: 800;
+    color: #38bdf8;
+}
+
+.result-score .score-label {
+    color: #94a3b8;
+    font-size: 18px;
+    margin-top: 8px;
+}
+
+.result-score .score-status {
+    margin-top: 12px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.result-score .score-status.pass {
+    color: #34d399;
+}
+
+.result-score .score-status.fail {
+    color: #f87171;
+}
+
+.result-detail {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 16px;
+}
+
+.result-detail h3 {
+    color: #f1f5f9;
+    font-size: 16px;
+    margin-bottom: 12px;
+}
+
+.result-detail .item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    color: #94a3b8;
+    font-size: 14px;
+}
+
+.result-detail .item .correct {
+    color: #34d399;
+}
+
+.result-detail .item .wrong {
+    color: #f87171;
+}
+
+/* Instructor */
+.instructor-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.instructor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.instructor-header h1 {
+    color: #f1f5f9;
+    font-size: 28px;
+}
+
+.instructor-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+}
+
+.stat-card .number {
+    font-size: 32px;
+    font-weight: 700;
+    color: #38bdf8;
+}
+
+.stat-card .label {
+    color: #94a3b8;
+    font-size: 13px;
+    margin-top: 4px;
+}
+
+.table-container {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.table-container table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table-container th {
+    background: rgba(255, 255, 255, 0.06);
+    color: #e2e8f0;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 14px 16px;
+    text-align: left;
+}
+
+.table-container td {
+    color: #cbd5e1;
+    font-size: 14px;
+    padding: 12px 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.table-container tr:hover td {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.table-container .score-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.table-container .score-badge.pass {
+    background: rgba(52, 211, 153, 0.15);
+    color: #34d399;
+}
+
+.table-container .score-badge.fail {
+    background: rgba(248, 113, 113, 0.15);
+    color: #f87171;
+}
+
+.actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 16px 0;
+}
+
+.actions .btn {
+    width: auto;
+    padding: 12px 24px;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 24px 16px;
+    }
+    .exam-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .exam-header .timer {
+        font-size: 28px;
+    }
+    .question-container {
+        padding: 20px;
+    }
+    .result-score .score-number {
+        font-size: 48px;
+    }
+    .instructor-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .table-container {
+        overflow-x: auto;
+    }
+}
+
+
+/* ===== PASSWORD OVERLAY ===== */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.92);
+    backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.login-box {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 48px 40px;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+    text-align: center;
+}
+
+.login-box h2 {
+    color: #f1f5f9;
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.login-box input[type="password"] {
+    width: 100%;
+    padding: 14px 18px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    color: #f1f5f9;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.login-box input[type="password"]:focus {
+    outline: none;
+    border-color: #38bdf8;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+}
+
+.login-box .btn {
+    width: 100%;
+    padding: 14px;
+    margin-top: 8px;
+}
+
+/* Small fix for the change password inputs */
+#instructorDashboard input[type="password"] {
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    color: #f1f5f9;
+    font-size: 14px;
+    min-width: 200px;
+}
+
+#instructorDashboard input[type="password"]:focus {
+    outline: none;
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+}

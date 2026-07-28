@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prelim Exam - In Progress</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body style="display:block; background:#0f172a; min-height:100vh;">
+
+<div class="exam-header" id="examHeader">
+    <div class="student-info">
+        <strong id="studentName">Student</strong> · 
+        <span id="studentSection">Section</span>
+    </div>
+    <div class="timer" id="timerDisplay">60:00</div>
+</div>
+
+<div class="exam-container">
+    <div class="question-container" id="questionContainer">
+        <div class="question-number" id="questionNumber">Question 1 of 100</div>
+        <div class="question-text" id="questionText">Loading question...</div>
+        <div class="options" id="optionsContainer"></div>
+    </div>
+
+    <div class="progress-bar">
+        <div class="fill" id="progressFill" style="width:0%"></div>
+    </div>
+
+    <div class="exam-nav">
+        <span class="progress" id="progressText">0 / 100 answered</span>
+        <div style="display:flex; gap:12px;">
+            <button class="btn btn-secondary" id="submitBtn" style="width:auto; padding:12px 32px; background:rgba(239,68,68,0.2); border:1px solid rgba(239,68,68,0.3); color:#f87171;">
+                ⚠️ Submit Exam
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="questions.js"></script>
+<script src="data.js"></script>
+<script>
+    // Check login
+    const email = sessionStorage.getItem('studentEmail');
+    const studentId = sessionStorage.getItem('studentId');
+    const section = sessionStorage.getItem('studentSection');
+    const startTime = parseInt(sessionStorage.getItem('examStartTime'));
+
+    if (!email || !studentId || !section || !startTime) {
+        window.location.href = 'index.html';
+    }
+
+    if (getStudentResult(email)) {
+        alert('You have already completed this exam.');
+        window.location.href = 'result.html';
+    }
+
+    document.getElementById('studentName').textContent = email.split('@')[0];
+    document.getElementById('studentSection').textContent = section;
+
+    // Timer
+    const EXAM_DURATION = 60 * 60;
+    let timeLeft = EXAM_DURATION;
+    let timerInterval;
+
+    function updateTimer() {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        timeLeft = EXAM_DURATION - elapsed;
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            document.getElementById('timerDisplay').textContent = '00:00';
+            document.getElementById('timerDisplay').classList.add('danger');
+            submitExam();
+            return;
+        }
+        const mins = Math.floor(timeLeft / 60);
+        const secs = timeLeft % 60;
+        document.getElementById('timerDisplay').textContent =
+            `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        if (timeLeft < 300) {
+            document.getElementById('timerDisplay').classList.add('danger');
+        } else if (timeLeft < 600) {
+            document.getElementById('timerDisplay').classList.add('warning');
+        }
+    }
+
+    timerInterval = setInterval(updateTimer, 1000);
+    updateTimer();
+
+    // Questions
+    let questions = [];
+    let currentIndex = 0;
+    let answers = {};
+    let totalQuestions = 0;
+
+    function loadQuestions() {
+        // Get 100 random questions from the bank
+        const all = [...QUESTION_BANK];
+        const shuffled = shuffleArray(all);
+        questions = shuffled.slice(0, 100);
+        totalQuestions = questions.length;
+        currentIndex = 0;
+        answers = {};
+        renderQuestion();
+    }
+
+    function renderQuestion() {
+        if (currentIndex >= totalQuestions) {
+            submitExam();
+            return;
+        }
+        const q = questions[currentIndex];
+        document.getElementById('questionNumber').textContent =
+            `Question ${currentIndex + 1} of ${totalQuestions}`;
+        document.getElementById('questionText').textContent = q.question;
+
+        const container = document.getElementById('optionsContainer');
+        container.innerHTML = '';
+        const letters = ['A', 'B', 'C', 'D'];
+        q.options.forEach((opt, idx) => {
+            const label = document.createElement('label');
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.name = 'question';
+            radio.value = idx;
+            radio.id = `opt${idx}`;
+            if (answers[currentIndex] !== undefined) {
+                radio.checked = (answers[currentIndex] === idx);
+                radio.disabled = true;
+            }
+            radio.addEventListener('change', function() {
+                if (this.checked) {
+                    answers[currentIndex] = idx;
+                    updateProgress();
+                    setTimeout(() => {
+                        if (currentIndex < totalQuestions - 1) {
+                            currentIndex++;
+                            renderQuestion();
+                        }
+                    }, 300);
+                }
+            });
+            const span = document.createElement('span');
+            span.textContent = `${letters[idx]}. ${opt}`;
+            label.appendChild(radio);
+            label.appendChild(span);
+            container.appendChild(label);
+        });
+        updateProgress();
+    }
+
+    function updateProgress() {
+        const answered = Object.keys(answers).length;
+        document.getElementById('progressText').textContent =
+            `${answered} / ${totalQuestions} answered`;
+        const pct = (answered / totalQuestions) * 100;
+        document.getElementById('progressFill').style.width = `${pct}%`;
+    }
+
+    // Anti-cheat
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('copy', e => e.preventDefault());
+    document.addEventListener('paste', e => e.preventDefault());
+
+    window.addEventListener('beforeunload', function(e) {
+        const answered = Object.keys(answers).length;
+        if (answered < totalQuestions) {
+            e.preventDefault();
+            e.returnValue = 'You have not completed the exam. Are you sure you want to leave?';
+            return e.returnValue;
+        }
+    });
+
+    document.getElementById('submitBtn').addEventListener('click', function() {
+        if (confirm('Are you sure you want to submit? Unanswered questions will be marked wrong.')) {
+            submitExam();
+        }
+    });
+
+    function submitExam() {
+        clearInterval(timerInterval);
+        let score = 0;
+        const answeredMap = {};
+        const details = [];
+        questions.forEach((q, idx) => {
+            const selected = answers[idx];
+            const isCorrect = selected === q.correct;
+            if (isCorrect) score++;
+            answeredMap[q.id] = selected;
+            details.push({
+                question: q.question,
+                selected: selected !== undefined ? q.options[selected] : 'Not answered',
+                correct: q.options[q.correct],
+                isCorrect: isCorrect
+            });
+        });
+        saveResult(email, studentId, section, score, totalQuestions, answeredMap, questions);
+        sessionStorage.setItem('examScore', score);
+        sessionStorage.setItem('examTotal', totalQuestions);
+        sessionStorage.setItem('examDetails', JSON.stringify(details));
+        sessionStorage.removeItem('examStartTime');
+        window.location.href = 'result.html';
+    }
+
+    // Shuffle helper
+    function shuffleArray(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    // Start
+    loadQuestions();
+
+    // Keyboard shortcut: Alt+S to submit
+    document.addEventListener('keydown', function(e) {
+        if (e.altKey && e.key === 's') {
+            document.getElementById('submitBtn').click();
+        }
+    });
+</script>
+</body>
+</html>
