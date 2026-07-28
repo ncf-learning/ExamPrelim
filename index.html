@@ -133,18 +133,8 @@
                 }
             }
 
-            // --- Generate encryption key from email + secret salt ---
-            function generateKey(email) {
-                const salt = 'NCF-2025-SECURE-EXAM';
-                const combined = email + salt;
-                let key = 0;
-                for (let i = 0; i < combined.length; i++) {
-                    key = (key * 31 + combined.charCodeAt(i)) & 0xFFFFFFFF;
-                }
-                return key.toString(16);
-            }
-
-            form.addEventListener('submit', function(e) {
+            // --- SERVER-SIDE LOGIN ---
+            form.addEventListener('submit', async function(e) {
                 e.preventDefault();
 
                 const email = emailInput.value.trim();
@@ -157,7 +147,6 @@
                 const isValidDomain = ALLOWED_DOMAINS.some(function(domain) {
                     return email.toLowerCase().endsWith(domain);
                 });
-
                 if (!isValidDomain) {
                     showError('Invalid email domain. Please use @ncf.edu.ph or @gbox.ncf.edu.ph');
                     emailInput.focus();
@@ -192,14 +181,14 @@
                     return;
                 }
 
-                // Check if exam is active for this section
+                // Check if exam is active for this section (client-side, optional)
                 if (!isExamActive(section)) {
                     showError('The exam is not currently active for your section. Please check with your instructor.');
                     sectionSelect.focus();
                     return;
                 }
 
-                // Check if already took exam
+                // Check if already took exam (client-side)
                 try {
                     const existing = getStudentResult(email);
                     if (existing) {
@@ -211,25 +200,39 @@
                     }
                 } catch (err) {}
 
-                // Store session data
-                sessionStorage.setItem('studentEmail', email);
-                sessionStorage.setItem('studentFirstName', firstName);
-                sessionStorage.setItem('studentLastName', lastName);
-                sessionStorage.setItem('studentId', studentId);
-                sessionStorage.setItem('studentSection', section);
-                sessionStorage.setItem('examStartTime', String(Date.now()));
+                // --- Send login request to server ---
+                try {
+                    const response = await fetch('/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, firstName, lastName, studentId, section })
+                    });
 
-                // Generate and store encryption key (used to decrypt questions)
-                const key = generateKey(email);
-                sessionStorage.setItem('examDecryptionKey', key);
+                    const data = await response.json();
 
-                window.location.href = 'exam.html';
+                    if (data.success) {
+                        // Store session data for client-side use
+                        sessionStorage.setItem('studentEmail', email);
+                        sessionStorage.setItem('studentFirstName', firstName);
+                        sessionStorage.setItem('studentLastName', lastName);
+                        sessionStorage.setItem('studentId', studentId);
+                        sessionStorage.setItem('studentSection', section);
+                        sessionStorage.setItem('examStartTime', String(Date.now()));
+
+                        // (No encryption key needed anymore – questions come from server)
+                        window.location.href = 'exam.html';
+                    } else {
+                        showError(data.error || 'Login failed. Please try again.');
+                    }
+                } catch (err) {
+                    showError('Server error. Please try again later.');
+                    console.error(err);
+                }
             });
 
-            // --- Anti-inspection measures ---
+            // --- Anti-inspection measures (unchanged) ---
             document.addEventListener('contextmenu', function(e) { e.preventDefault(); return false; });
 
-            // Block F12, Ctrl+Shift+I, Ctrl+U, Ctrl+Shift+J, etc.
             document.addEventListener('keydown', function(e) {
                 const isDev = e.key === 'F12' ||
                               (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J')) ||
@@ -241,14 +244,12 @@
                 }
             });
 
-            // Disable copy/paste on all inputs
             document.querySelectorAll('#loginForm input, #loginForm select').forEach(function(el) {
                 el.addEventListener('copy', function(e) { e.preventDefault(); });
                 el.addEventListener('paste', function(e) { e.preventDefault(); });
                 el.addEventListener('cut', function(e) { e.preventDefault(); });
             });
 
-            // Simple devtools detection (periodic debugger)
             function detectDevTools() {
                 const start = performance.now();
                 debugger;
@@ -260,7 +261,7 @@
             }
             setInterval(detectDevTools, 3000);
 
-            console.log('✅ Secure login page loaded.');
+            console.log('✅ Secure login page loaded (server‑side).');
         })();
     </script>
 </body>
