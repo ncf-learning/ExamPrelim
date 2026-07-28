@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Prelim Exam – Information Security</title>
+    <title>Prelim Exam – Social and Professional Issues</title>
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
     <div class="container">
 
         <div class="logo">
-            <h1>📋 Prelim Examination</h1>
-            <div class="subtitle">Information Security &amp; Cybersecurity Fundamentals</div>
+            <h1>📋 PRELIMINARY EXAMINATION</h1>
+            <div class="subtitle">Social and Professional Issues</div>
             <span class="badge">Weeks 1–3 • 60 Minutes</span>
         </div>
 
@@ -26,11 +26,25 @@
                 <input type="email" id="email" placeholder="your.email@ncf.edu.ph" required autofocus />
                 <span class="hint">Use your official NCF email address</span>
             </div>
+
+            <div class="form-group">
+                <label for="firstName">First Name</label>
+                <input type="text" id="firstName" placeholder="e.g., Juan" required />
+                <span class="hint">Enter your first name</span>
+            </div>
+
+            <div class="form-group">
+                <label for="lastName">Last Name</label>
+                <input type="text" id="lastName" placeholder="e.g., Dela Cruz" required />
+                <span class="hint">Enter your last name</span>
+            </div>
+
             <div class="form-group">
                 <label for="studentId">Student ID</label>
                 <input type="text" id="studentId" placeholder="e.g., NCF-2024-0001" required />
                 <span class="hint">Enter your official student ID number</span>
             </div>
+
             <div class="form-group">
                 <label for="section">Section</label>
                 <select id="section" required>
@@ -42,6 +56,7 @@
                 </select>
                 <span class="hint">Select your class section</span>
             </div>
+
             <button type="submit" class="btn" id="startBtn">Start Examination</button>
         </form>
 
@@ -77,6 +92,8 @@
 
             const form = document.getElementById('loginForm');
             const emailInput = document.getElementById('email');
+            const firstNameInput = document.getElementById('firstName');
+            const lastNameInput = document.getElementById('lastName');
             const studentIdInput = document.getElementById('studentId');
             const sectionSelect = document.getElementById('section');
             const errorDiv = document.getElementById('errorMessage');
@@ -92,15 +109,34 @@
                 errorDiv.classList.remove('show');
             }
 
+            // Clear error on input change
             emailInput.addEventListener('input', hideError);
+            firstNameInput.addEventListener('input', hideError);
+            lastNameInput.addEventListener('input', hideError);
             studentIdInput.addEventListener('input', hideError);
             sectionSelect.addEventListener('change', hideError);
 
-            // --- Generate a simple encryption key from email + secret salt ---
+            // --- Check if exam is active for a given section at current time ---
+            function isExamActive(section) {
+                const scheduleStr = localStorage.getItem('exam_schedule');
+                if (!scheduleStr) return false; // no schedule set, exam inactive
+                try {
+                    const schedule = JSON.parse(scheduleStr);
+                    const now = Date.now();
+                    const entry = schedule[section];
+                    if (!entry) return false;
+                    const start = new Date(entry.start).getTime();
+                    const end = new Date(entry.end).getTime();
+                    return now >= start && now <= end;
+                } catch (e) {
+                    return false;
+                }
+            }
+
+            // --- Generate encryption key from email + secret salt ---
             function generateKey(email) {
-                const salt = 'NCF-2025-SECURE-EXAM'; // change this to a random string
+                const salt = 'NCF-2025-SECURE-EXAM';
                 const combined = email + salt;
-                // Simple hash: XOR each char and produce a numeric key
                 let key = 0;
                 for (let i = 0; i < combined.length; i++) {
                     key = (key * 31 + combined.charCodeAt(i)) & 0xFFFFFFFF;
@@ -112,9 +148,12 @@
                 e.preventDefault();
 
                 const email = emailInput.value.trim();
+                const firstName = firstNameInput.value.trim();
+                const lastName = lastNameInput.value.trim();
                 const studentId = studentIdInput.value.trim();
                 const section = sectionSelect.value;
 
+                // Validate email domain
                 const isValidDomain = ALLOWED_DOMAINS.some(function(domain) {
                     return email.toLowerCase().endsWith(domain);
                 });
@@ -125,14 +164,37 @@
                     return;
                 }
 
+                // Validate first name
+                if (!firstName || firstName.length < 1) {
+                    showError('Please enter your first name.');
+                    firstNameInput.focus();
+                    return;
+                }
+
+                // Validate last name
+                if (!lastName || lastName.length < 1) {
+                    showError('Please enter your last name.');
+                    lastNameInput.focus();
+                    return;
+                }
+
+                // Validate student ID
                 if (!studentId || studentId.length < 5) {
                     showError('Please enter a valid Student ID (at least 5 characters).');
                     studentIdInput.focus();
                     return;
                 }
 
+                // Validate section
                 if (!section) {
                     showError('Please select your section.');
+                    sectionSelect.focus();
+                    return;
+                }
+
+                // Check if exam is active for this section
+                if (!isExamActive(section)) {
+                    showError('The exam is not currently active for your section. Please check with your instructor.');
                     sectionSelect.focus();
                     return;
                 }
@@ -151,6 +213,8 @@
 
                 // Store session data
                 sessionStorage.setItem('studentEmail', email);
+                sessionStorage.setItem('studentFirstName', firstName);
+                sessionStorage.setItem('studentLastName', lastName);
                 sessionStorage.setItem('studentId', studentId);
                 sessionStorage.setItem('studentSection', section);
                 sessionStorage.setItem('examStartTime', String(Date.now()));
@@ -187,15 +251,13 @@
             // Simple devtools detection (periodic debugger)
             function detectDevTools() {
                 const start = performance.now();
-                debugger; // if devtools is open, this will pause and cause a time difference
+                debugger;
                 const end = performance.now();
                 if (end - start > 100) {
-                    // devtools was open
                     alert('Developer tools detected. Please close them to continue.');
                     window.location.href = 'about:blank';
                 }
             }
-            // Run detection every 3 seconds (only if exam hasn't started yet)
             setInterval(detectDevTools, 3000);
 
             console.log('✅ Secure login page loaded.');
