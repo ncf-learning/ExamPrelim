@@ -32,7 +32,10 @@
             const type = params.get('type');
 
             if (!token || type !== 'email') {
-                statusEl.textContent = '❌ Invalid confirmation link.';
+                statusEl.innerHTML = `
+                    ❌ Invalid confirmation link.<br>
+                    <a href="index.html" style="color:#3b82f6; margin-top:1rem; display:inline-block;">Go to Login</a>
+                `;
                 statusEl.style.color = '#ef4444';
                 return;
             }
