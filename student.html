@@ -330,10 +330,6 @@
     </main>
 </div>
 
-<!-- ============================================================ -->
-<!-- MODALS -->
-<!-- ============================================================ -->
-
 <script type="module">
 // ============================================================
 // 1. IMPORTS
@@ -426,15 +422,30 @@ async function init() {
 }
 
 // ============================================================
-// 5. ENROLLED COURSES
+// 5. ENROLLED COURSES (Two-step fetch – safe with RLS)
 // ============================================================
 async function loadEnrolledCourses() {
-    const { data, error } = await supabase
+    // Step 1: Get course IDs from enrollments
+    const { data: enrollments, error: e1 } = await supabase
         .from('course_enrollments')
-        .select('course_id, courses(id, code, name)')
+        .select('course_id')
         .eq('student_id', currentUser.id);
-    if (error) { console.error(error); return; }
-    enrolledCourses = data.map(e => e.courses).filter(c => c);
+    if (e1) { console.error('Error fetching enrollments:', e1); return; }
+    if (!enrollments || enrollments.length === 0) {
+        enrolledCourses = [];
+        document.getElementById('myCoursesList').innerHTML = '<div class="empty-state">You are not enrolled in any courses.</div>';
+        return;
+    }
+    const courseIds = enrollments.map(e => e.course_id);
+
+    // Step 2: Fetch course details
+    const { data: courses, error: e2 } = await supabase
+        .from('courses')
+        .select('id, code, name')
+        .in('id', courseIds);
+    if (e2) { console.error('Error fetching courses:', e2); return; }
+    enrolledCourses = courses || [];
+
     // Display in profile
     const container = document.getElementById('myCoursesList');
     if (enrolledCourses.length === 0) {
@@ -938,8 +949,6 @@ async function loadDashboardStats() {
     }
 
     // Attendance stats (from loaded data)
-    // We'll use the values from loadAttendance, but we already have them in the DOM
-    // Just ensure they reflect; we can read from the attendance section elements
     const presentEl = document.getElementById('presentCount');
     const absentEl = document.getElementById('absentCount');
     document.getElementById('dashPresent').textContent = presentEl ? presentEl.textContent : '0';
@@ -950,7 +959,6 @@ async function loadRecentActivity() {
     const container = document.getElementById('recentActivity');
     const activities = [];
 
-    // Get latest recitations
     if (enrolledCourses.length > 0) {
         const courseIds = enrolledCourses.map(c => c.id);
         const { data: recits } = await supabase
@@ -969,7 +977,6 @@ async function loadRecentActivity() {
             });
         }
 
-        // Get latest excuse letters
         const { data: excuses } = await supabase
             .from('excuse_letters')
             .select('upload_date, courses(code), status')
@@ -993,7 +1000,6 @@ async function loadRecentActivity() {
         return;
     }
 
-    // Sort by time (newest first) and limit to 5
     activities.sort((a, b) => new Date(b.time) - new Date(a.time));
     const top = activities.slice(0, 5);
 
