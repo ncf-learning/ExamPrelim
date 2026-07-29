@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Dashboard – NCF Learning System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+        /* ===== RESET & BASE ===== */
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Inter',sans-serif; background:#f1f5f9; color:#0f172a; }
+        .app { display:flex; min-height:100vh; }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            width:260px; background:#0f172a; padding:1.5rem 1rem;
+            position:sticky; top:0; height:100vh; overflow-y:auto;
+            display:flex; flex-direction:column; flex-shrink:0;
+        }
+        .sidebar .brand { display:flex; align-items:center; gap:0.75rem; padding-bottom:1.5rem; border-bottom:1px solid rgba(255,255,255,0.08); margin-bottom:1.5rem; }
+        .sidebar .brand .logo { width:40px; height:40px; background:#3b82f6; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; }
+        .sidebar .brand .name { font-weight:700; font-size:1.1rem; color:#fff; }
+        .sidebar .brand .name small { display:block; font-weight:400; font-size:0.65rem; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px; }
+        .sidebar nav .nav-label { font-size:0.6rem; text-transform:uppercase; letter-spacing:0.8px; color:#64748b; padding:0.75rem 0.75rem 0.4rem; font-weight:600; }
+        .sidebar nav .nav-item { display:flex; align-items:center; gap:0.75rem; padding:0.55rem 0.75rem; border-radius:8px; color:#94a3b8; font-size:0.85rem; font-weight:500; cursor:pointer; transition:0.2s; }
+        .sidebar nav .nav-item:hover { background:rgba(255,255,255,0.06); color:#fff; }
+        .sidebar nav .nav-item.active { background:rgba(59,130,246,0.15); color:#60a5fa; }
+        .sidebar nav .nav-item .icon { font-size:1.1rem; width:24px; text-align:center; }
+        .sidebar .user-section { border-top:1px solid rgba(255,255,255,0.08); padding-top:1rem; margin-top:auto; }
+        .sidebar .user-section .user-card { display:flex; align-items:center; gap:0.75rem; padding:0.5rem 0.75rem; border-radius:8px; background:rgba(255,255,255,0.04); }
+        .sidebar .user-section .user-card .avatar { width:36px; height:36px; border-radius:50%; background:#3b82f6; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:600; }
+        .sidebar .user-section .user-card .info .name { font-size:0.85rem; font-weight:600; color:#fff; }
+        .sidebar .user-section .user-card .info .role { font-size:0.7rem; color:#94a3b8; }
+        .sidebar .user-section .logout-btn { display:flex; align-items:center; gap:0.5rem; padding:0.6rem 0.75rem; border-radius:8px; color:#f87171; font-size:0.85rem; font-weight:500; cursor:pointer; border:none; background:transparent; width:100%; font-family:inherit; transition:0.2s; }
+        .sidebar .user-section .logout-btn:hover { background:rgba(239,68,68,0.1); }
+
+        /* ===== MAIN ===== */
+        .main { flex:1; padding:2rem 2.5rem; overflow-y:auto; background:#f1f5f9; }
+        .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem; flex-wrap:wrap; gap:1rem; }
+        .page-header h1 { font-size:1.6rem; font-weight:700; }
+        .page-header h1 small { font-size:0.85rem; font-weight:400; color:#94a3b8; display:block; }
+        .page-section { display:none; }
+        .page-section.active { display:block; animation:fadeIn 0.25s ease; }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+        /* ===== CARDS & GRID ===== */
+        .card { background:#fff; border-radius:12px; border:1px solid #e2e8f0; padding:1.5rem; margin-bottom:1.5rem; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+        .card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
+        .card-header h3 { font-size:1rem; font-weight:600; }
+        .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1rem; margin-bottom:1.5rem; }
+        .stat-card { background:#fff; border-radius:12px; padding:1rem 1.25rem; border:1px solid #e2e8f0; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+        .stat-card .number { font-size:1.5rem; font-weight:700; }
+        .stat-card .label { font-size:0.75rem; color:#94a3b8; font-weight:500; }
+        .stat-card .icon { font-size:1.8rem; float:right; opacity:0.3; }
+
+        /* ===== MENU GRID (Dashboard cards) ===== */
+        .menu-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1.5rem; }
+        .menu-card {
+            background:#fff; border-radius:12px; padding:1.5rem; text-align:center;
+            border:1px solid #e2e8f0; cursor:pointer; transition:0.2s;
+            box-shadow:0 1px 3px rgba(0,0,0,0.06);
+        }
+        .menu-card:hover { transform:translateY(-4px); box-shadow:0 8px 16px rgba(0,0,0,0.1); border-color:#3b82f6; }
+        .menu-card .icon { font-size:2.5rem; margin-bottom:0.5rem; }
+        .menu-card .title { font-weight:600; font-size:1rem; }
+        .menu-card .desc { font-size:0.8rem; color:#94a3b8; }
+
+        /* ===== TABLES ===== */
+        .table-wrap { overflow-x:auto; }
+        table { width:100%; border-collapse:collapse; font-size:0.875rem; }
+        table th { text-align:left; padding:0.6rem 0.75rem; color:#475569; font-weight:600; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.5px; border-bottom:2px solid #e2e8f0; background:#f1f5f9; }
+        table td { padding:0.6rem 0.75rem; border-bottom:1px solid #f1f5f9; }
+        table tbody tr:hover { background:#f1f5f9; }
+
+        /* ===== FORMS ===== */
+        .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+        .form-grid .full { grid-column:1/-1; }
+        .form-group { display:flex; flex-direction:column; gap:0.25rem; }
+        .form-group label { font-size:0.8rem; font-weight:500; color:#475569; }
+        .form-group input, .form-group select, .form-group textarea { padding:0.6rem 0.8rem; border:1px solid #e2e8f0; border-radius:8px; font-size:0.875rem; font-family:inherit; background:#fff; width:100%; transition:0.2s; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,0.1); }
+
+        /* ===== BUTTONS ===== */
+        .btn { padding:0.55rem 1.25rem; border-radius:8px; font-size:0.85rem; font-weight:600; font-family:inherit; cursor:pointer; border:none; transition:0.2s; display:inline-flex; align-items:center; gap:0.5rem; }
+        .btn-primary { background:#3b82f6; color:#fff; }
+        .btn-primary:hover { background:#2563eb; }
+        .btn-success { background:#22c55e; color:#fff; }
+        .btn-success:hover { background:#16a34a; }
+        .btn-danger { background:#ef4444; color:#fff; }
+        .btn-danger:hover { background:#dc2626; }
+        .btn-outline { background:transparent; color:#475569; border:1px solid #e2e8f0; }
+        .btn-outline:hover { background:#f1f5f9; }
+        .btn-sm { padding:0.2rem 0.7rem; font-size:0.75rem; }
+        .btn-warning { background:#f59e0b; color:#fff; }
+        .btn-warning:hover { background:#d97706; }
+
+        /* ===== BADGES ===== */
+        .badge { display:inline-block; padding:0.15rem 0.6rem; border-radius:20px; font-size:0.7rem; font-weight:600; }
+        .badge-pending { background:#fef3c7; color:#92400e; }
+        .badge-approved { background:#d1fae5; color:#065f46; }
+        .badge-rejected { background:#fee2e2; color:#991b1b; }
+        .badge-success { background:#d1fae5; color:#065f46; }
+        .badge-warning { background:#fef3c7; color:#92400e; }
+        .badge-danger { background:#fee2e2; color:#991b1b; }
+        .badge-info { background:#e0f2fe; color:#0369a1; }
+
+        /* ===== TABS ===== */
+        .tabs { display:flex; gap:0.5rem; border-bottom:2px solid #e2e8f0; margin-bottom:1rem; flex-wrap:wrap; }
+        .tab { padding:0.5rem 1rem; cursor:pointer; border-bottom:2px solid transparent; transition:0.2s; font-weight:500; font-size:0.9rem; color:#64748b; }
+        .tab.active { border-bottom-color:#3b82f6; color:#0f172a; }
+        .tab:hover { color:#0f172a; }
+        .tab-content { display:none; }
+        .tab-content.active { display:block; }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state { text-align:center; padding:2.5rem 1rem; color:#94a3b8; }
+        .empty-state .icon { font-size:2.5rem; margin-bottom:0.5rem; }
+
+        /* ===== MODAL ===== */
+        .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); display:none; align-items:center; justify-content:center; z-index:1000; }
+        .modal.active { display:flex; }
+        .modal-content { background:#fff; border-radius:12px; padding:2rem; max-width:600px; width:95%; max-height:80vh; overflow-y:auto; }
+        .modal-content .close { float:right; background:none; border:none; font-size:1.5rem; cursor:pointer; }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width:1024px) { .sidebar { width:220px; } .main { padding:1.5rem; } .form-grid { grid-template-columns:1fr; } }
+        @media (max-width:768px) { .app { flex-direction:column; } .sidebar { width:100%; height:auto; position:static; padding:1rem; } .sidebar nav { display:flex; flex-wrap:wrap; gap:0.25rem; } .sidebar nav .nav-label { display:none; } .sidebar nav .nav-item { padding:0.4rem 0.7rem; font-size:0.8rem; } .sidebar .user-section { display:none; } .main { padding:1rem; } .stats-grid { grid-template-columns:1fr 1fr; } .menu-grid { grid-template-columns:1fr 1fr; } }
+        @media (max-width:480px) { .stats-grid { grid-template-columns:1fr; } .menu-grid { grid-template-columns:1fr; } .page-header { flex-direction:column; align-items:flex-start; } }
+
+        /* ===== RECITATION BUTTON FLASH ===== */
+        .recite-btn { background:#22c55e; color:#fff; animation:pulse 2s infinite; }
+        .recite-btn:hover { background:#16a34a; }
+        @keyframes pulse { 0% { box-shadow:0 0 0 0 rgba(34,197,94,0.5); } 70% { box-shadow:0 0 0 10px rgba(34,197,94,0); } 100% { box-shadow:0 0 0 0 rgba(34,197,94,0); } }
+    </style>
+</head>
+<body>
+
+<div class="app">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="logo">N</div>
+            <div class="name">NCF LTS <small>Student Portal</small></div>
+        </div>
+        <nav>
+            <div class="nav-label">Main</div>
+            <div class="nav-item active" data-section="dashboard"><span class="icon">🏠</span> Dashboard</div>
+            <div class="nav-item" data-section="profile"><span class="icon">👤</span> Profile</div>
+            <div class="nav-item" data-section="activities"><span class="icon">📋</span> Activities</div>
+            <div class="nav-label">Academics</div>
+            <div class="nav-item" data-section="assessments"><span class="icon">✏️</span> Assessments</div>
+            <div class="nav-item" data-section="grades"><span class="icon">📈</span> Grades</div>
+            <div class="nav-label">Attendance</div>
+            <div class="nav-item" data-section="attendance"><span class="icon">📅</span> Attendance</div>
+            <div class="nav-item" data-section="recitation"><span class="icon">🎤</span> Recitation</div>
+        </nav>
+        <div class="user-section">
+            <div class="user-card">
+                <div class="avatar" id="userAvatar">S</div>
+                <div class="info">
+                    <div class="name" id="userName">Loading...</div>
+                    <div class="role">Student</div>
+                </div>
+            </div>
+            <button class="logout-btn" id="logoutBtn">🚪 Sign Out</button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main">
+
+        <!-- ==================== DASHBOARD (Main Menu) ==================== -->
+        <section id="section-dashboard" class="page-section active">
+            <div class="page-header">
+                <h1>Dashboard <small>Welcome to your learning hub</small></h1>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-grid" id="dashboardStats">
+                <div class="stat-card"><span class="icon">📘</span><div class="number" id="dashCourses">0</div><div class="label">Courses</div></div>
+                <div class="stat-card"><span class="icon">📋</span><div class="number" id="dashAssessments">0</div><div class="label">Upcoming Assessments</div></div>
+                <div class="stat-card"><span class="icon">✅</span><div class="number" id="dashPresent">0</div><div class="label">Present</div></div>
+                <div class="stat-card"><span class="icon">❌</span><div class="number" id="dashAbsent">0</div><div class="label">Absent</div></div>
+            </div>
+
+            <!-- Quick Menu Cards -->
+            <div class="menu-grid">
+                <div class="menu-card" onclick="switchSection('profile')">
+                    <div class="icon">👤</div>
+                    <div class="title">My Profile</div>
+                    <div class="desc">View & update your info</div>
+                </div>
+                <div class="menu-card" onclick="switchSection('activities')">
+                    <div class="icon">📋</div>
+                    <div class="title">Activities</div>
+                    <div class="desc">Upcoming assignments</div>
+                </div>
+                <div class="menu-card" onclick="switchSection('assessments')">
+                    <div class="icon">✏️</div>
+                    <div class="title">Assessments</div>
+                    <div class="desc">Take exams & view results</div>
+                </div>
+                <div class="menu-card" onclick="switchSection('grades')">
+                    <div class="icon">📈</div>
+                    <div class="title">Grades</div>
+                    <div class="desc">Period & final grades</div>
+                </div>
+                <div class="menu-card" onclick="switchSection('attendance')">
+                    <div class="icon">📅</div>
+                    <div class="title">Attendance</div>
+                    <div class="desc">Track presence & excuses</div>
+                </div>
+                <div class="menu-card" onclick="switchSection('recitation')">
+                    <div class="icon">🎤</div>
+                    <div class="title">Recitation</div>
+                    <div class="desc">Log class participation</div>
+                </div>
+            </div>
+
+            <!-- Recent Activity Feed -->
+            <div class="card" style="margin-top:1.5rem;">
+                <div class="card-header"><h3>📌 Recent Updates</h3></div>
+                <div id="recentActivity"><div class="empty-state">No recent activity.</div></div>
+            </div>
+        </section>
+
+        <!-- ==================== PROFILE ==================== -->
+        <section id="section-profile" class="page-section">
+            <div class="page-header"><h1>My Profile <small>View and update your information</small></h1></div>
+            <div class="card">
+                <div class="card-header"><h3>Personal Details</h3></div>
+                <form id="profileForm" class="form-grid">
+                    <div class="form-group full"><label>Email (read-only)</label><input type="email" id="profileEmail" disabled /></div>
+                    <div class="form-group"><label>First Name</label><input type="text" id="profileFirstName" required /></div>
+                    <div class="form-group"><label>Last Name</label><input type="text" id="profileLastName" required /></div>
+                    <div class="form-group full"><button type="submit" class="btn btn-primary">Update Profile</button></div>
+                </form>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3>My Courses</h3></div>
+                <div id="myCoursesList"><div class="empty-state">Loading...</div></div>
+            </div>
+        </section>
+
+        <!-- ==================== ACTIVITIES ==================== -->
+        <section id="section-activities" class="page-section">
+            <div class="page-header"><h1>Activities <small>Assignments and tasks</small></h1></div>
+            <div class="card">
+                <div class="card-header"><h3>Upcoming / Pending Activities</h3></div>
+                <div id="activitiesList"><div class="empty-state">No activities found.</div></div>
+            </div>
+        </section>
+
+        <!-- ==================== ASSESSMENTS ==================== -->
+        <section id="section-assessments" class="page-section">
+            <div class="page-header"><h1>Assessments <small>Take exams and view results</small></h1></div>
+            <div class="card">
+                <div class="tabs" id="assessmentTabs">
+                    <div class="tab active" data-tab="taken">📋 Taken</div>
+                    <div class="tab" data-tab="available">🟢 Available</div>
+                    <div class="tab" data-tab="future">🔮 Future</div>
+                </div>
+                <div class="tab-content active" id="tab-taken"><div id="takenAssessments"><div class="empty-state">You haven't taken any assessments yet.</div></div></div>
+                <div class="tab-content" id="tab-available"><div id="availableAssessments"><div class="empty-state">No assessments available right now.</div></div></div>
+                <div class="tab-content" id="tab-future"><div id="futureAssessments"><div class="empty-state">No future assessments scheduled.</div></div></div>
+            </div>
+        </section>
+
+        <!-- ==================== GRADES ==================== -->
+        <section id="section-grades" class="page-section">
+            <div class="page-header"><h1>Grades <small>Your academic performance</small></h1></div>
+            <div class="card">
+                <div class="card-header"><h3>Period Grades</h3></div>
+                <div id="gradesContainer"><div class="empty-state">Loading...</div></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3>Final Ratings</h3></div>
+                <div id="finalRatingsContainer"><div class="empty-state">Loading...</div></div>
+            </div>
+        </section>
+
+        <!-- ==================== ATTENDANCE ==================== -->
+        <section id="section-attendance" class="page-section">
+            <div class="page-header"><h1>Attendance <small>Track your presence and submit excuses</small></h1></div>
+            <div class="stats-grid">
+                <div class="stat-card"><div class="number" id="totalSessions">0</div><div class="label">Total Sessions</div></div>
+                <div class="stat-card"><div class="number" id="presentCount">0</div><div class="label">Present</div></div>
+                <div class="stat-card"><div class="number" id="absentCount">0</div><div class="label">Absent</div></div>
+                <div class="stat-card"><div class="number" id="lateCount">0</div><div class="label">Late</div></div>
+                <div class="stat-card"><div class="number" id="excusedCount">0</div><div class="label">Excused</div></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3>Attendance Records</h3></div>
+                <div id="attendanceRecords"><div class="empty-state">Loading...</div></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3>Upload Excuse Letter</h3></div>
+                <form id="excuseForm" class="form-grid">
+                    <div class="form-group full"><label>Course</label><select id="excuseCourse" required></select></div>
+                    <div class="form-group full"><label>Attendance Session (optional – leave blank for general absence)</label><select id="excuseSession"><option value="">General absence</option></select></div>
+                    <div class="form-group full"><label>Upload File (PDF, image)</label><input type="file" id="excuseFile" accept=".pdf,.png,.jpg,.jpeg" required /></div>
+                    <div class="form-group full"><button type="submit" class="btn btn-primary">📤 Upload Excuse Letter</button></div>
+                </form>
+                <div id="excuseHistory" class="mt-2"><h4>Your Excuse Letters</h4><div id="excuseList"><div class="empty-state">No letters submitted.</div></div></div>
+            </div>
+        </section>
+
+        <!-- ==================== RECITATION ==================== -->
+        <section id="section-recitation" class="page-section">
+            <div class="page-header"><h1>Recitation Logger <small>Log your class participation</small></h1></div>
+            <div class="card">
+                <div class="card-header"><h3>Record Recitation</h3></div>
+                <div id="recitationStatus" class="empty-state">Checking class schedule...</div>
+                <div id="recitationFormContainer" style="display:none; margin-top:1rem;">
+                    <form id="recitationForm" class="form-grid">
+                        <div class="form-group full"><label>Course</label><select id="recitCourse" required></select></div>
+                        <div class="form-group"><label>Date</label><input type="date" id="recitDate" required /></div>
+                        <div class="form-group"><label>Time</label><input type="time" id="recitTime" required /></div>
+                        <div class="form-group full"><button type="submit" class="btn btn-success recite-btn">🎤 Record Recitation</button></div>
+                    </form>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3>Recitation History</h3></div>
+                <div id="recitationHistory"><div class="empty-state">No recitations logged yet.</div></div>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODALS -->
+<!-- ============================================================ -->
+
+<script type="module">
+// ============================================================
+// 1. IMPORTS
+// ============================================================
+import { supabase, getCurrentUser, getCurrentProfile, signOut } from './supabase.js';
+
+// ============================================================
+// 2. STATE
+// ============================================================
+let currentUser = null;
+let currentProfile = null;
+let enrolledCourses = [];
+let today = new Date();
+
+// ============================================================
+// 3. UTILITY
+// ============================================================
+function renderSelect(select, options, valueKey, labelKey) {
+    select.innerHTML = '<option value="">Select...</option>';
+    if (!options || options.length === 0) return;
+    options.forEach(opt => {
+        const op = document.createElement('option');
+        op.value = opt[valueKey];
+        op.textContent = typeof labelKey === 'function' ? labelKey(opt) : opt[labelKey];
+        select.appendChild(op);
+    });
+}
+
+// Expose switchSection globally for onclick in menu cards
+window.switchSection = function(section) {
+    const target = document.querySelector(`.nav-item[data-section="${section}"]`);
+    if (target) target.click();
+};
+
+function timeToMinutes(time) {
+    if (!time) return 0;
+    const [h, m] = time.split(':').map(Number);
+    return h * 60 + m;
+}
+
+// ============================================================
+// 4. AUTH & INIT
+// ============================================================
+async function checkAuth() {
+    const user = await getCurrentUser();
+    if (!user) { window.location.href = 'index.html'; return null; }
+    return user;
+}
+
+async function loadProfile(userId) {
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+    if (error) { console.error(error); return null; }
+    return data;
+}
+
+async function init() {
+    try {
+        const user = await checkAuth();
+        if (!user) return;
+        currentUser = user;
+
+        const profile = await loadProfile(user.id);
+        if (!profile) { alert('Profile not found.'); return; }
+        if (profile.role !== 'student') {
+            alert('Not authorized as student.');
+            await signOut();
+            return;
+        }
+        currentProfile = profile;
+        document.getElementById('userAvatar').textContent = (profile.first_name?.[0] || 'S') + (profile.last_name?.[0] || '');
+        document.getElementById('userName').textContent = `${profile.first_name} ${profile.last_name}`;
+
+        await loadEnrolledCourses();
+        await loadProfileData();
+        await loadActivities();
+        await loadAssessments();
+        await loadGrades();
+        await loadAttendance();
+        await loadExcuseHistory();
+        await loadRecitationHistory();
+        await checkRecitationAvailability();
+        await loadDashboardStats();
+        await loadRecentActivity();
+
+        console.log('✅ Student dashboard ready.');
+    } catch (err) {
+        console.error('Init error:', err);
+        alert('Failed to load: ' + err.message);
+    }
+}
+
+// ============================================================
+// 5. ENROLLED COURSES
+// ============================================================
+async function loadEnrolledCourses() {
+    const { data, error } = await supabase
+        .from('course_enrollments')
+        .select('course_id, courses(id, code, name)')
+        .eq('student_id', currentUser.id);
+    if (error) { console.error(error); return; }
+    enrolledCourses = data.map(e => e.courses).filter(c => c);
+    // Display in profile
+    const container = document.getElementById('myCoursesList');
+    if (enrolledCourses.length === 0) {
+        container.innerHTML = '<div class="empty-state">You are not enrolled in any courses.</div>';
+        return;
+    }
+    let html = '<ul style="list-style:none;padding:0;">';
+    enrolledCourses.forEach(c => {
+        html += `<li style="padding:0.5rem 0;border-bottom:1px solid #f1f5f9;">📘 <strong>${c.code}</strong> – ${c.name}</li>`;
+    });
+    html += '</ul>';
+    container.innerHTML = html;
+}
+
+// ============================================================
+// 6. PROFILE
+// ============================================================
+async function loadProfileData() {
+    document.getElementById('profileEmail').value = currentProfile.email || currentUser.email;
+    document.getElementById('profileFirstName').value = currentProfile.first_name || '';
+    document.getElementById('profileLastName').value = currentProfile.last_name || '';
+}
+
+document.getElementById('profileForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const firstName = document.getElementById('profileFirstName').value.trim();
+    const lastName = document.getElementById('profileLastName').value.trim();
+    if (!firstName || !lastName) { alert('First and last name are required.'); return; }
+    const { error } = await supabase
+        .from('profiles')
+        .update({ first_name: firstName, last_name: lastName })
+        .eq('id', currentUser.id);
+    if (error) { alert('Error updating: ' + error.message); return; }
+    alert('Profile updated!');
+    currentProfile.first_name = firstName;
+    currentProfile.last_name = lastName;
+    document.getElementById('userName').textContent = `${firstName} ${lastName}`;
+});
+
+// ============================================================
+// 7. ACTIVITIES
+// ============================================================
+async function loadActivities() {
+    const container = document.getElementById('activitiesList');
+    if (enrolledCourses.length === 0) {
+        container.innerHTML = '<div class="empty-state">No courses – no activities.</div>';
+        return;
+    }
+    const courseIds = enrolledCourses.map(c => c.id);
+    const { data, error } = await supabase
+        .from('activities')
+        .select('*, courses(code, name)')
+        .in('course_id', courseIds)
+        .order('due_date', { ascending: true });
+    if (error) { console.error(error); container.innerHTML = '<div class="empty-state">Error loading activities.</div>'; return; }
+    if (!data || data.length === 0) {
+        container.innerHTML = '<div class="empty-state">No activities assigned.</div>';
+        return;
+    }
+    let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Title</th><th>Due Date</th><th>Status</th></tr></thead><tbody>';
+    const now = new Date();
+    for (const act of data) {
+        const due = new Date(act.due_date);
+        let status = due > now ? '<span class="badge badge-info">Upcoming</span>' : '<span class="badge badge-danger">Overdue</span>';
+        html += `<tr>
+            <td>${act.courses?.code || 'N/A'}</td>
+            <td>${act.title}</td>
+            <td>${due.toLocaleString()}</td>
+            <td>${status}</td>
+        </tr>`;
+    }
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+// ============================================================
+// 8. ASSESSMENTS
+// ============================================================
+async function loadAssessments() {
+    if (enrolledCourses.length === 0) {
+        document.getElementById('takenAssessments').innerHTML = '<div class="empty-state">No courses.</div>';
+        document.getElementById('availableAssessments').innerHTML = '<div class="empty-state">No courses.</div>';
+        document.getElementById('futureAssessments').innerHTML = '<div class="empty-state">No courses.</div>';
+        return;
+    }
+    const courseIds = enrolledCourses.map(c => c.id);
+    const { data: allAssessments, error } = await supabase
+        .from('assessments')
+        .select('*, courses(code, name), assessment_types(name)')
+        .in('course_id', courseIds)
+        .order('date', { ascending: true });
+    if (error) { console.error(error); return; }
+    if (!allAssessments) { return; }
+
+    const { data: taken } = await supabase
+        .from('student_answers')
+        .select('assessment_id')
+        .eq('student_id', currentUser.id);
+    const takenIds = new Set(taken?.map(a => a.assessment_id) || []);
+
+    const now = new Date();
+    const takenList = [];
+    const availableList = [];
+    const futureList = [];
+
+    for (const a of allAssessments) {
+        const assessDate = new Date(a.date);
+        if (takenIds.has(a.id)) {
+            takenList.push(a);
+        } else if (assessDate <= now) {
+            availableList.push(a);
+        } else {
+            futureList.push(a);
+        }
+    }
+
+    renderAssessmentList('takenAssessments', takenList, true);
+    renderAssessmentList('availableAssessments', availableList, false);
+    renderAssessmentList('futureAssessments', futureList, false);
+
+    document.querySelectorAll('#assessmentTabs .tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            document.querySelectorAll('#assessmentTabs .tab').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            const target = this.dataset.tab;
+            document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+            document.getElementById('tab-' + target).classList.add('active');
+        });
+    });
+}
+
+function renderAssessmentList(containerId, assessments, isTaken) {
+    const container = document.getElementById(containerId);
+    if (!assessments || assessments.length === 0) {
+        container.innerHTML = `<div class="empty-state">${isTaken ? 'No assessments taken yet.' : 'None.'}</div>`;
+        return;
+    }
+    let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Title</th><th>Type</th><th>Date</th><th>Max Score</th>';
+    if (isTaken) html += '<th>Action</th>';
+    html += '</tr></thead><tbody>';
+    for (const a of assessments) {
+        html += `<tr>
+            <td>${a.courses?.code || 'N/A'}</td>
+            <td>${a.title}</td>
+            <td>${a.assessment_types?.name || 'N/A'}</td>
+            <td>${new Date(a.date).toLocaleString()}</td>
+            <td>${a.max_score}</td>`;
+        if (isTaken) {
+            html += `<td><button class="btn btn-outline btn-sm" onclick="alert('View results coming soon.')">📊 View</button></td>`;
+        }
+        html += '</tr>';
+    }
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+// ============================================================
+// 9. GRADES
+// ============================================================
+async function loadGrades() {
+    if (enrolledCourses.length === 0) {
+        document.getElementById('gradesContainer').innerHTML = '<div class="empty-state">No courses.</div>';
+        document.getElementById('finalRatingsContainer').innerHTML = '<div class="empty-state">No courses.</div>';
+        return;
+    }
+    const courseIds = enrolledCourses.map(c => c.id);
+
+    const { data: pGrades, error: e1 } = await supabase
+        .from('period_grades')
+        .select('*, courses(code, name)')
+        .in('course_id', courseIds)
+        .eq('student_id', currentUser.id);
+    if (e1) console.error(e1);
+    const { data: fRatings, error: e2 } = await supabase
+        .from('final_ratings')
+        .select('*, courses(code, name)')
+        .in('course_id', courseIds)
+        .eq('student_id', currentUser.id);
+    if (e2) console.error(e2);
+
+    const gradesContainer = document.getElementById('gradesContainer');
+    if (!pGrades || pGrades.length === 0) {
+        gradesContainer.innerHTML = '<div class="empty-state">No period grades yet.</div>';
+    } else {
+        const byCourse = {};
+        pGrades.forEach(g => {
+            const key = g.course_id;
+            if (!byCourse[key]) byCourse[key] = { course: g.courses, periods: {} };
+            byCourse[key].periods[g.period] = g.grade;
+        });
+        let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Prelim</th><th>Midterm</th><th>Semi‑Final</th><th>Final</th></tr></thead><tbody>';
+        for (const key in byCourse) {
+            const item = byCourse[key];
+            html += `<tr>
+                <td>${item.course?.code || 'N/A'}</td>
+                <td>${item.periods.prelim?.toFixed(2) || '-'}</td>
+                <td>${item.periods.midterm?.toFixed(2) || '-'}</td>
+                <td>${item.periods.semifinal?.toFixed(2) || '-'}</td>
+                <td>${item.periods.final?.toFixed(2) || '-'}</td>
+            </tr>`;
+        }
+        html += '</tbody></table></div>';
+        gradesContainer.innerHTML = html;
+    }
+
+    const finalContainer = document.getElementById('finalRatingsContainer');
+    if (!fRatings || fRatings.length === 0) {
+        finalContainer.innerHTML = '<div class="empty-state">No final ratings yet.</div>';
+    } else {
+        let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Final Grade</th></tr></thead><tbody>';
+        fRatings.forEach(f => {
+            html += `<tr><td>${f.courses?.code || 'N/A'}</td><td><strong>${f.final_grade.toFixed(2)}</strong></td></tr>`;
+        });
+        html += '</tbody></table></div>';
+        finalContainer.innerHTML = html;
+    }
+}
+
+// ============================================================
+// 10. ATTENDANCE + EXCUSE LETTERS
+// ============================================================
+async function loadAttendance() {
+    if (enrolledCourses.length === 0) {
+        document.getElementById('attendanceRecords').innerHTML = '<div class="empty-state">No courses.</div>';
+        return;
+    }
+    const courseIds = enrolledCourses.map(c => c.id);
+    const { data: sections } = await supabase
+        .from('sections')
+        .select('id')
+        .in('course_id', courseIds);
+    if (!sections || sections.length === 0) {
+        document.getElementById('attendanceRecords').innerHTML = '<div class="empty-state">No attendance sessions.</div>';
+        return;
+    }
+    const sectionIds = sections.map(s => s.id);
+    const { data: sessions, error: sErr } = await supabase
+        .from('attendance_sessions')
+        .select('*, sections(course_id, courses(code, name))')
+        .in('section_id', sectionIds)
+        .order('date', { ascending: false });
+    if (sErr) { console.error(sErr); return; }
+    if (!sessions || sessions.length === 0) {
+        document.getElementById('attendanceRecords').innerHTML = '<div class="empty-state">No sessions.</div>';
+        return;
+    }
+    const sessionIds = sessions.map(s => s.id);
+    const { data: records } = await supabase
+        .from('attendance_records')
+        .select('*')
+        .in('session_id', sessionIds)
+        .eq('student_id', currentUser.id);
+    const recordMap = {};
+    if (records) {
+        records.forEach(r => { recordMap[r.session_id] = r.status; });
+    }
+
+    let present = 0, absent = 0, late = 0, excused = 0;
+    let total = sessions.length;
+    sessions.forEach(s => {
+        const status = recordMap[s.id] || 'absent';
+        switch(status) {
+            case 'present': present++; break;
+            case 'absent': absent++; break;
+            case 'late': late++; break;
+            case 'excused': excused++; break;
+        }
+    });
+    document.getElementById('totalSessions').textContent = total;
+    document.getElementById('presentCount').textContent = present;
+    document.getElementById('absentCount').textContent = absent;
+    document.getElementById('lateCount').textContent = late;
+    document.getElementById('excusedCount').textContent = excused;
+
+    let html = '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Course</th><th>Time</th><th>Status</th></tr></thead><tbody>';
+    sessions.forEach(s => {
+        const status = recordMap[s.id] || 'absent';
+        const badge = status === 'present' ? 'badge-success' :
+                     status === 'absent' ? 'badge-danger' :
+                     status === 'late' ? 'badge-warning' : 'badge-info';
+        const courseCode = s.sections?.courses?.code || 'N/A';
+        html += `<tr>
+            <td>${s.date}</td>
+            <td>${courseCode}</td>
+            <td>${s.start_time} - ${s.end_time}</td>
+            <td><span class="badge ${badge}">${status}</span></td>
+        </tr>`;
+    });
+    html += '</tbody></table></div>';
+    document.getElementById('attendanceRecords').innerHTML = html;
+
+    const courseSelect = document.getElementById('excuseCourse');
+    renderSelect(courseSelect, enrolledCourses, 'id', c => `${c.code} - ${c.name}`);
+    const sessionSelect = document.getElementById('excuseSession');
+    renderSelect(sessionSelect, sessions, 'id', s => `${s.date} ${s.start_time}-${s.end_time}`);
+}
+
+document.getElementById('excuseForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const courseId = document.getElementById('excuseCourse').value;
+    const sessionId = document.getElementById('excuseSession').value || null;
+    const fileInput = document.getElementById('excuseFile');
+    if (!courseId) { alert('Select a course.'); return; }
+    if (!fileInput.files || fileInput.files.length === 0) { alert('Select a file.'); return; }
+    const file = fileInput.files[0];
+
+    const filePath = `excuse_letters/${currentUser.id}/${Date.now()}_${file.name}`;
+    const { data: uploadData, error: uploadErr } = await supabase.storage
+        .from('excuse_letters')
+        .upload(filePath, file);
+    if (uploadErr) { alert('Upload failed: ' + uploadErr.message); return; }
+    const { data: urlData } = supabase.storage.from('excuse_letters').getPublicUrl(filePath);
+    const fileUrl = urlData.publicUrl;
+
+    const { error: insertErr } = await supabase
+        .from('excuse_letters')
+        .insert({
+            student_id: currentUser.id,
+            course_id: courseId,
+            attendance_session_id: sessionId || null,
+            file_url: fileUrl,
+            status: 'pending'
+        });
+    if (insertErr) { alert('Error saving: ' + insertErr.message); return; }
+    alert('Excuse letter uploaded!');
+    document.getElementById('excuseForm').reset();
+    await loadExcuseHistory();
+});
+
+async function loadExcuseHistory() {
+    const container = document.getElementById('excuseList');
+    const { data, error } = await supabase
+        .from('excuse_letters')
+        .select('*, courses(code, name)')
+        .eq('student_id', currentUser.id)
+        .order('upload_date', { ascending: false });
+    if (error) { console.error(error); return; }
+    if (!data || data.length === 0) {
+        container.innerHTML = '<div class="empty-state">No excuse letters submitted.</div>';
+        return;
+    }
+    let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>File</th><th>Status</th><th>Date</th></tr></thead><tbody>';
+    data.forEach(d => {
+        const badge = d.status === 'pending' ? 'badge-warning' :
+                      d.status === 'approved' ? 'badge-success' : 'badge-danger';
+        html += `<tr>
+            <td>${d.courses?.code || 'N/A'}</td>
+            <td><a href="${d.file_url}" target="_blank">📄 View</a></td>
+            <td><span class="badge ${badge}">${d.status}</span></td>
+            <td>${new Date(d.upload_date).toLocaleString()}</td>
+        </tr>`;
+    });
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+// ============================================================
+// 11. RECITATION
+// ============================================================
+async function checkRecitationAvailability() {
+    const statusDiv = document.getElementById('recitationStatus');
+    const formContainer = document.getElementById('recitationFormContainer');
+    const now = new Date();
+    const dayOfWeek = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][now.getDay()];
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+
+    if (enrolledCourses.length === 0) {
+        statusDiv.innerHTML = '<div class="empty-state">You are not enrolled in any courses.</div>';
+        formContainer.style.display = 'none';
+        return;
+    }
+    const courseIds = enrolledCourses.map(c => c.id);
+    const { data: sections } = await supabase
+        .from('sections')
+        .select('id')
+        .in('course_id', courseIds);
+    if (!sections || sections.length === 0) {
+        statusDiv.innerHTML = '<div class="empty-state">No class schedules found.</div>';
+        formContainer.style.display = 'none';
+        return;
+    }
+    const sectionIds = sections.map(s => s.id);
+    const { data: schedules, error } = await supabase
+        .from('schedules')
+        .select('*, sections(course_id, courses(code, name))')
+        .in('section_id', sectionIds)
+        .eq('day_of_week', dayOfWeek);
+    if (error) { console.error(error); return; }
+
+    let active = false;
+    let activeCourse = null;
+    if (schedules) {
+        for (const s of schedules) {
+            const startMin = timeToMinutes(s.start_time);
+            const endMin = timeToMinutes(s.end_time);
+            if (currentTime >= startMin - 30 && currentTime <= endMin + 30) {
+                active = true;
+                activeCourse = s.sections?.courses;
+                break;
+            }
+        }
+    }
+
+    if (!active) {
+        statusDiv.innerHTML = '<div class="empty-state">⏰ No active class right now. Check your schedule.</div>';
+        formContainer.style.display = 'none';
+        return;
+    }
+
+    statusDiv.innerHTML = `<div style="background:#d1fae5;padding:1rem;border-radius:8px;color:#065f46;">
+        ✅ Class is active! You can log your recitation for <strong>${activeCourse?.code || ''} - ${activeCourse?.name || ''}</strong>
+    </div>`;
+    formContainer.style.display = 'block';
+
+    const recitCourseSelect = document.getElementById('recitCourse');
+    if (activeCourse) {
+        recitCourseSelect.innerHTML = `<option value="${activeCourse.id}">${activeCourse.code} - ${activeCourse.name}</option>`;
+    } else {
+        renderSelect(recitCourseSelect, enrolledCourses, 'id', c => `${c.code} - ${c.name}`);
+    }
+    document.getElementById('recitDate').value = now.toISOString().split('T')[0];
+    document.getElementById('recitTime').value = now.toTimeString().slice(0,5);
+}
+
+document.getElementById('recitationForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const courseId = document.getElementById('recitCourse').value;
+    const date = document.getElementById('recitDate').value;
+    const time = document.getElementById('recitTime').value;
+    if (!courseId) { alert('Select a course.'); return; }
+    const { data: schedules } = await supabase
+        .from('schedules')
+        .select('id')
+        .eq('day_of_week', new Date(date).toLocaleString('en', { weekday: 'long' }));
+    let scheduleId = null;
+    if (schedules && schedules.length > 0) scheduleId = schedules[0].id;
+
+    const { error } = await supabase
+        .from('recitations')
+        .insert({
+            student_id: currentUser.id,
+            course_id: courseId,
+            schedule_id: scheduleId,
+            date: date,
+            time: time
+        });
+    if (error) { alert('Error logging recitation: ' + error.message); return; }
+    alert('🎤 Recitation logged!');
+    await loadRecitationHistory();
+    document.getElementById('recitationForm').reset();
+});
+
+async function loadRecitationHistory() {
+    const container = document.getElementById('recitationHistory');
+    if (enrolledCourses.length === 0) {
+        container.innerHTML = '<div class="empty-state">No recitations.</div>';
+        return;
+    }
+    const courseIds = enrolledCourses.map(c => c.id);
+    const { data, error } = await supabase
+        .from('recitations')
+        .select('*, courses(code, name)')
+        .eq('student_id', currentUser.id)
+        .in('course_id', courseIds)
+        .order('recorded_at', { ascending: false });
+    if (error) { console.error(error); return; }
+    if (!data || data.length === 0) {
+        container.innerHTML = '<div class="empty-state">No recitations logged yet.</div>';
+        return;
+    }
+    let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Date</th><th>Time</th><th>Logged At</th></tr></thead><tbody>';
+    data.forEach(r => {
+        html += `<tr>
+            <td>${r.courses?.code || 'N/A'}</td>
+            <td>${r.date}</td>
+            <td>${r.time}</td>
+            <td>${new Date(r.recorded_at).toLocaleString()}</td>
+        </tr>`;
+    });
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+// ============================================================
+// 12. DASHBOARD STATS & RECENT ACTIVITY
+// ============================================================
+async function loadDashboardStats() {
+    // Courses count
+    document.getElementById('dashCourses').textContent = enrolledCourses.length;
+
+    // Upcoming assessments (next 7 days)
+    if (enrolledCourses.length > 0) {
+        const courseIds = enrolledCourses.map(c => c.id);
+        const { data: assess } = await supabase
+            .from('assessments')
+            .select('id')
+            .in('course_id', courseIds)
+            .gte('date', new Date().toISOString())
+            .lt('date', new Date(Date.now() + 7 * 86400000).toISOString());
+        document.getElementById('dashAssessments').textContent = assess?.length || 0;
+    }
+
+    // Attendance stats (from loaded data)
+    // We'll use the values from loadAttendance, but we already have them in the DOM
+    // Just ensure they reflect; we can read from the attendance section elements
+    const presentEl = document.getElementById('presentCount');
+    const absentEl = document.getElementById('absentCount');
+    document.getElementById('dashPresent').textContent = presentEl ? presentEl.textContent : '0';
+    document.getElementById('dashAbsent').textContent = absentEl ? absentEl.textContent : '0';
+}
+
+async function loadRecentActivity() {
+    const container = document.getElementById('recentActivity');
+    const activities = [];
+
+    // Get latest recitations
+    if (enrolledCourses.length > 0) {
+        const courseIds = enrolledCourses.map(c => c.id);
+        const { data: recits } = await supabase
+            .from('recitations')
+            .select('recorded_at, courses(code)')
+            .eq('student_id', currentUser.id)
+            .in('course_id', courseIds)
+            .order('recorded_at', { ascending: false })
+            .limit(3);
+        if (recits) {
+            recits.forEach(r => {
+                activities.push({
+                    text: `🎤 Recitation logged for ${r.courses?.code || 'N/A'}`,
+                    time: new Date(r.recorded_at).toLocaleString()
+                });
+            });
+        }
+
+        // Get latest excuse letters
+        const { data: excuses } = await supabase
+            .from('excuse_letters')
+            .select('upload_date, courses(code), status')
+            .eq('student_id', currentUser.id)
+            .in('course_id', courseIds)
+            .order('upload_date', { ascending: false })
+            .limit(3);
+        if (excuses) {
+            excuses.forEach(e => {
+                const emoji = e.status === 'approved' ? '✅' : e.status === 'rejected' ? '❌' : '⏳';
+                activities.push({
+                    text: `${emoji} Excuse letter for ${e.courses?.code || 'N/A'} (${e.status})`,
+                    time: new Date(e.upload_date).toLocaleString()
+                });
+            });
+        }
+    }
+
+    if (activities.length === 0) {
+        container.innerHTML = '<div class="empty-state">No recent activity.</div>';
+        return;
+    }
+
+    // Sort by time (newest first) and limit to 5
+    activities.sort((a, b) => new Date(b.time) - new Date(a.time));
+    const top = activities.slice(0, 5);
+
+    let html = '<ul style="list-style:none;padding:0;">';
+    top.forEach(a => {
+        html += `<li style="padding:0.5rem 0;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;">
+            <span>${a.text}</span>
+            <span style="color:#94a3b8;font-size:0.75rem;">${a.time}</span>
+        </li>`;
+    });
+    html += '</ul>';
+    container.innerHTML = html;
+}
+
+// ============================================================
+// 13. NAVIGATION
+// ============================================================
+document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', async function() {
+        if (this.id === 'logoutBtn') return;
+        const target = this.dataset.section;
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        this.classList.add('active');
+        document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+        document.getElementById(`section-${target}`).classList.add('active');
+        // Reload data for some sections
+        if (target === 'attendance') { await loadAttendance(); await loadExcuseHistory(); }
+        if (target === 'recitation') { await checkRecitationAvailability(); await loadRecitationHistory(); }
+        if (target === 'grades') await loadGrades();
+        if (target === 'assessments') await loadAssessments();
+        if (target === 'activities') await loadActivities();
+        if (target === 'dashboard') { await loadDashboardStats(); await loadRecentActivity(); }
+    });
+});
+
+// Logout
+document.getElementById('logoutBtn').addEventListener('click', async function() {
+    await signOut();
+    window.location.href = 'index.html';
+});
+
+// ============================================================
+// 14. START
+// ============================================================
+init();
+
+</script>
+</body>
+</html>
