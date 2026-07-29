@@ -1,282 +1,1951 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Instructor Dashboard – NCF Learning System</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <style>
-        :root {
-            --navy:#0f172a; --blue:#2563eb; --blue-soft:#dbeafe; --bg:#f1f5f9;
-            --card:#ffffff; --line:#e2e8f0; --muted:#64748b; --text:#0f172a;
-            --green:#16a34a; --red:#dc2626; --amber:#d97706;
+        /* === RESET & BASE === */
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Inter',sans-serif; background:#f1f5f9; color:#0f172a; }
+        .app { display:flex; min-height:100vh; }
+
+        /* === SIDEBAR === */
+        .sidebar {
+            width:260px; background:#0f172a; padding:1.5rem 1rem;
+            position:sticky; top:0; height:100vh; overflow-y:auto;
+            display:flex; flex-direction:column; flex-shrink:0;
         }
-        * { box-sizing:border-box; margin:0; padding:0; }
-        body { font-family:Inter,system-ui,sans-serif; color:var(--text); background:var(--bg); }
-        button,input,select,textarea { font:inherit; }
-        button { cursor:pointer; }
-        .app { min-height:100vh; display:flex; }
-        .sidebar { width:260px; height:100vh; position:sticky; top:0; display:flex; flex-direction:column; padding:1.25rem 1rem; background:var(--navy); overflow-y:auto; flex-shrink:0; }
-        .brand { display:flex; align-items:center; gap:.75rem; padding:.25rem .5rem 1.25rem; border-bottom:1px solid rgba(255,255,255,.09); margin-bottom:1rem; }
-        .brand-logo { width:42px; height:42px; border-radius:10px; display:grid; place-items:center; color:#fff; background:var(--blue); font-weight:800; }
-        .brand-name { color:#fff; font-weight:800; }
-        .brand-name small { display:block; color:#94a3b8; font-size:.62rem; font-weight:500; text-transform:uppercase; letter-spacing:.06em; margin-top:.15rem; }
-        .nav-label { color:#64748b; text-transform:uppercase; letter-spacing:.08em; font-size:.58rem; font-weight:700; padding:.8rem .75rem .35rem; }
-        .nav-item { width:100%; border:0; background:transparent; color:#94a3b8; display:flex; align-items:center; gap:.7rem; padding:.62rem .75rem; border-radius:8px; text-align:left; font-size:.84rem; font-weight:600; }
-        .nav-item:hover { color:#fff; background:rgba(255,255,255,.06); }
-        .nav-item.active { color:#60a5fa; background:rgba(59,130,246,.16); }
-        .nav-icon { width:22px; text-align:center; }
-        .user-section { margin-top:auto; padding-top:1rem; border-top:1px solid rgba(255,255,255,.09); }
-        .user-card { display:flex; align-items:center; gap:.7rem; padding:.65rem; border-radius:9px; background:rgba(255,255,255,.05); margin-bottom:.5rem; }
-        .avatar { width:38px; height:38px; border-radius:50%; display:grid; place-items:center; background:var(--blue); color:#fff; font-weight:700; flex-shrink:0; }
-        .user-name { color:#fff; font-size:.82rem; font-weight:700; }
-        .user-role { color:#94a3b8; font-size:.68rem; margin-top:.1rem; }
-        .logout-btn { width:100%; border:0; background:transparent; color:#f87171; padding:.65rem .75rem; border-radius:8px; text-align:left; font-weight:600; }
-        .logout-btn:hover { background:rgba(239,68,68,.12); }
-        .main { flex:1; min-width:0; padding:2rem 2.4rem; }
-        .page-section { display:none; }
-        .page-section.active { display:block; animation:fade .2s ease; }
-        @keyframes fade { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
-        .page-header { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; margin-bottom:1.5rem; }
-        .page-header h1 { font-size:1.55rem; }
-        .page-header small { display:block; margin-top:.2rem; color:#94a3b8; font-size:.8rem; font-weight:400; }
-        .actions,.inline-actions { display:flex; gap:.55rem; align-items:center; flex-wrap:wrap; }
-        .stats-grid { display:grid; grid-template-columns:repeat(4,minmax(160px,1fr)); gap:1rem; margin-bottom:1.5rem; }
-        .stat-card,.card { background:var(--card); border:1px solid var(--line); border-radius:12px; box-shadow:0 1px 3px rgba(15,23,42,.06); }
-        .stat-card { padding:1.15rem 1.3rem; }
-        .stat-card .icon { float:right; font-size:1.45rem; opacity:.45; }
-        .stat-card .number { font-size:1.7rem; font-weight:800; }
-        .stat-card .label { margin-top:.18rem; color:#94a3b8; font-size:.76rem; font-weight:600; }
-        .card { padding:1.35rem; margin-bottom:1.25rem; }
-        .card-header { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; margin-bottom:1rem; }
-        .card-header h3 { font-size:.98rem; }
-        .form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; }
-        .form-grid .full { grid-column:1/-1; }
-        .form-group { display:flex; flex-direction:column; gap:.3rem; }
-        .form-group label { color:#475569; font-size:.77rem; font-weight:650; }
-        input,select,textarea { width:100%; padding:.62rem .78rem; border:1px solid var(--line); border-radius:8px; color:var(--text); background:#fff; font-size:.84rem; }
-        input:focus,select:focus,textarea:focus { outline:0; border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.12); }
-        input[type="checkbox"] { width:auto; accent-color:var(--blue); }
-        .checkbox-row { display:flex; align-items:center; gap:.55rem; min-height:38px; }
-        .btn { border:0; border-radius:8px; padding:.58rem 1rem; display:inline-flex; align-items:center; justify-content:center; gap:.4rem; font-size:.8rem; font-weight:700; transition:.15s; }
-        .btn-primary { color:#fff; background:var(--blue); }
-        .btn-primary:hover { background:#1d4ed8; }
-        .btn-success { color:#fff; background:var(--green); }
-        .btn-success:hover { background:#15803d; }
-        .btn-danger { color:#fff; background:var(--red); }
-        .btn-danger:hover { background:#b91c1c; }
-        .btn-outline { color:#475569; background:#fff; border:1px solid var(--line); }
-        .btn-outline:hover { background:#f8fafc; }
-        .btn-sm { padding:.3rem .65rem; font-size:.72rem; }
+        .sidebar .brand { display:flex; align-items:center; gap:0.75rem; padding-bottom:1.5rem; border-bottom:1px solid rgba(255,255,255,0.08); margin-bottom:1.5rem; }
+        .sidebar .brand .logo { width:40px; height:40px; background:#3b82f6; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; }
+        .sidebar .brand .name { font-weight:700; font-size:1.1rem; color:#fff; }
+        .sidebar .brand .name small { display:block; font-weight:400; font-size:0.65rem; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px; }
+        .sidebar nav .nav-label { font-size:0.6rem; text-transform:uppercase; letter-spacing:0.8px; color:#64748b; padding:0.75rem 0.75rem 0.4rem; font-weight:600; }
+        .sidebar nav .nav-item { display:flex; align-items:center; gap:0.75rem; padding:0.55rem 0.75rem; border-radius:8px; color:#94a3b8; font-size:0.85rem; font-weight:500; cursor:pointer; transition:0.2s; }
+        .sidebar nav .nav-item:hover { background:rgba(255,255,255,0.06); color:#fff; }
+        .sidebar nav .nav-item.active { background:rgba(59,130,246,0.15); color:#60a5fa; }
+        .sidebar nav .nav-item .icon { font-size:1.1rem; width:24px; text-align:center; }
+        .sidebar .user-section { border-top:1px solid rgba(255,255,255,0.08); padding-top:1rem; margin-top:auto; }
+        .sidebar .user-section .user-card { display:flex; align-items:center; gap:0.75rem; padding:0.5rem 0.75rem; border-radius:8px; background:rgba(255,255,255,0.04); }
+        .sidebar .user-section .user-card .avatar { width:36px; height:36px; border-radius:50%; background:#3b82f6; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:600; }
+        .sidebar .user-section .user-card .info .name { font-size:0.85rem; font-weight:600; color:#fff; }
+        .sidebar .user-section .user-card .info .role { font-size:0.7rem; color:#94a3b8; }
+        .sidebar .user-section .logout-btn { display:flex; align-items:center; gap:0.5rem; padding:0.6rem 0.75rem; border-radius:8px; color:#f87171; font-size:0.85rem; font-weight:500; cursor:pointer; border:none; background:transparent; width:100%; font-family:inherit; transition:0.2s; }
+        .sidebar .user-section .logout-btn:hover { background:rgba(239,68,68,0.1); }
+
+        /* === MAIN === */
+        .main { flex:1; padding:2rem 2.5rem; overflow-y:auto; background:#f1f5f9; }
+        .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem; flex-wrap:wrap; gap:1rem; }
+        .page-header h1 { font-size:1.6rem; font-weight:700; }
+        .page-header h1 small { font-size:0.85rem; font-weight:400; color:#94a3b8; display:block; }
+        .page-header .actions { display:flex; gap:0.75rem; align-items:center; }
+
+        /* === STATS === */
+        .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1rem; margin-bottom:2rem; }
+        .stat-card { background:#fff; border-radius:12px; padding:1.25rem 1.5rem; border:1px solid #e2e8f0; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+        .stat-card .number { font-size:1.8rem; font-weight:700; }
+        .stat-card .label { font-size:0.8rem; color:#94a3b8; font-weight:500; }
+        .stat-card .icon { float:right; font-size:1.6rem; opacity:0.4; }
+
+        /* === CARDS & TABLES === */
+        .card { background:#fff; border-radius:12px; border:1px solid #e2e8f0; padding:1.5rem; margin-bottom:1.5rem; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+        .card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
+        .card-header h3 { font-size:1rem; font-weight:600; }
         .table-wrap { overflow-x:auto; }
-        table { width:100%; border-collapse:collapse; font-size:.81rem; }
-        th { padding:.65rem .7rem; text-align:left; background:#f8fafc; color:#475569; border-bottom:2px solid var(--line); font-size:.66rem; text-transform:uppercase; letter-spacing:.04em; white-space:nowrap; }
-        td { padding:.65rem .7rem; border-bottom:1px solid #f1f5f9; vertical-align:middle; }
-        tbody tr:hover { background:#f8fafc; }
-        .badge { display:inline-block; border-radius:999px; padding:.18rem .55rem; font-size:.66rem; font-weight:700; }
-        .badge-green { background:#dcfce7; color:#166534; }
-        .badge-red { background:#fee2e2; color:#991b1b; }
-        .badge-amber { background:#fef3c7; color:#92400e; }
-        .badge-blue { background:#dbeafe; color:#1e40af; }
-        .empty-state { text-align:center; padding:2.2rem 1rem; color:#94a3b8; }
-        .empty-state .icon { display:block; font-size:2rem; margin-bottom:.5rem; }
-        .muted { color:#94a3b8; }
-        .small { font-size:.76rem; }
-        .code-display { display:none; margin-top:1rem; padding:1rem; border-radius:10px; background:#eff6ff; color:#1e3a8a; text-align:center; font-size:1.5rem; font-family:ui-monospace,monospace; font-weight:800; letter-spacing:.14em; }
-        .step { display:none; }
-        .step.active { display:block; }
-        .step h4 { margin-bottom:1rem; }
-        .question-item { display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; padding:.85rem; margin-bottom:.55rem; border:1px solid var(--line); border-radius:9px; background:#f8fafc; }
-        .question-title { font-size:.84rem; font-weight:650; }
-        .question-meta { margin-top:.25rem; color:#64748b; font-size:.7rem; }
-        .grade-input { min-width:76px; padding:.38rem .45rem; }
-        .report-box { min-height:90px; padding:1rem; background:#f8fafc; border:1px solid var(--line); border-radius:8px; overflow:auto; }
-        .modal { position:fixed; inset:0; z-index:1000; display:none; align-items:center; justify-content:center; padding:1rem; background:rgba(15,23,42,.52); }
+        table { width:100%; border-collapse:collapse; font-size:0.875rem; }
+        table th { text-align:left; padding:0.6rem 0.75rem; color:#475569; font-weight:600; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.5px; border-bottom:2px solid #e2e8f0; background:#f1f5f9; }
+        table td { padding:0.6rem 0.75rem; border-bottom:1px solid #f1f5f9; }
+        table tbody tr:hover { background:#f1f5f9; }
+
+        /* === FORMS === */
+        .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+        .form-grid .full { grid-column:1/-1; }
+        .form-group { display:flex; flex-direction:column; gap:0.25rem; }
+        .form-group label { font-size:0.8rem; font-weight:500; color:#475569; }
+        .form-group input, .form-group select, .form-group textarea { padding:0.6rem 0.8rem; border:1px solid #e2e8f0; border-radius:8px; font-size:0.875rem; font-family:inherit; background:#fff; width:100%; transition:0.2s; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,0.1); }
+        .form-group input[type="file"] { padding:0.4rem; border:2px dashed #e2e8f0; cursor:pointer; }
+        .form-group input[type="checkbox"] { width:auto; }
+        .form-group select[multiple] { min-height:100px; }
+
+        /* === BUTTONS === */
+        .btn { padding:0.55rem 1.25rem; border-radius:8px; font-size:0.85rem; font-weight:600; font-family:inherit; cursor:pointer; border:none; transition:0.2s; display:inline-flex; align-items:center; gap:0.5rem; }
+        .btn-primary { background:#3b82f6; color:#fff; }
+        .btn-primary:hover { background:#2563eb; }
+        .btn-success { background:#22c55e; color:#fff; }
+        .btn-success:hover { background:#16a34a; }
+        .btn-danger { background:#ef4444; color:#fff; }
+        .btn-danger:hover { background:#dc2626; }
+        .btn-outline { background:transparent; color:#475569; border:1px solid #e2e8f0; }
+        .btn-outline:hover { background:#f1f5f9; }
+        .btn-sm { padding:0.2rem 0.7rem; font-size:0.75rem; }
+        .btn-danger-outline { background:transparent; color:#ef4444; border:1px solid #ef4444; }
+        .btn-danger-outline:hover { background:#fee2e2; }
+
+        .badge { display:inline-block; padding:0.15rem 0.6rem; border-radius:20px; font-size:0.7rem; font-weight:600; }
+        .badge-pending { background:#fef3c7; color:#92400e; }
+        .badge-approved { background:#d1fae5; color:#065f46; }
+        .badge-rejected { background:#fee2e2; color:#991b1b; }
+
+        .empty-state { text-align:center; padding:2.5rem 1rem; color:#94a3b8; }
+        .empty-state .icon { font-size:2.5rem; margin-bottom:0.5rem; }
+
+        /* === PAGE SECTIONS === */
+        .page-section { display:none; }
+        .page-section.active { display:block; animation:fadeIn 0.25s ease; }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+        .text-muted { color:#94a3b8; }
+        .text-sm { font-size:0.8rem; }
+        .mt-1 { margin-top:0.5rem; }
+        .mt-2 { margin-top:1rem; }
+        .flex { display:flex; }
+        .gap-2 { gap:1rem; }
+        .fw-600 { font-weight:600; }
+
+        /* === ASSESSMENT BUILDER STEPS === */
+        .step { padding:1rem 0; }
+        .step h4 { margin-bottom:1rem; font-size:1.1rem; }
+
+        .question-item { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.75rem; margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center; }
+        .question-item .q-text { flex:1; margin-right:1rem; font-size:0.9rem; }
+        .question-item .q-actions { display:flex; gap:0.5rem; }
+
+        /* === MODALS === */
+        .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); display:none; align-items:center; justify-content:center; z-index:1000; }
         .modal.active { display:flex; }
-        .modal-content { width:min(650px,96vw); max-height:90vh; overflow:auto; background:#fff; border-radius:14px; padding:1.4rem; box-shadow:0 20px 50px rgba(15,23,42,.25); }
-        .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
-        .modal-close { width:34px; height:34px; border:0; border-radius:8px; background:#f1f5f9; }
-        .bank-item { display:flex; gap:.7rem; align-items:flex-start; padding:.75rem; border:1px solid var(--line); border-radius:8px; margin-bottom:.55rem; }
-        .toast { position:fixed; right:1.2rem; bottom:1.2rem; z-index:2000; max-width:360px; padding:.85rem 1rem; border-radius:10px; color:#fff; box-shadow:0 12px 30px rgba(15,23,42,.22); display:none; font-size:.82rem; }
-        .toast.show { display:block; animation:toastIn .2s ease; }
-        .toast.success { background:#15803d; }
-        .toast.error { background:#b91c1c; }
-        .toast.info { background:#1d4ed8; }
-        @keyframes toastIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
-        @media (max-width:1050px) { .stats-grid { grid-template-columns:repeat(2,1fr); } .sidebar { width:225px; } .main { padding:1.5rem; } }
-        @media (max-width:760px) { .app { display:block; } .sidebar { width:100%; height:auto; position:static; } .sidebar nav { display:flex; flex-wrap:wrap; gap:.2rem; } .nav-label,.user-section { display:none; } .nav-item { width:auto; } .main { padding:1rem; } .form-grid { grid-template-columns:1fr; } }
-        @media (max-width:480px) { .stats-grid { grid-template-columns:1fr; } }
+        .modal-content { background:#fff; border-radius:12px; padding:2rem; max-width:800px; width:95%; max-height:80vh; overflow-y:auto; }
+        .modal-content .form-grid { grid-template-columns:1fr; }
+        .modal-content .close { float:right; background:none; border:none; font-size:1.5rem; cursor:pointer; }
+        .modal-content table { width:100%; }
+        .modal-content select { padding:0.3rem 0.6rem; border-radius:4px; border:1px solid #e2e8f0; }
+
+        .debug-box { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.75rem; margin-top:0.5rem; font-family:monospace; font-size:0.8rem; max-height:200px; overflow-y:auto; white-space:pre-wrap; }
+
+        @media (max-width:1024px) { .sidebar { width:220px; } .main { padding:1.5rem; } .form-grid { grid-template-columns:1fr; } }
+        @media (max-width:768px) { .app { flex-direction:column; } .sidebar { width:100%; height:auto; position:static; padding:1rem; } .sidebar nav { display:flex; flex-wrap:wrap; gap:0.25rem; } .sidebar nav .nav-label { display:none; } .sidebar nav .nav-item { padding:0.4rem 0.7rem; font-size:0.8rem; } .sidebar .user-section { display:none; } .main { padding:1rem; } .stats-grid { grid-template-columns:1fr 1fr; } }
+        @media (max-width:480px) { .stats-grid { grid-template-columns:1fr; } .page-header { flex-direction:column; align-items:flex-start; } }
     </style>
 </head>
 <body>
+
 <div class="app">
+
+    <!-- SIDEBAR -->
     <aside class="sidebar">
-        <div class="brand"><div class="brand-logo">N</div><div class="brand-name">NCF LTS<small>Learning Tracking System</small></div></div>
-        <nav id="mainNav">
+        <div class="brand">
+            <div class="logo">N</div>
+            <div class="name">NCF LTS <small>Learning Tracking System</small></div>
+        </div>
+        <nav>
             <div class="nav-label">Main</div>
-            <button class="nav-item active" data-section="dashboard"><span class="nav-icon">📊</span>Dashboard</button>
-            <button class="nav-item" data-section="courses"><span class="nav-icon">📘</span>Courses</button>
+            <div class="nav-item active" data-section="dashboard"><span class="icon">📊</span> Dashboard</div>
+            <div class="nav-item" data-section="courses"><span class="icon">📘</span> Courses</div>
             <div class="nav-label">Management</div>
-            <button class="nav-item" data-section="attendance"><span class="nav-icon">📋</span>Attendance</button>
-            <button class="nav-item" data-section="schedule"><span class="nav-icon">📅</span>Schedule</button>
-            <button class="nav-item" data-section="assessments"><span class="nav-icon">✏️</span>Assessments</button>
+            <div class="nav-item" data-section="attendance"><span class="icon">📋</span> Attendance</div>
+            <div class="nav-item" data-section="schedule"><span class="icon">📅</span> Schedule</div>
+            <div class="nav-item" data-section="assessments"><span class="icon">✏️</span> Assessments</div>
             <div class="nav-label">Grading</div>
-            <button class="nav-item" data-section="gradebook"><span class="nav-icon">📈</span>Gradebook</button>
-            <button class="nav-item" data-section="weights"><span class="nav-icon">⚖️</span>Weights</button>
-            <button class="nav-item" data-section="compute"><span class="nav-icon">🧮</span>Compute</button>
-            <button class="nav-item" data-section="final"><span class="nav-icon">⭐</span>Final Rating</button>
+            <div class="nav-item" data-section="gradebook"><span class="icon">📈</span> Gradebook</div>
+            <div class="nav-item" data-section="weights"><span class="icon">⚖️</span> Weights</div>
+            <div class="nav-item" data-section="compute"><span class="icon">🧮</span> Compute</div>
+            <div class="nav-item" data-section="final"><span class="icon">⭐</span> Final Rating</div>
             <div class="nav-label">Tools</div>
-            <button class="nav-item" data-section="reports"><span class="nav-icon">📄</span>Reports</button>
-            <button class="nav-item" data-section="interventions"><span class="nav-icon">🛠️</span>Interventions</button>
-            <button class="nav-item" data-section="enroll"><span class="nav-icon">👥</span>Enroll</button>
+            <div class="nav-item" data-section="reports"><span class="icon">📄</span> Reports</div>
+            <div class="nav-item" data-section="interventions"><span class="icon">🛠️</span> Interventions</div>
+            <div class="nav-item" data-section="enroll"><span class="icon">👥</span> Enroll</div>
         </nav>
         <div class="user-section">
-            <div class="user-card"><div class="avatar" id="userAvatar">NC</div><div><div class="user-name" id="userName">Loading…</div><div class="user-role">Instructor</div></div></div>
+            <div class="user-card">
+                <div class="avatar" id="userAvatar">JC</div>
+                <div class="info">
+                    <div class="name" id="userName">Loading...</div>
+                    <div class="role">Instructor</div>
+                </div>
+            </div>
             <button class="logout-btn" id="logoutBtn">🚪 Sign Out</button>
         </div>
     </aside>
 
+    <!-- MAIN CONTENT -->
     <main class="main">
+
+        <!-- DASHBOARD -->
         <section id="section-dashboard" class="page-section active">
-            <div class="page-header"><div><h1>Dashboard<small>Overview of your assigned classes</small></h1></div><button class="btn btn-primary" data-switch="assessments">+ New Assessment</button></div>
-            <div class="stats-grid">
-                <div class="stat-card"><span class="icon">📘</span><div class="number" id="statCourses">0</div><div class="label">Courses</div></div>
-                <div class="stat-card"><span class="icon">👨‍🎓</span><div class="number" id="statStudents">0</div><div class="label">Unique Students</div></div>
-                <div class="stat-card"><span class="icon">✏️</span><div class="number" id="statAssessments">0</div><div class="label">Assessments</div></div>
-                <div class="stat-card"><span class="icon">📋</span><div class="number" id="statSessions">0</div><div class="label">Sessions Today</div></div>
+            <div class="page-header">
+                <div><h1>Dashboard <small>Overview of your classes</small></h1></div>
+                <div class="actions"><button class="btn btn-primary" onclick="switchSection('assessments')">+ New Assessment</button></div>
             </div>
-            <div class="card"><div class="card-header"><h3>Recent Enrollments</h3></div><div id="recentEnrollments"><div class="empty-state">Loading…</div></div></div>
-            <div class="card"><div class="card-header"><h3>Quick Actions</h3></div><div class="inline-actions"><button class="btn btn-outline" data-switch="attendance">📋 Take Attendance</button><button class="btn btn-outline" data-switch="assessments">✏️ Create Assessment</button><button class="btn btn-outline" data-switch="gradebook">📈 Open Gradebook</button><button class="btn btn-outline" data-switch="enroll">👥 Enroll Student</button></div></div>
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card"><span class="icon">📘</span><div class="number" id="statCourses">0</div><div class="label">Total Courses</div></div>
+                <div class="stat-card"><span class="icon">👨‍🎓</span><div class="number" id="statStudents">0</div><div class="label">Total Students</div></div>
+                <div class="stat-card"><span class="icon">⏳</span><div class="number" id="statPending">0</div><div class="label">Pending Approvals</div></div>
+                <div class="stat-card"><span class="icon">📋</span><div class="number" id="statAssessments">0</div><div class="label">Assessments</div></div>
+            </div>
+            <div class="card"><div class="card-header"><h3>⏳ Pending Approvals</h3></div><div id="pendingApprovalsList"><div class="empty-state"><p>Loading...</p></div></div></div>
+            <div class="card"><div class="card-header"><h3>🚀 Quick Actions</h3></div><div class="flex gap-2" style="flex-wrap:wrap;"><button class="btn btn-outline" onclick="switchSection('attendance')">📋 Take Attendance</button><button class="btn btn-outline" onclick="switchSection('assessments')">✏️ Create Assessment</button><button class="btn btn-outline" onclick="switchSection('gradebook')">📈 View Grades</button><button class="btn btn-outline" onclick="switchSection('enroll')">👥 Enroll Student</button></div></div>
         </section>
 
+        <!-- COURSES -->
         <section id="section-courses" class="page-section">
-            <div class="page-header"><div><h1>Courses<small>Create and manage your course offerings</small></h1></div><button class="btn btn-primary" id="addCourseBtn">+ New Course</button></div>
-            <div class="card"><div id="instructorCourses"><div class="empty-state">Loading courses…</div></div></div>
+            <div class="page-header">
+                <div><h1>Courses <small>Manage your courses</small></h1></div>
+                <div class="actions"><button class="btn btn-primary" id="addCourseBtn">+ New Course</button></div>
+            </div>
+            <div class="card"><div id="instructorCourses"><div class="empty-state"><p>Loading your courses...</p></div></div></div>
         </section>
 
+        <!-- ATTENDANCE -->
         <section id="section-attendance" class="page-section">
-            <div class="page-header"><div><h1>Attendance<small>Generate a time-limited attendance code</small></h1></div></div>
-            <div class="card"><div class="card-header"><h3>Create Attendance Session</h3></div>
-                <form id="attendanceForm" class="form-grid">
-                    <div class="form-group full"><label for="attCourse">Course</label><select id="attCourse" required></select></div>
-                    <div class="form-group"><label for="attDate">Date</label><input type="date" id="attDate" required></div>
-                    <div class="form-group"><label for="attStart">Start Time</label><input type="time" id="attStart" required></div>
-                    <div class="form-group"><label for="attEnd">End Time</label><input type="time" id="attEnd" required></div>
-                    <div class="form-group full"><button class="btn btn-primary" type="submit">Generate Code</button></div>
-                </form>
-                <div class="code-display" id="attCodeDisplay"></div>
-            </div>
-            <div class="card"><div class="card-header"><h3>Attendance Sessions</h3></div><div id="attendanceSessionsList"><div class="empty-state">No sessions.</div></div></div>
-        </section>
-
-        <section id="section-schedule" class="page-section">
-            <div class="page-header"><div><h1>Schedule<small>Maintain class meeting times and rooms</small></h1></div></div>
-            <div class="card"><div class="card-header"><h3>Add Schedule</h3></div>
-                <form id="scheduleForm" class="form-grid">
-                    <div class="form-group full"><label for="scheduleCourse">Course</label><select id="scheduleCourse" required></select></div>
-                    <div class="form-group"><label for="scheduleDay">Day</label><select id="scheduleDay"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select></div>
-                    <div class="form-group"><label for="scheduleStart">Start</label><input type="time" id="scheduleStart" required></div>
-                    <div class="form-group"><label for="scheduleEnd">End</label><input type="time" id="scheduleEnd" required></div>
-                    <div class="form-group"><label for="scheduleRoom">Room</label><input type="text" id="scheduleRoom" placeholder="Room 101"></div>
-                    <div class="form-group full"><button class="btn btn-primary" type="submit">Add Schedule</button></div>
-                </form>
-            </div>
-            <div class="card"><div class="card-header"><h3>Current Schedules</h3></div><div id="scheduleList"><div class="empty-state">No schedules.</div></div></div>
-        </section>
-
-        <section id="section-assessments" class="page-section">
-            <div class="page-header"><div><h1>Assessments<small>Create exams, quizzes, projects, and question banks</small></h1></div><button class="btn btn-outline" id="resetAssessmentBtn">New Blank Assessment</button></div>
+            <div class="page-header"><div><h1>Attendance <small>Create sessions and track attendance</small></h1></div></div>
             <div class="card">
+                <div class="card-header"><h3>Create Session (Self‑Check‑In)</h3></div>
+                <form id="attendanceForm" class="form-grid">
+                    <div class="form-group full"><label>Course</label><select id="attCourse" required></select></div>
+                    <div class="form-group"><label>Date</label><input type="date" id="attDate" required></div>
+                    <div class="form-group"><label>Start</label><input type="time" id="attStart" required></div>
+                    <div class="form-group"><label>End</label><input type="time" id="attEnd" required></div>
+                    <div class="form-group full"><button type="submit" class="btn btn-primary">Generate Code</button></div>
+                </form>
+                <div id="attCodeDisplay" style="display:none; margin-top:0.75rem; padding:0.75rem; background:#f1f5f9; border-radius:8px; text-align:center; font-size:1.5rem; font-weight:700; letter-spacing:4px; font-family:monospace;"></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3>Manual Attendance Marking</h3></div>
+                <div class="form-grid">
+                    <div class="form-group full"><label>Select Session</label><select id="manualSessionSelect"><option value="">Choose a session...</option></select></div>
+                    <div class="form-group full">
+                        <button class="btn btn-primary" onclick="openMarkAttendanceModal()">📝 Mark Attendance</button>
+                        <button class="btn btn-outline" onclick="loadManualSessions()">🔄 Refresh Sessions</button>
+                    </div>
+                </div>
+            </div>
+            <div class="card"><div class="card-header"><h3>Attendance Sessions</h3></div><div id="attendanceSessionsList"><div class="empty-state"><p>No sessions yet.</p></div></div></div>
+        </section>
+
+        <!-- SCHEDULE -->
+        <section id="section-schedule" class="page-section">
+            <div class="page-header"><div><h1>Schedule <small>Set class schedules</small></h1></div></div>
+            <div class="card">
+                <div class="card-header"><h3>Add Schedule</h3></div>
+                <form id="scheduleForm" class="form-grid">
+                    <div class="form-group full"><label>Course</label><select id="scheduleCourse" required></select></div>
+                    <div class="form-group"><label>Day</label><select id="scheduleDay"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select></div>
+                    <div class="form-group"><label>Start</label><input type="time" id="scheduleStart" required></div>
+                    <div class="form-group"><label>End</label><input type="time" id="scheduleEnd" required></div>
+                    <div class="form-group"><label>Room</label><input type="text" id="scheduleRoom" placeholder="Room 101"></div>
+                    <div class="form-group full"><button type="submit" class="btn btn-primary">Add Schedule</button></div>
+                </form>
+            </div>
+            <div class="card"><div class="card-header"><h3>Current Schedules</h3></div><div id="scheduleList"><div class="empty-state"><p>No schedules set.</p></div></div></div>
+        </section>
+
+        <!-- ASSESSMENTS -->
+        <section id="section-assessments" class="page-section">
+            <div class="page-header"><h1>Assessments <small>Build professional exams</small></h1></div>
+            <div class="card">
+                <div class="card-header"><h3>Create / Edit Assessment</h3></div>
                 <form id="assessmentForm">
                     <div class="step active" data-step="1">
                         <h4>1. Assessment Details</h4>
                         <div class="form-grid">
-                            <div class="form-group full"><label for="assessCourse">Course</label><select id="assessCourse" required></select></div>
-                            <div class="form-group"><label for="assessType">Type</label><select id="assessType"><option>Quiz</option><option>Exam</option><option>Project</option><option>Activity</option></select></div>
-                            <div class="form-group"><label for="assessPeriod">Period</label><select id="assessPeriod"><option value="prelim">Prelim</option><option value="midterm">Midterm</option><option value="semifinal">Semi-Final</option><option value="final">Final</option></select></div>
-                            <div class="form-group full"><label for="assessTitle">Title</label><input type="text" id="assessTitle" required placeholder="Midterm Examination"></div>
-                            <div class="form-group full"><label for="assessDesc">Description</label><textarea id="assessDesc" rows="2"></textarea></div>
-                            <div class="form-group"><label for="assessMaxScore">Maximum Score</label><input type="number" id="assessMaxScore" min="1" value="100"></div>
-                            <div class="form-group"><label for="assessDuration">Duration in Minutes</label><input type="number" id="assessDuration" min="1" value="60"></div>
-                            <div class="form-group"><label for="assessDate">Date and Time</label><input type="datetime-local" id="assessDate" required></div>
-                            <div class="form-group"><label for="assessShow">Questions to Show</label><input type="number" id="assessShow" min="1" placeholder="Blank means all"></div>
-                            <div class="form-group"><label>Randomize Questions</label><div class="checkbox-row"><input type="checkbox" id="assessRandomize"><span class="small muted">Different order per student</span></div></div>
-                            <div class="form-group"><label for="assessAI">AI Grading Provider</label><select id="assessAI"><option value="none">None</option><option value="openai">OpenAI</option><option value="gemini">Gemini</option></select></div>
+                            <div class="form-group full">
+                                <label>Courses (hold Ctrl/Cmd to select multiple)</label>
+                                <select id="assessCourses" multiple required>
+                                    <option value="">Select courses...</option>
+                                </select>
+                            </div>
+                            <div class="form-group"><label>Type</label><select id="assessType"><option>Quiz</option><option>Exam</option><option>Project</option></select></div>
+                            <div class="form-group"><label>Duration (min)</label><input type="number" id="assessDuration" value="60" min="1"></div>
+                            <div class="form-group full"><label>Title</label><input type="text" id="assessTitle" placeholder="e.g., Midterm Exam" required></div>
+                            <div class="form-group full"><label>Description</label><textarea id="assessDesc" rows="2"></textarea></div>
+                            <div class="form-group"><label>Max Score</label><input type="number" id="assessMaxScore" value="100" min="1"></div>
+                            <div class="form-group"><label>Date & Time</label><input type="datetime-local" id="assessDate" required></div>
+                            <div class="form-group"><label>Questions to show</label><input type="number" id="assessShow" placeholder="Leave blank to show all" min="1"></div>
+                            <div class="form-group"><label>Randomise questions per student?</label><input type="checkbox" id="assessRandomize"></div>
+                            <div class="form-group"><label>AI Grading</label><select id="assessAI"><option value="none">None</option><option value="openai">OpenAI</option><option value="gemini">Gemini</option></select></div>
                         </div>
-                        <div class="inline-actions" style="margin-top:1rem"><button class="btn btn-primary" type="button" data-next-step="2">Next: Questions →</button></div>
+                        <button type="button" class="btn btn-primary" onclick="goToStep(2)">Next → Questions</button>
                     </div>
-                    <div class="step" data-step="2">
+                    <div class="step" data-step="2" style="display:none;">
                         <h4>2. Question Bank</h4>
-                        <div id="questionList"><div class="empty-state">No questions added.</div></div>
-                        <div class="inline-actions"><button type="button" class="btn btn-outline" id="addQuestionBtn">+ Add Question</button><button type="button" class="btn btn-outline" id="importBankBtn">📚 Import from Bank</button><button type="button" class="btn btn-outline" id="uploadQuestionsBtn">📤 Upload JSON</button><button type="button" class="btn btn-outline" id="clearQuestionsBtn">🗑 Clear All</button></div>
-                        <div class="inline-actions" style="margin-top:1rem"><button class="btn btn-outline" type="button" data-next-step="1">← Back</button><button class="btn btn-primary" type="button" data-next-step="3">Next: Settings →</button></div>
-                    </div>
-                    <div class="step" data-step="3">
-                        <h4>3. Publishing Settings</h4>
-                        <div class="form-grid">
-                            <div class="form-group"><label>Shuffle Options</label><div class="checkbox-row"><input type="checkbox" id="assessShuffleOptions"><span class="small muted">Shuffle multiple-choice options</span></div></div>
-                            <div class="form-group"><label>Show Correct Answers</label><div class="checkbox-row"><input type="checkbox" id="assessShowAnswers"><span class="small muted">After student submission</span></div></div>
-                            <div class="form-group"><label for="assessPassing">Passing Score (%)</label><input type="number" id="assessPassing" min="0" max="100" value="60"></div>
-                            <div class="form-group"><label>Publish Immediately</label><div class="checkbox-row"><input type="checkbox" id="assessPublished" checked><span class="small muted">Students can see it</span></div></div>
+                        <div id="questionList"><div class="empty-state">No questions added yet.</div></div>
+                        <div style="display:flex; gap:0.5rem; margin-top:0.5rem; flex-wrap:wrap;">
+                            <button type="button" class="btn btn-outline" onclick="openQuestionEditor()">+ Add Question</button>
+                            <button type="button" class="btn btn-outline" onclick="importFromBank()">📚 Import from Bank</button>
+                            <button type="button" class="btn btn-outline" onclick="uploadQuestions()">📤 Upload JSON</button>
+                            <button type="button" class="btn btn-outline" onclick="clearQuestions()">🗑️ Clear All</button>
                         </div>
-                        <div class="inline-actions" style="margin-top:1rem"><button class="btn btn-outline" type="button" data-next-step="2">← Back</button><button class="btn btn-success" type="submit" id="saveAssessmentBtn">🚀 Publish Assessment</button></div>
+                        <div style="margin-top:1rem;">
+                            <button type="button" class="btn btn-outline" onclick="goToStep(1)">← Back</button>
+                            <button type="button" class="btn btn-primary" onclick="goToStep(3)">Next → Settings</button>
+                        </div>
+                    </div>
+                    <div class="step" data-step="3" style="display:none;">
+                        <h4>3. Additional Settings</h4>
+                        <div class="form-grid">
+                            <div class="form-group"><label>Shuffle options per question?</label><input type="checkbox" id="assessShuffleOptions"></div>
+                            <div class="form-group"><label>Show correct answers after submission?</label><input type="checkbox" id="assessShowAnswers"></div>
+                            <div class="form-group full"><label>Passing Score (%)</label><input type="number" id="assessPassing" value="60" min="0" max="100"></div>
+                        </div>
+                        <button type="submit" class="btn btn-success mt-2">🚀 Publish Assessment</button>
+                        <button type="button" class="btn btn-outline" onclick="goToStep(2)">← Back</button>
                     </div>
                 </form>
-                <input type="file" id="jsonFileInput" accept="application/json,.json" hidden>
+                <input type="file" id="jsonFileInput" accept=".json,.js" style="display:none" onchange="handleFileUpload(event)" />
             </div>
-            <div class="card"><div class="card-header"><h3>Existing Assessments</h3></div><div id="assessmentsList"><div class="empty-state">No assessments.</div></div></div>
+            <div class="card"><div class="card-header"><h3>Existing Assessments</h3></div><div id="assessmentsList"><div class="empty-state"><p>No assessments created yet.</p></div></div></div>
         </section>
 
+        <!-- GRADEBOOK -->
         <section id="section-gradebook" class="page-section">
-            <div class="page-header"><div><h1>Gradebook<small>Enter scores by assessment and student</small></h1></div><div class="actions"><button class="btn btn-outline" id="exportGradesBtn">📥 Export CSV</button><button class="btn btn-primary" id="saveGradebookBtn">Save Grades</button></div></div>
-            <div class="card"><div class="form-group" style="margin-bottom:1rem"><label for="manualCourseSelect">Course</label><select id="manualCourseSelect"></select></div><div id="gradebookContainer"><div class="empty-state">Select a course.</div></div></div>
+            <div class="page-header"><div><h1>Gradebook <small>Spreadsheet view</small></h1></div></div>
+            <div class="card">
+                <div class="card-header"><h3>Grades</h3><button class="btn btn-outline btn-sm" id="exportGrades">📥 Export CSV</button></div>
+                <div class="form-group" style="margin-bottom:1rem;"><label>Select Course</label><select id="manualCourseSelect"><option value="">Choose a course...</option></select></div>
+                <div id="gradebookContainer"><div class="empty-state"><p>Select a course to view grades.</p></div></div>
+            </div>
         </section>
 
+        <!-- WEIGHTS -->
         <section id="section-weights" class="page-section">
-            <div class="page-header"><div><h1>Grade Weights<small>Weights must total 100%</small></h1></div></div>
-            <div class="card"><form id="weightsForm"><div class="form-group" style="margin-bottom:1rem"><label for="weightsCourse">Course</label><select id="weightsCourse" required></select></div><div id="weightsInputs"><div class="empty-state">Select a course.</div></div><button class="btn btn-primary" type="submit" style="margin-top:1rem">Save Weights</button></form></div>
+            <div class="page-header"><div><h1>Grade Weights</h1></div></div>
+            <div class="card">
+                <form id="weightsForm">
+                    <div class="form-group" style="margin-bottom:1rem;"><label>Course</label><select id="weightsCourse" required></select></div>
+                    <div id="weightsInputs"></div>
+                    <button type="submit" class="btn btn-primary mt-1">Save Weights</button>
+                </form>
+            </div>
         </section>
 
+        <!-- COMPUTE -->
         <section id="section-compute" class="page-section">
-            <div class="page-header"><div><h1>Compute Period Grades<small>Uses assessment-type weights and entered scores</small></h1></div></div>
-            <div class="card"><form id="computeForm" class="form-grid"><div class="form-group full"><label for="computeCourse">Course</label><select id="computeCourse" required></select></div><div class="form-group"><label for="computePeriod">Period</label><select id="computePeriod"><option value="prelim">Prelim</option><option value="midterm">Midterm</option><option value="semifinal">Semi-Final</option><option value="final">Final</option></select></div><div class="form-group full"><button class="btn btn-primary" type="submit">Compute and Save</button></div></form><div id="computedGradesResult" style="margin-top:1rem"></div></div>
+            <div class="page-header"><div><h1>Compute Period Grades</h1></div></div>
+            <div class="card">
+                <form id="computeForm" class="form-grid">
+                    <div class="form-group full"><label>Course</label><select id="computeCourse" required></select></div>
+                    <div class="form-group"><label>Period</label><select id="computePeriod"><option value="prelim">Prelim</option><option value="midterm">Midterm</option><option value="semifinal">Semi‑Final</option><option value="final">Final</option></select></div>
+                    <div class="form-group full"><button type="submit" class="btn btn-primary">Compute</button></div>
+                </form>
+                <div id="computedGradesResult" class="mt-2"></div>
+            </div>
         </section>
 
+        <!-- FINAL RATING -->
         <section id="section-final" class="page-section">
-            <div class="page-header"><div><h1>Final Rating<small>Average of available period grades</small></h1></div></div>
-            <div class="card"><form id="finalForm" class="form-grid"><div class="form-group full"><label for="finalCourse">Course</label><select id="finalCourse" required></select></div><div class="form-group full"><button class="btn btn-primary" type="submit">Compute Final Ratings</button></div></form><div id="finalResult" style="margin-top:1rem"></div></div>
+            <div class="page-header"><div><h1>Final Rating</h1></div></div>
+            <div class="card">
+                <form id="finalForm" class="form-grid">
+                    <div class="form-group full"><label>Course</label><select id="finalCourse" required></select></div>
+                    <div class="form-group full"><button type="submit" class="btn btn-primary">Compute Final</button></div>
+                </form>
+                <div id="finalResult" class="mt-2"></div>
+            </div>
         </section>
 
+        <!-- REPORTS -->
         <section id="section-reports" class="page-section">
-            <div class="page-header"><div><h1>Reports<small>Attendance, failing grades, and course summaries</small></h1></div></div>
-            <div class="card"><form id="reportForm" class="form-grid"><div class="form-group full"><label for="reportCourse">Course</label><select id="reportCourse" required></select></div><div class="form-group"><label for="reportType">Report Type</label><select id="reportType"><option value="absenteeism">Absenteeism</option><option value="failing">Failing Grades</option><option value="summary">Course Summary</option></select></div><div class="form-group full"><button class="btn btn-primary" type="submit">Generate Report</button></div></form><div id="reportOutput" class="report-box" style="margin-top:1rem"><span class="muted small">Report output will appear here.</span></div></div>
+            <div class="page-header"><div><h1>Reports</h1></div></div>
+            <div class="card">
+                <form id="reportForm" class="form-grid">
+                    <div class="form-group full"><label>Course</label><select id="reportCourse" required></select></div>
+                    <div class="form-group"><label>Type</label><select id="reportType"><option value="absenteeism">Absenteeism</option><option value="failing">Failing Grades</option><option value="summary">Summary</option></select></div>
+                    <div class="form-group full"><button type="submit" class="btn btn-primary">Generate</button></div>
+                </form>
+                <div id="reportOutput" style="margin-top:1rem; padding:1rem; background:#f1f5f9; border-radius:8px; white-space:pre-wrap; font-family:monospace; font-size:0.85rem; min-height:80px;"></div>
+            </div>
         </section>
 
+        <!-- INTERVENTIONS -->
         <section id="section-interventions" class="page-section">
-            <div class="page-header"><div><h1>Interventions<small>Document remediation, counseling, and adjustments</small></h1></div></div>
-            <div class="card"><form id="interventionForm" class="form-grid"><div class="form-group full"><label for="intervCourse">Course</label><select id="intervCourse" required></select></div><div class="form-group full"><label for="intervStudent">Student</label><select id="intervStudent" required></select></div><div class="form-group"><label for="intervType">Type</label><select id="intervType"><option value="grade_adjustment">Grade Adjustment</option><option value="extra_credit">Extra Credit</option><option value="remediation">Remediation</option><option value="counseling">Counseling</option></select></div><div class="form-group"><label for="intervAdjustment">Adjustment Value</label><input type="number" id="intervAdjustment" step="0.01" placeholder="5"></div><div class="form-group full"><label for="intervDesc">Description</label><input type="text" id="intervDesc" required placeholder="Reason and action taken"></div><div class="form-group full"><button class="btn btn-primary" type="submit">Record Intervention</button></div></form></div>
-            <div class="card"><div class="card-header"><h3>Intervention History</h3></div><div id="interventionHistory"><div class="empty-state">No interventions.</div></div></div>
+            <div class="page-header"><div><h1>Interventions</h1></div></div>
+            <div class="card">
+                <form id="interventionForm" class="form-grid">
+                    <div class="form-group full"><label>Course</label><select id="intervCourse" required></select></div>
+                    <div class="form-group full"><label>Student</label><select id="intervStudent" required></select></div>
+                    <div class="form-group"><label>Type</label><select id="intervType"><option value="grade_adjustment">Grade Adjustment</option><option value="extra_credit">Extra Credit</option><option value="remediation">Remediation</option><option value="counseling">Counseling</option></select></div>
+                    <div class="form-group"><label>Adjustment</label><input type="number" id="intervAdjustment" step="0.01" placeholder="+5"></div>
+                    <div class="form-group full"><label>Description</label><input type="text" id="intervDesc" placeholder="Reason"></div>
+                    <div class="form-group full"><button type="submit" class="btn btn-primary">Apply</button></div>
+                </form>
+                <div id="interventionHistory" class="mt-2"></div>
+            </div>
         </section>
 
+        <!-- ENROLL -->
         <section id="section-enroll" class="page-section">
-            <div class="page-header"><div><h1>Enroll Students<small>Student profile email must already exist</small></h1></div></div>
-            <div class="card"><form id="enrollForm" class="form-grid"><div class="form-group full"><label for="enrollCourse">Course</label><select id="enrollCourse" required></select></div><div class="form-group full"><label for="enrollEmail">Student Email</label><input type="email" id="enrollEmail" required placeholder="student@ncf.edu.ph"></div><div class="form-group full"><button class="btn btn-primary" type="submit">Enroll Student</button></div></form></div>
-            <div class="card"><div class="card-header"><h3>Enrolled Students</h3></div><div class="form-group" style="margin-bottom:1rem"><label for="enrollmentCourseView">Course</label><select id="enrollmentCourseView"></select></div><div id="enrollmentList"><div class="empty-state">Select a course.</div></div></div>
+            <div class="page-header"><div><h1>Enroll Students</h1></div></div>
+            <div class="card">
+                <form id="enrollForm" class="form-grid">
+                    <div class="form-group full"><label>Course</label><select id="enrollCourse" required></select></div>
+                    <div class="form-group full"><label>Student Email</label><input type="email" id="enrollEmail" placeholder="student@ncf.edu.ph" required></div>
+                    <div class="form-group full"><button type="submit" class="btn btn-primary">Enroll</button></div>
+                </form>
+            </div>
         </section>
+
     </main>
 </div>
 
-<div class="modal" id="courseModal"><div class="modal-content"><div class="modal-header"><h3 id="courseModalTitle">New Course</h3><button class="modal-close" data-close-modal="courseModal">✕</button></div><form id="courseForm" class="form-grid"><input type="hidden" id="courseId"><div class="form-group full"><label for="courseCode">Course Code</label><input id="courseCode" required></div><div class="form-group full"><label for="courseName">Course Name</label><input id="courseName" required></div><div class="form-group full"><label for="courseDesc">Description</label><textarea id="courseDesc" rows="3"></textarea></div><div class="form-group full"><button class="btn btn-primary" type="submit">Save Course</button></div></form></div></div>
+<!-- === MODALS === -->
+<div class="modal" id="editCourseModal">
+    <div class="modal-content">
+        <button class="close" onclick="closeEditCourseModal()">✕</button>
+        <h3>Edit Course</h3>
+        <form id="editCourseForm" class="form-grid">
+            <input type="hidden" id="editCourseId" />
+            <div class="form-group full"><label>Course Code</label><input type="text" id="editCourseCode" required /></div>
+            <div class="form-group full"><label>Course Name</label><input type="text" id="editCourseName" required /></div>
+            <div class="form-group full"><label>Description</label><textarea id="editCourseDesc" rows="2"></textarea></div>
+            <div class="form-group full"><button type="submit" class="btn btn-primary">Update Course</button></div>
+        </form>
+    </div>
+</div>
 
-<div class="modal" id="scheduleModal"><div class="modal-content"><div class="modal-header"><h3>Edit Schedule</h3><button class="modal-close" data-close-modal="scheduleModal">✕</button></div><form id="editScheduleForm" class="form-grid"><input type="hidden" id="editScheduleId"><input type="hidden" id="editScheduleSectionId"><div class="form-group full"><label for="editScheduleDay">Day</label><select id="editScheduleDay"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select></div><div class="form-group"><label for="editScheduleStart">Start</label><input type="time" id="editScheduleStart" required></div><div class="form-group"><label for="editScheduleEnd">End</label><input type="time" id="editScheduleEnd" required></div><div class="form-group full"><label for="editScheduleRoom">Room</label><input id="editScheduleRoom"></div><div class="form-group full"><button class="btn btn-primary" type="submit">Update Schedule</button></div></form></div></div>
+<div class="modal" id="editScheduleModal">
+    <div class="modal-content">
+        <button class="close" onclick="closeEditScheduleModal()">✕</button>
+        <h3>Edit Schedule</h3>
+        <form id="editScheduleForm" class="form-grid">
+            <input type="hidden" id="editScheduleId" />
+            <div class="form-group full"><label>Day</label><select id="editScheduleDay"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select></div>
+            <div class="form-group"><label>Start</label><input type="time" id="editScheduleStart" required /></div>
+            <div class="form-group"><label>End</label><input type="time" id="editScheduleEnd" required /></div>
+            <div class="form-group full"><label>Room</label><input type="text" id="editScheduleRoom" placeholder="Room 101" /></div>
+            <div class="form-group full"><button type="submit" class="btn btn-primary">Update Schedule</button></div>
+        </form>
+    </div>
+</div>
 
-<div class="modal" id="questionModal"><div class="modal-content"><div class="modal-header"><h3 id="questionModalTitle">Add Question</h3><button class="modal-close" data-close-modal="questionModal">✕</button></div><form id="questionForm" class="form-grid"><input type="hidden" id="questionIndex" value="-1"><div class="form-group"><label for="questionType">Question Type</label><select id="questionType"><option value="mc">Multiple Choice</option><option value="true_false">True or False</option><option value="short_answer">Short Answer</option><option value="essay">Essay</option></select></div><div class="form-group"><label for="questionPoints">Points</label><input type="number" id="questionPoints" min="0.1" step="0.1" value="1"></div><div class="form-group full"><label for="questionText">Question</label><textarea id="questionText" rows="3" required></textarea></div><div id="questionOptionsArea" class="full"><div class="form-grid"><div class="form-group full"><label>Options</label><input id="questionOption0" placeholder="Option A"><input id="questionOption1" placeholder="Option B"><input id="questionOption2" placeholder="Option C"><input id="questionOption3" placeholder="Option D"></div><div class="form-group full"><label for="questionCorrectIndex">Correct Option</label><select id="questionCorrectIndex"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select></div></div></div><div id="questionTextAnswerArea" class="form-group full" style="display:none"><label for="questionTextAnswer">Expected Answer</label><input id="questionTextAnswer" placeholder="Optional for essay questions"></div><div class="form-group full"><label for="questionExplanation">Explanation</label><textarea id="questionExplanation" rows="2"></textarea></div><div class="form-group full"><div class="checkbox-row"><input type="checkbox" id="saveToBank" checked><label for="saveToBank">Also save this question to the course question bank</label></div></div><div class="form-group full"><button class="btn btn-primary" type="submit">Save Question</button></div></form></div></div>
+<div class="modal" id="markAttendanceModal">
+    <div class="modal-content">
+        <button class="close" onclick="closeMarkAttendanceModal()">✕</button>
+        <h3>Mark Attendance</h3>
+        <div id="markAttendanceInfo"></div>
+        <div id="markAttendanceTableWrap" style="margin-top:1rem;">
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Student</th><th>Current Status</th><th>Update Status</th><th>Action</th></tr></thead>
+                    <tbody id="markAttendanceBody"></tbody>
+                </table>
+            </div>
+        </div>
+        <div style="margin-top:1rem; display:flex; gap:0.5rem; justify-content:flex-end;">
+            <button class="btn btn-success" onclick="saveManualAttendance()">💾 Save All</button>
+            <button class="btn btn-outline" onclick="closeMarkAttendanceModal()">Cancel</button>
+        </div>
+    </div>
+</div>
 
-<div class="modal" id="bankModal"><div class="modal-content"><div class="modal-header"><h3>Import from Question Bank</h3><button class="modal-close" data-close-modal="bankModal">✕</button></div><div id="bankQuestionList"><div class="empty-state">Loading…</div></div><button class="btn btn-primary" id="confirmBankImportBtn" type="button">Import Selected</button></div></div>
+<!-- ============================================================
+     SCRIPTS
+     ============================================================ -->
+<script type="importmap">
+{
+    "imports": {
+        "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2"
+    }
+}
+</script>
+<script type="module">
+import { createClient } from '@supabase/supabase-js';
 
-<div id="toast" class="toast"></div>
-<script type="module" src="./instructor-dashboard.js"></script>
+// -------------------------------------------------------------------
+// 1. INITIALISE SUPABASE CLIENT
+// -------------------------------------------------------------------
+const supabaseUrl = 'https://YOUR_PROJECT_URL.supabase.co';
+const supabaseAnonKey = 'YOUR_ANON_KEY';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// -------------------------------------------------------------------
+// 2. STATE
+// -------------------------------------------------------------------
+let currentUser = null;
+let currentProfile = null;
+let instructorCourses = [];
+let assessmentQuestions = [];
+let editingQuestionIndex = -1;
+let currentManualSessionId = null;
+
+// -------------------------------------------------------------------
+// 3. DOM REFS & NAVIGATION
+// -------------------------------------------------------------------
+const sections = document.querySelectorAll('.page-section');
+const navItems = document.querySelectorAll('.nav-item');
+
+navItems.forEach(item => {
+    item.addEventListener('click', async () => {
+        if (item.id === 'logoutBtn') return;
+        const target = item.dataset.section;
+        navItems.forEach(n => n.classList.remove('active'));
+        item.classList.add('active');
+        sections.forEach(s => s.classList.remove('active'));
+        document.getElementById(`section-${target}`).classList.add('active');
+        // Refresh data on tab switch (if needed)
+        if (target === 'courses') await loadInstructorData();
+        if (target === 'schedule') await loadSchedules();
+        if (target === 'attendance') { await loadAttendanceSessions(); await loadManualSessions(); }
+        if (target === 'assessments') await loadAssessmentsList();
+        if (target === 'interventions') await loadInterventions();
+    });
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    window.location.href = 'index.html'; // redirect to login page
+});
+
+window.switchSection = (section) => {
+    const target = document.querySelector(`.nav-item[data-section="${section}"]`);
+    if (target) target.click();
+};
+
+// -------------------------------------------------------------------
+// 4. HELPERS
+// -------------------------------------------------------------------
+function renderSelect(select, options, valueKey, labelKey) {
+    select.innerHTML = '<option value="">Select...</option>';
+    if (!options || options.length === 0) return;
+    options.forEach(opt => {
+        const op = document.createElement('option');
+        op.value = opt[valueKey];
+        op.textContent = typeof labelKey === 'function' ? labelKey(opt) : opt[labelKey];
+        select.appendChild(op);
+    });
+}
+
+function timeToMinutes(time) {
+    if (!time) return 0;
+    const [h, m] = time.split(':').map(Number);
+    return (h || 0) * 60 + (m || 0);
+}
+
+// -------------------------------------------------------------------
+// 5. AUTH – CHECK SESSION AND PROFILE
+// -------------------------------------------------------------------
+async function checkAuth() {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error || !session) {
+        window.location.href = 'index.html';
+        return null;
+    }
+    return session.user;
+}
+
+async function loadProfile(userId) {
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+    if (error) {
+        console.error('Error loading profile:', error);
+        return null;
+    }
+    return data;
+}
+
+// -------------------------------------------------------------------
+// 6. INIT
+// -------------------------------------------------------------------
+async function init() {
+    const user = await checkAuth();
+    if (!user) return;
+    currentUser = user;
+    console.log('✅ Logged in as:', currentUser.id);
+
+    const profile = await loadProfile(user.id);
+    if (!profile) {
+        alert('Profile not found. Please contact support.');
+        return;
+    }
+    if (profile.role !== 'instructor') {
+        alert('Not authorized as instructor.');
+        await supabase.auth.signOut();
+        window.location.href = 'index.html';
+        return;
+    }
+    currentProfile = profile;
+    document.getElementById('userAvatar').textContent = (profile.first_name?.[0] || 'N') + (profile.last_name?.[0] || 'C');
+    document.getElementById('userName').textContent = `${profile.first_name} ${profile.last_name}`;
+
+    // Ensure sections exist for courses (auto-create)
+    await ensureSingleSectionPerCourse();
+
+    // Load all data
+    await loadInstructorData();
+    await loadPendingApprovals();
+    await populateCourseSelects();
+    await updateStats();
+    await loadSchedules();
+    await loadAttendanceSessions();
+    await loadManualSessions();
+    await loadAssessmentsList();
+    await loadInterventions();
+
+    console.log('🏁 Dashboard ready.');
+}
+
+// -------------------------------------------------------------------
+// 7. COURSES
+// -------------------------------------------------------------------
+async function ensureSingleSectionPerCourse() {
+    const { data: courses, error } = await supabase
+        .from('courses')
+        .select('id, code');
+    if (error) {
+        console.error('Error fetching courses:', error);
+        return;
+    }
+    for (const course of courses) {
+        const { data: sections, error } = await supabase
+            .from('sections')
+            .select('id')
+            .eq('course_id', course.id);
+        if (error) {
+            console.error('Error fetching sections:', error);
+            continue;
+        }
+        if (sections && sections.length > 1) {
+            // Keep the first, delete the rest
+            const keepId = sections[0].id;
+            const deleteIds = sections.slice(1).map(s => s.id);
+            for (const id of deleteIds) {
+                await supabase.from('sections').delete().eq('id', id);
+            }
+        } else if (!sections || sections.length === 0) {
+            const sectionName = course.code + ' Section';
+            await supabase.from('sections').insert({
+                course_id: course.id,
+                name: sectionName
+            });
+        }
+    }
+}
+
+async function ensureSectionForCourse(courseId) {
+    const { data: sections, error } = await supabase
+        .from('sections')
+        .select('id')
+        .eq('course_id', courseId);
+    if (error) {
+        console.error('Error checking sections:', error);
+        return null;
+    }
+    if (sections && sections.length > 0) {
+        return sections[0].id;
+    }
+    const course = instructorCourses.find(c => c.id === courseId);
+    const sectionName = course ? course.code + ' Section' : 'Default Section';
+    const { data: newSection, error: insertError } = await supabase
+        .from('sections')
+        .insert({ course_id: courseId, name: sectionName })
+        .select()
+        .single();
+    if (insertError) {
+        console.error('Error creating section:', insertError);
+        return null;
+    }
+    return newSection.id;
+}
+
+async function loadInstructorData() {
+    if (!currentUser) return;
+    const { data: courses, error } = await supabase
+        .from('courses')
+        .select('*')
+        .eq('instructor_id', currentUser.id);
+    if (error) {
+        console.error('Error loading courses:', error);
+        return;
+    }
+    instructorCourses = courses || [];
+
+    const container = document.getElementById('instructorCourses');
+    if (instructorCourses.length === 0) {
+        container.innerHTML = `<div class="empty-state"><span class="icon">📘</span><p>No courses assigned yet.</p></div>`;
+        return;
+    }
+
+    let html = '<div class="table-wrap"><table><thead><tr><th>Code</th><th>Name</th><th>Description</th><th>Actions</th></tr></thead><tbody>';
+    for (const c of instructorCourses) {
+        html += `<tr>
+            <td><strong>${c.code}</strong></td>
+            <td>${c.name}</td>
+            <td>${c.description || '-'}</td>
+            <td>
+                <button class="btn btn-outline btn-sm" onclick="openEditCourseModal('${c.id}')">✏️</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteCourse('${c.id}')">🗑️</button>
+            </td>
+        </tr>`;
+    }
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+
+    // Also populate the gradebook course select
+    const gradebookSelect = document.getElementById('manualCourseSelect');
+    if (gradebookSelect) renderSelect(gradebookSelect, instructorCourses, 'id', c => `${c.code} - ${c.name}`);
+}
+
+// Add Course
+document.getElementById('addCourseBtn').addEventListener('click', async () => {
+    const code = prompt('Enter course code:');
+    if (!code) return;
+    const name = prompt('Enter course name:');
+    if (!name) return;
+    const desc = prompt('Enter description (optional):');
+    const { error } = await supabase.from('courses').insert({
+        code: code.trim(),
+        name: name.trim(),
+        description: desc?.trim() || '',
+        instructor_id: currentUser.id
+    });
+    if (error) {
+        alert('Error: ' + error.message);
+        return;
+    }
+    alert('Course added!');
+    await loadInstructorData();
+    await populateCourseSelects();
+    await updateStats();
+});
+
+// Edit Course Modal
+window.openEditCourseModal = async (courseId) => {
+    const { data: course, error } = await supabase
+        .from('courses')
+        .select('*')
+        .eq('id', courseId)
+        .single();
+    if (error) {
+        alert('Error loading course: ' + error.message);
+        return;
+    }
+    document.getElementById('editCourseId').value = course.id;
+    document.getElementById('editCourseCode').value = course.code;
+    document.getElementById('editCourseName').value = course.name;
+    document.getElementById('editCourseDesc').value = course.description || '';
+    document.getElementById('editCourseModal').classList.add('active');
+};
+window.closeEditCourseModal = () => {
+    document.getElementById('editCourseModal').classList.remove('active');
+};
+document.getElementById('editCourseForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('editCourseId').value;
+    const code = document.getElementById('editCourseCode').value.trim();
+    const name = document.getElementById('editCourseName').value.trim();
+    const desc = document.getElementById('editCourseDesc').value.trim();
+    const { error } = await supabase
+        .from('courses')
+        .update({ code, name, description: desc })
+        .eq('id', id);
+    if (error) {
+        alert('Error: ' + error.message);
+        return;
+    }
+    alert('Course updated.');
+    closeEditCourseModal();
+    await loadInstructorData();
+    await populateCourseSelects();
+    await updateStats();
+});
+
+window.deleteCourse = async function(courseId) {
+    if (!confirm('Delete this course and all associated data? This cannot be undone.')) return;
+    const { error } = await supabase
+        .from('courses')
+        .delete()
+        .eq('id', courseId);
+    if (error) {
+        alert('Error deleting: ' + error.message);
+        return;
+    }
+    alert('Course deleted.');
+    await loadInstructorData();
+    await populateCourseSelects();
+    await updateStats();
+    await loadSchedules();
+    await loadAttendanceSessions();
+    await loadManualSessions();
+    await loadAssessmentsList();
+};
+
+// -------------------------------------------------------------------
+// 8. SCHEDULES
+// -------------------------------------------------------------------
+async function loadSchedules() {
+    const container = document.getElementById('scheduleList');
+    const { data, error } = await supabase
+        .from('schedules')
+        .select(`
+            id,
+            day_of_week,
+            start_time,
+            end_time,
+            room,
+            sections (
+                course_id,
+                courses ( code, name )
+            )
+        `)
+        .order('day_of_week', { ascending: true });
+    if (error || !data || data.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No schedules set.</p></div>';
+        return;
+    }
+    let html = `<div class="table-wrap"><table>
+        <thead><tr><th>Course</th><th>Day</th><th>Start</th><th>End</th><th>Room</th><th>Actions</th></tr></thead><tbody>`;
+    data.forEach(s => {
+        const course = s.sections?.courses;
+        const courseLabel = course ? `${course.code} - ${course.name}` : (s.sections?.name || 'Unknown');
+        html += `<tr>
+            <td>${courseLabel}</td>
+            <td>${s.day_of_week}</td>
+            <td>${s.start_time}</td>
+            <td>${s.end_time}</td>
+            <td>${s.room || '-'}</td>
+            <td>
+                <button class="btn btn-outline btn-sm" onclick="openEditScheduleModal('${s.id}')">✏️</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteSchedule('${s.id}')">🗑️</button>
+            </td>
+        </tr>`;
+    });
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+document.getElementById('scheduleForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const courseId = document.getElementById('scheduleCourse').value;
+    const day = document.getElementById('scheduleDay').value;
+    const start = document.getElementById('scheduleStart').value;
+    const end = document.getElementById('scheduleEnd').value;
+    const room = document.getElementById('scheduleRoom').value;
+    if (!courseId) {
+        alert('Select a course.');
+        return;
+    }
+    const sectionId = await ensureSectionForCourse(courseId);
+    if (!sectionId) {
+        alert('Error creating section.');
+        return;
+    }
+
+    // Conflict check
+    const { data: existing, error } = await supabase
+        .from('schedules')
+        .select('*')
+        .eq('section_id', sectionId)
+        .eq('day_of_week', day);
+    if (error) {
+        alert('Error checking conflicts: ' + error.message);
+        return;
+    }
+    const startMin = timeToMinutes(start);
+    const endMin = timeToMinutes(end);
+    const conflict = existing?.some(s => {
+        const sStart = timeToMinutes(s.start_time);
+        const sEnd = timeToMinutes(s.end_time);
+        return (startMin < sEnd && endMin > sStart);
+    });
+    if (conflict) {
+        alert('❌ Conflict: This course already has a schedule on ' + day + ' that overlaps.');
+        return;
+    }
+
+    const { error: insertError } = await supabase.from('schedules').insert({
+        section_id: sectionId,
+        day_of_week: day,
+        start_time: start,
+        end_time: end,
+        room: room || null
+    });
+    if (insertError) {
+        alert('Error: ' + insertError.message);
+        return;
+    }
+    alert('Schedule added!');
+    await loadSchedules();
+    document.getElementById('scheduleForm').reset();
+});
+
+window.openEditScheduleModal = async (scheduleId) => {
+    const { data: schedule, error } = await supabase
+        .from('schedules')
+        .select('*')
+        .eq('id', scheduleId)
+        .single();
+    if (error) {
+        alert('Error loading schedule: ' + error.message);
+        return;
+    }
+    document.getElementById('editScheduleId').value = schedule.id;
+    document.getElementById('editScheduleDay').value = schedule.day_of_week;
+    document.getElementById('editScheduleStart').value = schedule.start_time;
+    document.getElementById('editScheduleEnd').value = schedule.end_time;
+    document.getElementById('editScheduleRoom').value = schedule.room || '';
+    document.getElementById('editScheduleModal').classList.add('active');
+};
+window.closeEditScheduleModal = () => {
+    document.getElementById('editScheduleModal').classList.remove('active');
+};
+document.getElementById('editScheduleForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('editScheduleId').value;
+    const day = document.getElementById('editScheduleDay').value;
+    const start = document.getElementById('editScheduleStart').value;
+    const end = document.getElementById('editScheduleEnd').value;
+    const room = document.getElementById('editScheduleRoom').value.trim();
+    const { error } = await supabase
+        .from('schedules')
+        .update({ day_of_week: day, start_time: start, end_time: end, room: room || null })
+        .eq('id', id);
+    if (error) {
+        alert('Error: ' + error.message);
+        return;
+    }
+    alert('Schedule updated.');
+    closeEditScheduleModal();
+    await loadSchedules();
+});
+
+window.deleteSchedule = async function(scheduleId) {
+    if (!confirm('Delete this schedule permanently?')) return;
+    const { error } = await supabase
+        .from('schedules')
+        .delete()
+        .eq('id', scheduleId);
+    if (error) {
+        alert('Error: ' + error.message);
+        return;
+    }
+    alert('Schedule deleted.');
+    await loadSchedules();
+};
+
+// -------------------------------------------------------------------
+// 9. ATTENDANCE
+// -------------------------------------------------------------------
+async function loadAttendanceSessions() {
+    const container = document.getElementById('attendanceSessionsList');
+    const { data, error } = await supabase
+        .from('attendance_sessions')
+        .select(`
+            id,
+            date,
+            start_time,
+            end_time,
+            code,
+            expires_at,
+            sections (
+                courses ( code, name )
+            )
+        `)
+        .order('date', { ascending: false });
+    if (error || !data || data.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No sessions created yet.</p></div>';
+        return;
+    }
+    let html = `<div class="table-wrap"><table><thead><tr><th>Course</th><th>Date</th><th>Start</th><th>End</th><th>Code</th><th>Expires</th><th>Actions</th></tr></thead><tbody>`;
+    data.forEach(s => {
+        const course = s.sections?.courses;
+        const courseLabel = course ? `${course.code} - ${course.name}` : 'Unknown';
+        const expires = new Date(s.expires_at).toLocaleString();
+        html += `<tr>
+            <td>${courseLabel}</td>
+            <td>${s.date}</td>
+            <td>${s.start_time}</td>
+            <td>${s.end_time}</td>
+            <td><strong>${s.code}</strong></td>
+            <td>${expires}</td>
+            <td>
+                <button class="btn btn-outline btn-sm" onclick="openMarkAttendanceModal('${s.id}')">✅ Mark</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteAttendanceSession('${s.id}')">🗑️</button>
+            </td>
+        </tr>`;
+    });
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+document.getElementById('attendanceForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const courseId = document.getElementById('attCourse').value;
+    const date = document.getElementById('attDate').value;
+    const start = document.getElementById('attStart').value;
+    const end = document.getElementById('attEnd').value;
+    if (!courseId) {
+        alert('Select a course.');
+        return;
+    }
+    const sectionId = await ensureSectionForCourse(courseId);
+    if (!sectionId) {
+        alert('Error creating section.');
+        return;
+    }
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+    const { error } = await supabase.from('attendance_sessions').insert({
+        section_id: sectionId,
+        date,
+        start_time: start,
+        end_time: end,
+        code,
+        expires_at: expiresAt.toISOString()
+    });
+    if (error) {
+        alert('Error: ' + error.message);
+        return;
+    }
+    document.getElementById('attCodeDisplay').textContent = `Code: ${code} (valid 15 mins)`;
+    document.getElementById('attCodeDisplay').style.display = 'block';
+    await loadAttendanceSessions();
+    await loadManualSessions();
+    document.getElementById('attendanceForm').reset();
+});
+
+window.deleteAttendanceSession = async function(sessionId) {
+    if (!confirm('Delete this attendance session?')) return;
+    const { error } = await supabase
+        .from('attendance_sessions')
+        .delete()
+        .eq('id', sessionId);
+    if (error) {
+        alert('Error: ' + error.message);
+        return;
+    }
+    alert('Session deleted.');
+    await loadAttendanceSessions();
+    await loadManualSessions();
+};
+
+// Manual Attendance
+async function loadManualSessions() {
+    const select = document.getElementById('manualSessionSelect');
+    const { data, error } = await supabase
+        .from('attendance_sessions')
+        .select(`
+            id,
+            date,
+            start_time,
+            end_time,
+            sections (
+                courses ( code, name )
+            )
+        `)
+        .order('date', { ascending: false });
+    if (error || !data || data.length === 0) {
+        select.innerHTML = '<option value="">No sessions available</option>';
+        return;
+    }
+    const options = data.map(s => {
+        const course = s.sections?.courses;
+        const courseLabel = course ? `${course.code} - ${course.name}` : 'Unknown';
+        return { id: s.id, label: `${courseLabel} - ${s.date} ${s.start_time}-${s.end_time}` };
+    });
+    renderSelect(select, options, 'id', 'label');
+}
+
+window.openMarkAttendanceModal = async (sessionId) => {
+    if (!sessionId) {
+        sessionId = document.getElementById('manualSessionSelect').value;
+    }
+    if (!sessionId) {
+        alert('Please select a session first.');
+        return;
+    }
+    currentManualSessionId = sessionId;
+
+    const { data: session, error: sessionError } = await supabase
+        .from('attendance_sessions')
+        .select(`
+            id,
+            date,
+            start_time,
+            end_time,
+            section_id,
+            sections (
+                course_id,
+                courses ( code, name )
+            )
+        `)
+        .eq('id', sessionId)
+        .single();
+    if (sessionError) {
+        alert('Error loading session: ' + sessionError.message);
+        return;
+    }
+    const course = session.sections?.courses;
+    document.getElementById('markAttendanceInfo').innerHTML = `
+        <strong>${course ? course.code + ' - ' + course.name : 'Unknown'}</strong> &nbsp;|&nbsp;
+        ${session.date} &nbsp; ${session.start_time} – ${session.end_time}
+    `;
+
+    const courseId = session.sections?.course_id;
+    if (!courseId) {
+        alert('Course not found for this session.');
+        return;
+    }
+    const { data: enrollments, error: enrollError } = await supabase
+        .from('course_enrollments')
+        .select('student_id, profiles ( id, first_name, last_name )')
+        .eq('course_id', courseId);
+    if (enrollError) {
+        alert('Error loading students: ' + enrollError.message);
+        return;
+    }
+    if (!enrollments || enrollments.length === 0) {
+        document.getElementById('markAttendanceBody').innerHTML = '<tr><td colspan="4">No students enrolled.</td></tr>';
+        document.getElementById('markAttendanceModal').classList.add('active');
+        return;
+    }
+
+    const { data: records, error: recError } = await supabase
+        .from('attendance_records')
+        .select('student_id, status')
+        .eq('session_id', sessionId);
+    if (recError) {
+        alert('Error loading records: ' + recError.message);
+        return;
+    }
+    const recordMap = {};
+    records.forEach(r => { recordMap[r.student_id] = r.status; });
+
+    let html = '';
+    enrollments.forEach(en => {
+        const student = en.profiles;
+        if (!student) return;
+        const status = recordMap[student.id] || 'present';
+        html += `<tr>
+            <td>${student.first_name} ${student.last_name}</td>
+            <td><span class="badge ${status === 'present' ? 'badge-approved' : status === 'late' ? 'badge-pending' : 'badge-rejected'}">${status}</span></td>
+            <td>
+                <select class="att-status-select" data-student="${student.id}">
+                    <option value="present" ${status === 'present' ? 'selected' : ''}>Present</option>
+                    <option value="late" ${status === 'late' ? 'selected' : ''}>Late</option>
+                    <option value="absent" ${status === 'absent' ? 'selected' : ''}>Absent</option>
+                </select>
+            </td>
+            <td>
+                <button class="btn btn-danger btn-sm" onclick="deleteAttendanceRecord('${sessionId}','${student.id}')">🗑️</button>
+            </td>
+        </tr>`;
+    });
+    document.getElementById('markAttendanceBody').innerHTML = html;
+    document.getElementById('markAttendanceModal').classList.add('active');
+};
+
+window.closeMarkAttendanceModal = () => {
+    document.getElementById('markAttendanceModal').classList.remove('active');
+};
+
+window.saveManualAttendance = async () => {
+    const sessionId = currentManualSessionId;
+    if (!sessionId) return;
+    const selects = document.querySelectorAll('#markAttendanceBody .att-status-select');
+    const records = [];
+    selects.forEach(sel => {
+        const studentId = sel.dataset.student;
+        const status = sel.value;
+        records.push({ student_id: studentId, status });
+    });
+    for (const rec of records) {
+        const { error } = await supabase
+            .from('attendance_records')
+            .upsert({
+                session_id: sessionId,
+                student_id: rec.student_id,
+                status: rec.status,
+                marked_at: new Date().toISOString()
+            }, { onConflict: 'session_id,student_id' });
+        if (error) {
+            alert('Error saving record for student: ' + error.message);
+            return;
+        }
+    }
+    alert('Attendance saved successfully!');
+    closeMarkAttendanceModal();
+    await loadAttendanceSessions();
+};
+
+window.deleteAttendanceRecord = async (sessionId, studentId) => {
+    if (!confirm('Delete this attendance record?')) return;
+    const { error } = await supabase
+        .from('attendance_records')
+        .delete()
+        .eq('session_id', sessionId)
+        .eq('student_id', studentId);
+    if (error) {
+        alert('Error: ' + error.message);
+        return;
+    }
+    openMarkAttendanceModal(sessionId);
+};
+
+// -------------------------------------------------------------------
+// 10. ASSESSMENTS (Multi-Course)
+// -------------------------------------------------------------------
+async function loadAssessmentsList() {
+    const container = document.getElementById('assessmentsList');
+    const { data, error } = await supabase
+        .from('assessments')
+        .select(`
+            id,
+            title,
+            description,
+            max_score,
+            date,
+            is_published,
+            courses ( code, name )
+        `)
+        .order('date', { ascending: false });
+    if (error || !data || data.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No assessments created yet.</p></div>';
+        return;
+    }
+    let html = `<div class="table-wrap"><table><thead><tr><th>Course</th><th>Title</th><th>Max Score</th><th>Date</th><th>Published</th><th>Action</th></tr></thead><tbody>`;
+    data.forEach(a => {
+        const course = a.courses;
+        const courseLabel = course ? `${course.code} - ${course.name}` : 'Unknown';
+        const published = a.is_published ? '✅' : '❌';
+        html += `<tr>
+            <td>${courseLabel}</td>
+            <td>${a.title}</td>
+            <td>${a.max_score}</td>
+            <td>${new Date(a.date).toLocaleString()}</td>
+            <td>${published}</td>
+            <td><button class="btn btn-danger btn-sm" onclick="deleteAssessment('${a.id}')">🗑️</button></td>
+        </tr>`;
+    });
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+window.deleteAssessment = async function(assessmentId) {
+    if (!confirm('Delete this assessment and all questions?')) return;
+    const { error } = await supabase
+        .from('assessments')
+        .delete()
+        .eq('id', assessmentId);
+    if (error) {
+        alert('Error: ' + error.message);
+        return;
+    }
+    alert('Assessment deleted.');
+    await loadAssessmentsList();
+    await updateStats();
+};
+
+// Assessment Builder Functions
+window.goToStep = (step) => {
+    document.querySelectorAll('.step').forEach(el => {
+        el.style.display = 'none';
+        el.classList.remove('active');
+    });
+    const target = document.querySelector(`.step[data-step="${step}"]`);
+    if (target) {
+        target.style.display = 'block';
+        target.classList.add('active');
+    }
+};
+
+function renderQuestions() {
+    const container = document.getElementById('questionList');
+    if (assessmentQuestions.length === 0) {
+        container.innerHTML = '<div class="empty-state">No questions added yet.</div>';
+        return;
+    }
+    let html = '';
+    assessmentQuestions.forEach((q, idx) => {
+        const typeLabel = { mc: 'Multiple Choice', tf: 'True/False', essay: 'Essay', fill: 'Fill in the Blank' }[q.type] || q.type;
+        html += `<div class="question-item">
+            <div class="q-text"><strong>${idx+1}.</strong> ${q.question} <span class="text-muted">(${typeLabel}, ${q.points} pts)</span></div>
+            <div class="q-actions">
+                <button class="btn btn-outline btn-sm" onclick="editQuestion(${idx})">✏️</button>
+                <button class="btn btn-danger-outline btn-sm" onclick="removeQuestion(${idx})">🗑️</button>
+            </div>
+        </div>`;
+    });
+    container.innerHTML = html;
+}
+
+window.openQuestionEditor = () => {
+    editingQuestionIndex = -1;
+    document.getElementById('modalTitle').textContent = 'Add Question';
+    document.getElementById('questionEditorForm').reset();
+    document.getElementById('qText').value = '';
+    document.getElementById('qOptions').value = '';
+    document.getElementById('qType').value = 'mc';
+    toggleOptions();
+    document.getElementById('questionModal').classList.add('active');
+};
+
+window.editQuestion = (idx) => {
+    editingQuestionIndex = idx;
+    const q = assessmentQuestions[idx];
+    document.getElementById('modalTitle').textContent = 'Edit Question';
+    document.getElementById('qText').value = q.question;
+    document.getElementById('qType').value = q.type;
+    document.getElementById('qPoints').value = q.points;
+    if (q.options && q.options.length) {
+        let opts = q.options.map((o, i) => (i === q.correct ? `*${o}` : o)).join('\n');
+        document.getElementById('qOptions').value = opts;
+    } else {
+        document.getElementById('qOptions').value = '';
+    }
+    toggleOptions();
+    document.getElementById('questionModal').classList.add('active');
+};
+
+window.removeQuestion = (idx) => {
+    if (!confirm('Remove this question?')) return;
+    assessmentQuestions.splice(idx, 1);
+    renderQuestions();
+};
+
+window.clearQuestions = () => {
+    if (!confirm('Clear all questions?')) return;
+    assessmentQuestions = [];
+    renderQuestions();
+};
+
+window.closeQuestionEditor = () => {
+    document.getElementById('questionModal').classList.remove('active');
+};
+
+function toggleOptions() {
+    const type = document.getElementById('qType').value;
+    const group = document.getElementById('optionsGroup');
+    if (type === 'essay' || type === 'fill') {
+        group.style.display = 'none';
+    } else {
+        group.style.display = 'block';
+    }
+}
+window.toggleOptions = toggleOptions;
+
+document.getElementById('questionEditorForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const question = document.getElementById('qText').value.trim();
+    const type = document.getElementById('qType').value;
+    const points = parseInt(document.getElementById('qPoints').value) || 1;
+    let options = null;
+    let correct = null;
+    if (type === 'mc' || type === 'tf') {
+        const raw = document.getElementById('qOptions').value.split('\n').filter(s => s.trim() !== '');
+        options = raw.map(s => s.replace(/^\*\s*/, '').trim());
+        const idx = raw.findIndex(s => s.trim().startsWith('*'));
+        correct = (idx !== -1) ? idx : 0;
+    }
+    const q = { question, type, options, correct, points };
+    if (editingQuestionIndex === -1) {
+        assessmentQuestions.push(q);
+    } else {
+        assessmentQuestions[editingQuestionIndex] = q;
+    }
+    renderQuestions();
+    closeQuestionEditor();
+});
+
+window.importFromBank = async () => {
+    const firstCourse = document.getElementById('assessCourses').value;
+    if (!firstCourse) {
+        alert('Please select at least one course first.');
+        return;
+    }
+    const { data: bank, error } = await supabase
+        .from('question_bank')
+        .select('*')
+        .eq('course_id', firstCourse);
+    if (error) {
+        alert('Error loading bank: ' + error.message);
+        return;
+    }
+    if (!bank || bank.length === 0) {
+        alert('No questions in the bank for this course.');
+        return;
+    }
+    const imported = bank.map(b => ({
+        question: b.question,
+        type: b.type,
+        options: b.options || null,
+        correct: b.correct_answer || null,
+        points: 1
+    }));
+    assessmentQuestions = assessmentQuestions.concat(imported);
+    renderQuestions();
+    alert(`Imported ${imported.length} questions.`);
+};
+
+window.uploadQuestions = () => {
+    document.getElementById('jsonFileInput').click();
+};
+
+window.handleFileUpload = function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            let content = e.target.result;
+            let jsonData;
+            if (file.name.endsWith('.js')) {
+                const match = content.match(/const\s+QUESTION_BANK\s*=\s*(\[[\s\S]*?\]);/);
+                if (match) {
+                    jsonData = eval(match[1]);
+                } else {
+                    throw new Error('Could not find QUESTION_BANK array.');
+                }
+            } else {
+                jsonData = JSON.parse(content);
+            }
+            if (!Array.isArray(jsonData)) throw new Error('File must contain an array.');
+            const imported = jsonData.map(q => ({
+                question: q.question || q.text || '',
+                type: q.type || 'mc',
+                options: q.options || null,
+                correct: q.correct !== undefined ? q.correct : (q.answer !== undefined ? q.answer : null),
+                points: q.points || 1
+            })).filter(q => q.question.trim() !== '');
+            if (imported.length === 0) {
+                alert('No valid questions found.');
+                return;
+            }
+            assessmentQuestions = assessmentQuestions.concat(imported);
+            renderQuestions();
+            alert(`Imported ${imported.length} questions.`);
+        } catch (err) {
+            alert('Error parsing file: ' + err.message);
+            console.error(err);
+        }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+};
+
+// Assessment Form Submission (Multi-Course)
+document.getElementById('assessmentForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const courseSelect = document.getElementById('assessCourses');
+    const selectedCourseIds = Array.from(courseSelect.selectedOptions).map(opt => opt.value);
+    if (selectedCourseIds.length === 0) {
+        alert('Please select at least one course.');
+        return;
+    }
+
+    const typeName = document.getElementById('assessType').value;
+    const title = document.getElementById('assessTitle').value.trim();
+    const desc = document.getElementById('assessDesc').value.trim();
+    const duration = parseInt(document.getElementById('assessDuration').value) || 60;
+    const maxScore = parseFloat(document.getElementById('assessMaxScore').value) || 100;
+    const date = document.getElementById('assessDate').value;
+    const questionsToShow = parseInt(document.getElementById('assessShow').value) || null;
+    const randomize = document.getElementById('assessRandomize').checked;
+    const ai = document.getElementById('assessAI').value;
+    const shuffleOptions = document.getElementById('assessShuffleOptions').checked;
+    const showAnswers = document.getElementById('assessShowAnswers').checked;
+    const passing = parseInt(document.getElementById('assessPassing').value) || 60;
+
+    if (!title) {
+        alert('Title is required.');
+        return;
+    }
+    if (assessmentQuestions.length === 0) {
+        alert('Please add at least one question.');
+        return;
+    }
+
+    for (const courseId of selectedCourseIds) {
+        // Create or get assessment type for this course
+        let typeId;
+        const { data: existingType } = await supabase
+            .from('assessment_types')
+            .select('id')
+            .eq('course_id', courseId)
+            .eq('name', typeName)
+            .maybeSingle();
+        if (existingType) {
+            typeId = existingType.id;
+        } else {
+            const { data: newType, error } = await supabase
+                .from('assessment_types')
+                .insert({ course_id: courseId, name: typeName, weight: 0 })
+                .select()
+                .single();
+            if (error) {
+                alert('Error creating type for course ' + courseId + ': ' + error.message);
+                return;
+            }
+            typeId = newType.id;
+        }
+
+        // Insert the assessment
+        const { data: assess, error: assessError } = await supabase
+            .from('assessments')
+            .insert({
+                course_id: courseId,
+                assessment_type_id: typeId,
+                title,
+                description: desc,
+                max_score: maxScore,
+                duration_minutes: duration,
+                date: date,
+                is_published: true,
+                randomize_questions: randomize,
+                questions_to_show: questionsToShow,
+                shuffle_options: shuffleOptions,
+                show_answers: showAnswers,
+                passing_score: passing,
+                ai_grading: ai
+            })
+            .select()
+            .single();
+        if (assessError) {
+            alert('Error creating assessment for course ' + courseId + ': ' + assessError.message);
+            return;
+        }
+
+        // Insert questions
+        const qData = assessmentQuestions.map(q => ({
+            assessment_id: assess.id,
+            question: q.question,
+            type: q.type,
+            points: q.points,
+            options: q.options || null,
+            correct_answer: q.correct !== undefined && q.correct !== null ? q.correct : null
+        }));
+        const { error: qError } = await supabase
+            .from('assessment_questions')
+            .insert(qData);
+        if (qError) {
+            alert('Error saving questions for course ' + courseId + ': ' + qError.message);
+            return;
+        }
+    }
+
+    alert(`Assessment "${title}" created for ${selectedCourseIds.length} course(s).`);
+    document.getElementById('assessmentForm').reset();
+    assessmentQuestions = [];
+    renderQuestions();
+    goToStep(1);
+    await updateStats();
+    await loadAssessmentsList();
+});
+
+// -------------------------------------------------------------------
+// 11. OTHER FEATURES (Pending Approvals, Stats, Interventions, etc.)
+// -------------------------------------------------------------------
+async function loadPendingApprovals() {
+    const container = document.getElementById('pendingApprovalsList');
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('id, student_id, first_name, last_name, section, created_at')
+        .eq('role', 'pending')
+        .order('created_at', { ascending: true });
+    if (error || data.length === 0) {
+        container.innerHTML = '<div class="empty-state"><span class="icon">✅</span><p>No pending approvals.</p></div>';
+        return;
+    }
+    let html = '<div class="table-wrap"><table><thead><tr><th>ID</th><th>Name</th><th>Section</th><th>Date</th><th>Actions</th></tr></thead><tbody>';
+    data.forEach(p => {
+        html += `<tr>
+            <td>${p.student_id}</td>
+            <td>${p.first_name} ${p.last_name}</td>
+            <td>${p.section}</td>
+            <td>${new Date(p.created_at).toLocaleDateString()}</td>
+            <td>
+                <button class="btn btn-success btn-sm" onclick="window.approveUser('${p.id}')">Approve</button>
+                <button class="btn btn-danger btn-sm" onclick="window.rejectUser('${p.id}')">Reject</button>
+            </td>
+        </tr>`;
+    });
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+window.approveUser = async (userId) => {
+    if (!confirm('Approve this user?')) return;
+    const { error } = await supabase.from('profiles').update({ role: 'student' }).eq('id', userId);
+    if (error) {
+        alert('Error: ' + error.message);
+        return;
+    }
+    alert('Approved!');
+    await loadPendingApprovals();
+    await updateStats();
+};
+
+window.rejectUser = async (userId) => {
+    if (!confirm('Reject this user?')) return;
+    const { error } = await supabase.from('profiles').update({ role: 'rejected' }).eq('id', userId);
+    if (error) {
+        alert('Error: ' + error.message);
+        return;
+    }
+    alert('Rejected.');
+    await loadPendingApprovals();
+    await updateStats();
+};
+
+async function updateStats() {
+    let totalStudents = 0;
+    for (const c of instructorCourses) {
+        const { count } = await supabase.from('course_enrollments').select('*', { count: 'exact', head: true }).eq('course_id', c.id);
+        totalStudents += count || 0;
+    }
+    document.getElementById('statCourses').textContent = instructorCourses.length;
+    document.getElementById('statStudents').textContent = totalStudents;
+
+    const { count: pending } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'pending');
+    document.getElementById('statPending').textContent = pending || 0;
+
+    let totalAssessments = 0;
+    for (const c of instructorCourses) {
+        const { count } = await supabase.from('assessments').select('*', { count: 'exact', head: true }).eq('course_id', c.id);
+        totalAssessments += count || 0;
+    }
+    document.getElementById('statAssessments').textContent = totalAssessments;
+}
+
+async function loadInterventions() {
+    const container = document.getElementById('interventionHistory');
+    const { data, error } = await supabase
+        .from('interventions')
+        .select(`
+            id,
+            type,
+            adjustment_value,
+            description,
+            created_at,
+            profiles ( first_name, last_name )
+        `)
+        .order('created_at', { ascending: false });
+    if (error || !data || data.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No interventions recorded.</p></div>';
+        return;
+    }
+    let html = `<div class="table-wrap"><table><thead><tr><th>Student</th><th>Type</th><th>Adjustment</th><th>Description</th><th>Date</th><th>Action</th></tr></thead><tbody>`;
+    data.forEach(i => {
+        const name = i.profiles ? `${i.profiles.first_name} ${i.profiles.last_name}` : 'Unknown';
+        html += `<tr>
+            <td>${name}</td>
+            <td>${i.type}</td>
+            <td>${i.adjustment_value || 0}</td>
+            <td>${i.description || '-'}</td>
+            <td>${new Date(i.created_at).toLocaleDateString()}</td>
+            <td><button class="btn btn-danger btn-sm" onclick="deleteIntervention('${i.id}')">🗑️</button></td>
+        </tr>`;
+    });
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+document.getElementById('interventionForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const courseId = document.getElementById('intervCourse').value;
+    const studentId = document.getElementById('intervStudent').value;
+    const type = document.getElementById('intervType').value;
+    const adjustment = parseFloat(document.getElementById('intervAdjustment').value) || 0;
+    const desc = document.getElementById('intervDesc').value;
+    if (!courseId || !studentId) {
+        alert('Select course and student.');
+        return;
+    }
+    const { error } = await supabase.from('interventions').insert({
+        student_id: studentId,
+        course_id: courseId,
+        type,
+        adjustment_value: adjustment,
+        description: desc,
+        instructor_id: currentUser.id
+    });
+    if (error) {
+        alert('Error: ' + error.message);
+        return;
+    }
+    alert('Intervention recorded.');
+    await loadInterventions();
+    document.getElementById('interventionForm').reset();
+});
+
+window.deleteIntervention = async function(interventionId) {
+    if (!confirm('Delete this intervention?')) return;
+    const { error } = await supabase
+        .from('interventions')
+        .delete()
+        .eq('id', interventionId);
+    if (error) {
+        alert('Error: ' + error.message);
+        return;
+    }
+    alert('Intervention deleted.');
+    await loadInterventions();
+};
+
+// -------------------------------------------------------------------
+// 12. WEIGHTS, COMPUTE, FINAL, ENROLL, GRADEBOOK, REPORTS
+// -------------------------------------------------------------------
+document.getElementById('weightsForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const courseId = document.getElementById('weightsCourse').value;
+    if (!courseId) {
+        alert('Select a course.');
+        return;
+    }
+    const inputs = document.querySelectorAll('#weightsInputs input');
+    for (const inp of inputs) {
+        const typeId = inp.dataset.typeId;
+        const weight = parseFloat(inp.value) || 0;
+        await supabase.from('assessment_types').update({ weight }).eq('id', typeId);
+    }
+    alert('Weights saved!');
+});
+
+document.getElementById('computeForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const courseId = document.getElementById('computeCourse').value;
+    const period = document.getElementById('computePeriod').value;
+    if (!courseId) {
+        alert('Select a course.');
+        return;
+    }
+    const { data: enrollments } = await supabase.from('course_enrollments').select('student_id').eq('course_id', courseId);
+    if (!enrollments || enrollments.length === 0) {
+        document.getElementById('computedGradesResult').innerHTML = '<div class="empty-state"><p>No students.</p></div>';
+        return;
+    }
+    const studentIds = enrollments.map(e => e.student_id);
+    const { data: grades } = await supabase.from('grades').select('student_id, assessment_types(name, weight), score, max_score')
+        .eq('course_id', courseId).in('student_id', studentIds);
+    let html = '<div class="table-wrap"><table><thead><tr><th>Student</th><th>Period Grade</th></tr></thead><tbody>';
+    for (const sid of studentIds) {
+        const studentGrades = grades.filter(g => g.student_id === sid);
+        let totalWeighted = 0, totalWeight = 0;
+        for (const g of studentGrades) {
+            const pct = (g.score / g.max_score) * 100;
+            const w = g.assessment_types.weight || 0;
+            totalWeighted += pct * w;
+            totalWeight += w;
+        }
+        const periodGrade = totalWeight > 0 ? (totalWeighted / totalWeight) : 0;
+        await supabase.from('period_grades').upsert({
+            student_id: sid,
+            course_id: courseId,
+            period: period,
+            grade: periodGrade,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'student_id,course_id,period' });
+        const { data: student } = await supabase.from('profiles').select('first_name, last_name').eq('id', sid).single();
+        const name = student ? `${student.first_name} ${student.last_name}` : sid;
+        html += `<tr><td>${name}</td><td>${periodGrade.toFixed(2)}</td></tr>`;
+    }
+    html += '</tbody></table></div>';
+    document.getElementById('computedGradesResult').innerHTML = html;
+});
+
+document.getElementById('finalForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const courseId = document.getElementById('finalCourse').value;
+    if (!courseId) {
+        alert('Select a course.');
+        return;
+    }
+    const { data: enrollments } = await supabase.from('course_enrollments').select('student_id').eq('course_id', courseId);
+    if (!enrollments || enrollments.length === 0) {
+        document.getElementById('finalResult').innerHTML = '<div class="empty-state"><p>No students.</p></div>';
+        return;
+    }
+    const studentIds = enrollments.map(e => e.student_id);
+    const { data: periodGrades } = await supabase.from('period_grades').select('student_id, grade').eq('course_id', courseId).in('student_id', studentIds);
+    let html = '<div class="table-wrap"><table><thead><tr><th>Student</th><th>Final Grade</th></tr></thead><tbody>';
+    for (const sid of studentIds) {
+        const grades = periodGrades.filter(g => g.student_id === sid);
+        const avg = grades.reduce((sum, g) => sum + g.grade, 0) / (grades.length || 1);
+        await supabase.from('final_ratings').upsert({
+            student_id: sid,
+            course_id: courseId,
+            final_grade: avg,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'student_id,course_id' });
+        const { data: student } = await supabase.from('profiles').select('first_name, last_name').eq('id', sid).single();
+        const name = student ? `${student.first_name} ${student.last_name}` : sid;
+        html += `<tr><td>${name}</td><td>${avg.toFixed(2)}</td></tr>`;
+    }
+    html += '</tbody></table></div>';
+    document.getElementById('finalResult').innerHTML = html;
+});
+
+document.getElementById('enrollForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const courseId = document.getElementById('enrollCourse').value;
+    const email = document.getElementById('enrollEmail').value;
+    if (!courseId || !email) {
+        alert('Course and Email are required.');
+        return;
+    }
+    const { data: user, error: userError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+    if (userError || !user) {
+        alert('Student not found. Please check the email.');
+        return;
+    }
+    const sectionId = await ensureSectionForCourse(courseId);
+    if (!sectionId) {
+        alert('Error creating section.');
+        return;
+    }
+    const { error } = await supabase.from('course_enrollments').insert({
+        course_id: courseId,
+        student_id: user.id,
+        section_id: sectionId
+    });
+    if (error) {
+        alert('Error: ' + error.message);
+        return;
+    }
+    alert('Student enrolled!');
+    await updateStats();
+});
+
+document.getElementById('manualCourseSelect').addEventListener('change', loadGradebook);
+document.getElementById('intervCourse').addEventListener('change', loadStudentsForIntervention);
+document.getElementById('weightsCourse').addEventListener('change', loadWeightsInputs);
+
+document.getElementById('reportForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const courseId = document.getElementById('reportCourse').value;
+    const type = document.getElementById('reportType').value;
+    if (!courseId) {
+        alert('Select a course.');
+        return;
+    }
+    document.getElementById('reportOutput').textContent = `${type} report (to be implemented).`;
+});
+
+document.getElementById('exportGrades').addEventListener('click', () => alert('CSV Export – coming soon!'));
+
+async function loadGradebook() {
+    const courseId = document.getElementById('manualCourseSelect').value;
+    const container = document.getElementById('gradebookContainer');
+    if (!courseId) {
+        container.innerHTML = '<div class="empty-state"><p>Select a course to view grades.</p></div>';
+        return;
+    }
+    const { data: enrollments } = await supabase.from('course_enrollments').select('student_id').eq('course_id', courseId);
+    if (!enrollments || enrollments.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No students enrolled.</p></div>';
+        return;
+    }
+    const studentIds = enrollments.map(e => e.student_id);
+    const { data: students } = await supabase.from('profiles').select('id, first_name, last_name, student_id').in('id', studentIds);
+    const { data: types } = await supabase.from('assessment_types').select('id, name').eq('course_id', courseId);
+    const { data: grades } = await supabase.from('grades').select('student_id, assessment_type_id, score, max_score')
+        .eq('course_id', courseId).in('student_id', studentIds);
+    if (!students || students.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No student data.</p></div>';
+        return;
+    }
+    let html = '<div class="table-wrap"><table><thead><tr><th>Student</th>';
+    types.forEach(t => html += `<th>${t.name}</th>`);
+    html += `<th>Average</th></tr></thead><tbody>`;
+    for (const s of students) {
+        html += `<tr><td><strong>${s.first_name} ${s.last_name}</strong><br><span class="text-muted text-sm">${s.student_id}</span></td>`;
+        let total = 0, count = 0;
+        for (const t of types) {
+            const g = grades.find(g => g.student_id === s.id && g.assessment_type_id === t.id);
+            if (g) {
+                const pct = (g.score / g.max_score) * 100;
+                total += pct;
+                count++;
+                html += `<td>${pct.toFixed(1)}%</td>`;
+            } else {
+                html += `<td class="text-muted">—</td>`;
+            }
+        }
+        const avg = count > 0 ? (total / count).toFixed(1) : '—';
+        html += `<td><strong>${avg}%</strong></td></tr>`;
+    }
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+async function loadStudentsForIntervention() {
+    const courseId = document.getElementById('intervCourse').value;
+    const select = document.getElementById('intervStudent');
+    if (!courseId) {
+        select.innerHTML = '<option value="">Select...</option>';
+        return;
+    }
+    const { data: enrollments } = await supabase.from('course_enrollments').select('student_id').eq('course_id', courseId);
+    if (!enrollments || enrollments.length === 0) {
+        select.innerHTML = '<option value="">No students</option>';
+        return;
+    }
+    const ids = enrollments.map(e => e.student_id);
+    const { data: students } = await supabase.from('profiles').select('id, first_name, last_name').in('id', ids);
+    renderSelect(select, students, 'id', s => `${s.first_name} ${s.last_name}`);
+}
+
+async function loadWeightsInputs() {
+    const courseId = document.getElementById('weightsCourse').value;
+    const container = document.getElementById('weightsInputs');
+    if (!courseId) {
+        container.innerHTML = '';
+        return;
+    }
+    const { data: types } = await supabase.from('assessment_types').select('id, name, weight').eq('course_id', courseId);
+    if (!types || types.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No assessment types. Create an assessment first.</p></div>';
+        return;
+    }
+    let html = '';
+    types.forEach(t => {
+        html += `<div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.5rem;">
+            <label style="min-width:100px; font-weight:500;">${t.name}</label>
+            <input type="number" data-type-id="${t.id}" value="${t.weight || 0}" step="0.01" min="0" max="100" style="width:100px; padding:0.4rem 0.6rem; border:1px solid #e2e8f0; border-radius:8px;">
+            <span>%</span>
+        </div>`;
+    });
+    container.innerHTML = html;
+}
+
+async function populateCourseSelects() {
+    const ids = ['attCourse','scheduleCourse','weightsCourse','computeCourse','finalCourse','reportCourse','intervCourse','enrollCourse','manualCourseSelect'];
+    for (const id of ids) {
+        const el = document.getElementById(id);
+        if (el) renderSelect(el, instructorCourses, 'id', c => `${c.code} - ${c.name}`);
+    }
+    // Multi-select for assessments
+    const assessMulti = document.getElementById('assessCourses');
+    if (assessMulti) {
+        assessMulti.innerHTML = '';
+        if (instructorCourses.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = 'No courses available';
+            assessMulti.appendChild(opt);
+            return;
+        }
+        instructorCourses.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = `${c.code} - ${c.name}`;
+            assessMulti.appendChild(opt);
+        });
+    }
+}
+
+// -------------------------------------------------------------------
+// 13. START
+// -------------------------------------------------------------------
+init();
+</script>
 </body>
 </html>
