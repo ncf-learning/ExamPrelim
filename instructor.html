@@ -479,10 +479,9 @@ function renderSelect(select, options, valueKey, labelKey) {
 }
 
 // ============================================================
-// AUTO-CREATE SECTIONS FOR COURSES
+// AUTO-CREATE SECTIONS FOR COURSES (hidden from user)
 // ============================================================
 async function ensureSectionForCourse(courseId, courseCode) {
-    // Check if a section already exists for this course
     const { data: existing, error } = await supabase
         .from('sections')
         .select('id')
@@ -495,7 +494,6 @@ async function ensureSectionForCourse(courseId, courseCode) {
     if (existing && existing.length > 0) {
         return existing[0].id;
     }
-    // Create a default section named after the course code
     const sectionName = courseCode || 'Default Section';
     const { data: newSection, error: insertError } = await supabase
         .from('sections')
@@ -519,7 +517,6 @@ async function loadSectionsForCourseSelect(selectId) {
         select.innerHTML = '<option value="">No courses found</option>';
         return;
     }
-    // For each course, ensure a section exists, then collect sections
     const sectionOptions = [];
     for (const course of instructorCourses) {
         const sectionId = await ensureSectionForCourse(course.id, course.code);
@@ -538,7 +535,7 @@ async function loadSectionsForCourseSelect(selectId) {
 }
 
 // ============================================================
-// LOAD COURSE DROPDOWNS (for attendance, schedule, etc.)
+// POPULATE COURSE DROPDOWNS (for attendance, schedule, etc.)
 // ============================================================
 function populateCourseSelects() {
     const ids = ['attCourse','scheduleCourse','assessCourse','weightsCourse','computeCourse','finalCourse','reportCourse','intervCourse','enrollCourse'];
@@ -609,7 +606,7 @@ async function init() {
 }
 
 // ============================================================
-// LOAD COURSES
+// LOAD COURSES (no sections column)
 // ============================================================
 async function loadInstructorData() {
     const { data: courses, error } = await supabase
@@ -627,7 +624,6 @@ async function loadInstructorData() {
         container.innerHTML = '<div class="empty-state"><span class="icon">📘</span><p>No courses assigned yet.</p></div>';
         return;
     }
-    // Remove "Sections" column – just show course details
     let html = '<div class="table-wrap"><table><thead><tr><th>Code</th><th>Name</th><th>Description</th></tr></thead><tbody>';
     for (const c of instructorCourses) {
         html += `<tr><td><strong>${c.code}</strong></td><td>${c.name}</td><td>${c.description || '-'}</td></tr>`;
@@ -893,7 +889,6 @@ function setupEventListeners() {
         await loadInstructorData();
         populateCourseSelects();
         updateStats();
-        // Reload section dropdowns
         await loadSectionsForCourseSelect('attCourse');
         await loadSectionsForCourseSelect('scheduleCourse');
     });
@@ -906,7 +901,6 @@ function setupEventListeners() {
         const start = document.getElementById('attStart').value;
         const end = document.getElementById('attEnd').value;
         if (!courseId) { alert('Select a course.'); return; }
-        // Find the section for this course (we auto-created one)
         const { data: section } = await supabase
             .from('sections')
             .select('id')
@@ -1150,18 +1144,40 @@ function setupEventListeners() {
 }
 
 // ============================================================
-// LOAD SCHEDULES
+// LOAD SCHEDULES (shows Course, not Section)
 // ============================================================
 async function loadSchedules() {
     const container = document.getElementById('scheduleList');
-    const { data, error } = await supabase.from('schedules').select('*, sections(name)');
+    const { data, error } = await supabase
+        .from('schedules')
+        .select(`
+            *,
+            sections (
+                id,
+                name,
+                course_id,
+                courses (
+                    code,
+                    name
+                )
+            )
+        `);
     if (error || !data || data.length === 0) {
         container.innerHTML = '<div class="empty-state"><p>No schedules set.</p></div>';
         return;
     }
-    let html = '<div class="table-wrap"><table><thead><tr><th>Section</th><th>Day</th><th>Start</th><th>End</th><th>Room</th></tr></thead><tbody>';
+    let html = `<div class="table-wrap"><table>
+        <thead><tr><th>Course</th><th>Day</th><th>Start</th><th>End</th><th>Room</th></tr></thead><tbody>`;
     data.forEach(s => {
-        html += `<tr><td>${s.sections?.name || 'N/A'}</td><td>${s.day_of_week}</td><td>${s.start_time}</td><td>${s.end_time}</td><td>${s.room || '-'}</td></tr>`;
+        const course = s.sections?.courses;
+        const courseLabel = course ? `${course.code} - ${course.name}` : (s.sections?.name || 'Unknown');
+        html += `<tr>
+            <td>${courseLabel}</td>
+            <td>${s.day_of_week}</td>
+            <td>${s.start_time}</td>
+            <td>${s.end_time}</td>
+            <td>${s.room || '-'}</td>
+        </tr>`;
     });
     html += '</tbody></table></div>';
     container.innerHTML = html;
