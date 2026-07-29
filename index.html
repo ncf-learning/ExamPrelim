@@ -95,7 +95,7 @@
                 const { data, error } = await supabase.auth.signInWithPassword({ email, password });
                 if (error) throw error;
 
-                // 2. Get profile – now the fixed RLS policies will allow this
+                // 2. Get profile
                 const { data: profile, error: profileError } = await supabase
                     .from('profiles')
                     .select('*')
@@ -119,11 +119,11 @@
                 sessionStorage.setItem('userRole', profile.role);
                 sessionStorage.setItem('userName', `${profile.first_name} ${profile.last_name}`);
 
-                // 4. Redirect
+                // 4. Redirect – FIXED: student goes to student.html
                 if (profile.role === 'instructor') {
                     window.location.href = 'instructor.html';
                 } else if (profile.role === 'student') {
-                    window.location.href = 'dashboard.html';
+                    window.location.href = 'student.html';   // <-- corrected from dashboard.html
                 } else {
                     showMessage('⏳ Account pending approval.', false);
                     await supabase.auth.signOut();
