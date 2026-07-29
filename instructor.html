@@ -6,7 +6,7 @@
     <title>Instructor Dashboard – NCF Learning System</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <style>
-        /* (your existing styles – keep them unchanged) */
+        /* (your existing styles – unchanged) */
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family:'Inter',sans-serif; background:#f1f5f9; color:#0f172a; }
         .app { display:flex; min-height:100vh; }
@@ -1092,94 +1092,137 @@ window.handleFileUpload = function(event) {
     event.target.value = '';
 };
 
-// Assessment form submit
-document.getElementById('assessmentForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const courseSelect = document.getElementById('assessCourses');
-    const selectedCourseIds = Array.from(courseSelect.selectedOptions).map(opt => opt.value);
-    if (selectedCourseIds.length === 0) { alert('Please select at least one course.'); return; }
-    const typeName = document.getElementById('assessType').value;
-    const title = document.getElementById('assessTitle').value.trim();
-    const desc = document.getElementById('assessDesc').value.trim();
-    const duration = parseInt(document.getElementById('assessDuration').value) || 60;
-    const maxScore = parseFloat(document.getElementById('assessMaxScore').value) || 100;
-    const date = document.getElementById('assessDate').value;
-    const questionsToShow = parseInt(document.getElementById('assessShow').value) || null;
-    const randomize = document.getElementById('assessRandomize').checked;
-    const ai = document.getElementById('assessAI').value;
-    const shuffleOptions = document.getElementById('assessShuffleOptions').checked;
-    const showAnswers = document.getElementById('assessShowAnswers').checked;
-    const passing = parseInt(document.getElementById('assessPassing').value) || 60;
-    if (!title) { alert('Title is required.'); return; }
-    if (assessmentQuestions.length === 0) { alert('Please add at least one question.'); return; }
+// ------------------------------------------------------------
+// 12. ASSESSMENT FORM SUBMIT – FIXED
+// ------------------------------------------------------------
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('assessmentForm');
+    if (!form) {
+        console.error('❌ assessmentForm not found!');
+        return;
+    }
+    console.log('✅ assessmentForm found, attaching submit listener');
 
-    for (const courseId of selectedCourseIds) {
-        // Get or create assessment type
-        let typeId;
-        const { data: existingType } = await supabase.from('assessment_types').select('id').eq('course_id', courseId).eq('name', typeName).maybeSingle();
-        if (existingType) { typeId = existingType.id; } else {
-            const { data: newType, error } = await supabase.from('assessment_types').insert({ course_id: courseId, name: typeName, weight: 0 }).select().single();
-            if (error) { alert('Error creating type: ' + error.message); return; }
-            typeId = newType.id;
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        console.log('🚀 Assessment form submitted!');
+
+        // Gather data
+        const courseSelect = document.getElementById('assessCourses');
+        const selectedCourseIds = Array.from(courseSelect.selectedOptions).map(opt => opt.value);
+        if (selectedCourseIds.length === 0) {
+            alert('Please select at least one course.');
+            return;
         }
-        const { data: assess, error: assessError } = await supabase.from('assessments').insert({
-            course_id: courseId,
-            assessment_type_id: typeId,
-            title,
-            description: desc,
-            max_score: maxScore,
-            duration_minutes: duration,
-            date,
-            is_published: true,
-            randomize_questions: randomize,
-            questions_to_show: questionsToShow,
-            shuffle_options: shuffleOptions,
-            show_answers: showAnswers,
-            passing_score: passing,
-            ai_grading: ai
-        }).select().single();
-        if (assessError) { alert('Error creating assessment: ' + assessError.message); return; }
-        const qData = assessmentQuestions.map(q => ({
-            assessment_id: assess.id,
-            question: q.question,
-            type: q.type,
-            points: q.points,
-            options: q.options || null,
-            correct_answer: q.correct !== undefined && q.correct !== null ? q.correct : null
-        }));
-        const { error: qError } = await supabase.from('assessment_questions').insert(qData);
-        if (qError) { alert('Error saving questions: ' + qError.message); return; }
-    }
-    alert('Assessment "' + title + '" created for ' + selectedCourseIds.length + ' course(s).');
-    document.getElementById('assessmentForm').reset();
-    assessmentQuestions = [];
-    renderQuestions();
-    window.goToStep(1);
-    await updateStats();
-    await loadAssessmentsList();
-});
+        const typeName = document.getElementById('assessType').value;
+        const title = document.getElementById('assessTitle').value.trim();
+        const desc = document.getElementById('assessDesc').value.trim();
+        const duration = parseInt(document.getElementById('assessDuration').value) || 60;
+        const maxScore = parseFloat(document.getElementById('assessMaxScore').value) || 100;
+        const date = document.getElementById('assessDate').value;
+        const questionsToShow = parseInt(document.getElementById('assessShow').value) || null;
+        const randomize = document.getElementById('assessRandomize').checked;
+        const ai = document.getElementById('assessAI').value;
+        const shuffleOptions = document.getElementById('assessShuffleOptions').checked;
+        const showAnswers = document.getElementById('assessShowAnswers').checked;
+        const passing = parseInt(document.getElementById('assessPassing').value) || 60;
 
-// Question editor form
-document.getElementById('questionEditorForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const question = document.getElementById('qText').value.trim();
-    const type = document.getElementById('qType').value;
-    const points = parseInt(document.getElementById('qPoints').value) || 1;
-    let options = null, correct = null;
-    if (type === 'mc' || type === 'tf') {
-        const raw = document.getElementById('qOptions').value.split('\n').filter(s => s.trim() !== '');
-        options = raw.map(s => s.replace(/^\*\s*/, '').trim());
-        const idx = raw.findIndex(s => s.trim().startsWith('*'));
-        correct = (idx !== -1) ? idx : 0;
-    }
-    const q = { question, type, options, correct, points };
-    if (editingQuestionIndex === -1) { assessmentQuestions.push(q); } else { assessmentQuestions[editingQuestionIndex] = q; }
-    renderQuestions();
-    window.closeQuestionEditor();
+        if (!title) {
+            alert('Title is required.');
+            return;
+        }
+        if (assessmentQuestions.length === 0) {
+            alert('Please add at least one question.');
+            return;
+        }
+
+        try {
+            for (const courseId of selectedCourseIds) {
+                // Get or create assessment type
+                let typeId;
+                const { data: existingType } = await supabase
+                    .from('assessment_types')
+                    .select('id')
+                    .eq('course_id', courseId)
+                    .eq('name', typeName)
+                    .maybeSingle();
+                if (existingType) {
+                    typeId = existingType.id;
+                } else {
+                    const { data: newType, error } = await supabase
+                        .from('assessment_types')
+                        .insert({ course_id: courseId, name: typeName, weight: 0 })
+                        .select()
+                        .single();
+                    if (error) {
+                        alert('Error creating type: ' + error.message);
+                        return;
+                    }
+                    typeId = newType.id;
+                }
+
+                const { data: assess, error: assessError } = await supabase
+                    .from('assessments')
+                    .insert({
+                        course_id: courseId,
+                        assessment_type_id: typeId,
+                        title,
+                        description: desc,
+                        max_score: maxScore,
+                        duration_minutes: duration,
+                        date,
+                        is_published: true,
+                        randomize_questions: randomize,
+                        questions_to_show: questionsToShow,
+                        shuffle_options: shuffleOptions,
+                        show_answers: showAnswers,
+                        passing_score: passing,
+                        ai_grading: ai
+                    })
+                    .select()
+                    .single();
+
+                if (assessError) {
+                    alert('Error creating assessment: ' + assessError.message);
+                    return;
+                }
+
+                const qData = assessmentQuestions.map(q => ({
+                    assessment_id: assess.id,
+                    question: q.question,
+                    type: q.type,
+                    points: q.points,
+                    options: q.options || null,
+                    correct_answer: q.correct !== undefined && q.correct !== null ? q.correct : null
+                }));
+
+                const { error: qError } = await supabase
+                    .from('assessment_questions')
+                    .insert(qData);
+                if (qError) {
+                    alert('Error saving questions: ' + qError.message);
+                    return;
+                }
+            }
+
+            alert('Assessment "' + title + '" created for ' + selectedCourseIds.length + ' course(s).');
+            // Reset form
+            document.getElementById('assessmentForm').reset();
+            assessmentQuestions = [];
+            renderQuestions();
+            window.goToStep(1);
+            await updateStats();
+            await loadAssessmentsList();
+
+        } catch (err) {
+            console.error('Assessment creation error:', err);
+            alert('Error: ' + err.message);
+        }
+    });
 });
 
 // ------------------------------------------------------------
-// 12. GRADEBOOK
+// 13. GRADEBOOK
 // ------------------------------------------------------------
 async function loadGradebook() {
     const courseId = document.getElementById('manualCourseSelect').value;
@@ -1257,7 +1300,7 @@ async function loadGradebook() {
 }
 
 // ------------------------------------------------------------
-// 13. WEIGHTS
+// 14. WEIGHTS
 // ------------------------------------------------------------
 async function loadWeightsInputs() {
     const courseId = document.getElementById('weightsCourse').value;
@@ -1302,7 +1345,7 @@ document.getElementById('weightsForm').addEventListener('submit', async (e) => {
 });
 
 // ------------------------------------------------------------
-// 14. INTERVENTIONS
+// 15. INTERVENTIONS
 // ------------------------------------------------------------
 async function loadInterventions() {
     const container = document.getElementById('interventionHistory');
@@ -1373,7 +1416,7 @@ async function loadStudentsForIntervention() {
 }
 
 // ------------------------------------------------------------
-// 15. ADDITIONAL FORM EVENTS & GLOBALS
+// 16. ADDITIONAL FORM EVENTS & GLOBALS
 // ------------------------------------------------------------
 // Compute Period Grades
 document.getElementById('computeForm').addEventListener('submit', async (e) => {
