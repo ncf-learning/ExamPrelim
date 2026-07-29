@@ -71,7 +71,14 @@ export async function getCourseEnrollments(courseId) {
     return data;
 }
 
-// ... add more as needed
+// In supabase.js
+export async function confirmEmail(token) {
+    const { data, error } = await supabase.auth.verifyOtp({
+        token_hash: token,
+        type: 'email',
+    });
+    return { data, error };
+}
 
 
 
