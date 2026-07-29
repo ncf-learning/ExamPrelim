@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Login – NCF Learning Tracking System</title>
+    <title>Login – NCF Learning System</title>
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -32,10 +32,10 @@
                 <span class="hint">Enter your account password</span>
             </div>
 
-            <button type="submit" class="btn" id="loginBtn">Login</button>
+            <button type="submit" class="btn">Login</button>
         </form>
 
-        <div id="message" class="message" style="display:none;"></div>
+        <div id="message" style="margin-top:1rem; text-align:center; display:none; padding:0.75rem; border-radius:0.5rem;"></div>
 
         <div style="text-align:center; margin-top:1rem;">
             Don't have an account? <a href="register.html" style="color:#3b82f6;">Register here</a>
@@ -54,198 +54,61 @@
         }
     </script>
     <script type="module">
-        import { supabase } from './supabase.js';
+        import { createClient } from '@supabase/supabase-js';
 
-        // ---------- DOM Elements ----------
+        // Supabase config
+        const supabaseUrl = 'https://ynpednaybirzfcenmwhd.supabase.co';
+        const supabaseAnonKey = 'sb_publishable_hDkrKWcFuZim7MypNeK0VQ_L_FciXAs';
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
         const form = document.getElementById('loginForm');
-        const emailInput = document.getElementById('email');
-        const passwordInput = document.getElementById('password');
-        const messageDiv = document.getElementById('message');
-
-        const ALLOWED_DOMAINS = ['@ncf.edu.ph', '@gbox.ncf.edu.ph'];
+        const message = document.getElementById('message');
 
         function showMessage(text, isError = true) {
-            messageDiv.textContent = text;
-            messageDiv.style.display = 'block';
-            messageDiv.style.color = isError ? '#ef4444' : '#22c55e';
-            messageDiv.style.background = isError ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)';
-            messageDiv.style.padding = '0.75rem';
-            messageDiv.style.borderRadius = '0.5rem';
-            messageDiv.style.marginTop = '1rem';
+            message.textContent = text;
+            message.style.display = 'block';
+            message.style.background = isError ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)';
+            message.style.color = isError ? '#ef4444' : '#22c55e';
         }
 
-        function hideMessage() {
-            messageDiv.style.display = 'none';
-        }
-
-        // -------- Check if already logged in --------
-        async function checkSession() {
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (session) {
-                    // Try to fetch profile
-                    const { data: profile, error } = await supabase
-                        .from('profiles')
-                        .select('*')
-                        .eq('id', session.user.id)
-                        .maybeSingle();
-
-                    if (profile) {
-                        sessionStorage.setItem('userEmail', session.user.email);
-                        sessionStorage.setItem('userId', session.user.id);
-                        sessionStorage.setItem('userRole', profile.role);
-                        sessionStorage.setItem('userName', profile.first_name + ' ' + profile.last_name);
-
-                        if (profile.role === 'student') {
-                            window.location.href = 'dashboard.html';
-                        } else if (profile.role === 'instructor') {
-                            window.location.href = 'instructor.html';
-                        }
-                    }
-                }
-            } catch (e) {
-                console.log('Session check skipped:', e);
-            }
-        }
-        checkSession();
-
-        // -------- Login --------
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            hideMessage();
+            message.style.display = 'none';
 
-            const email = emailInput.value.trim();
-            const password = passwordInput.value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
 
-            // Validate email domain
-            const domain = email.substring(email.lastIndexOf('@'));
-            if (!ALLOWED_DOMAINS.includes(domain.toLowerCase())) {
-                showMessage('Invalid email domain. Use @ncf.edu.ph or @gbox.ncf.edu.ph');
-                emailInput.focus();
-                return;
-            }
-
-            if (!password || password.length < 6) {
-                showMessage('Please enter a valid password (min 6 characters).');
-                passwordInput.focus();
+            if (!email || !password) {
+                showMessage('Please enter email and password.');
                 return;
             }
 
             try {
-                // 1. Sign in with Supabase Auth
-                const { data, error } = await supabase.auth.signInWithPassword({
-                    email,
-                    password,
-                });
-
+                // 1. Sign in
+                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
                 if (error) throw error;
 
-                if (!data.user) {
-                    throw new Error('Login failed. Please try again.');
-                }
-
-                // 2. Fetch user profile (using maybeSingle to avoid errors)
+                // 2. Get profile (using maybeSingle – this is the key fix)
                 const { data: profile, error: profileError } = await supabase
                     .from('profiles')
                     .select('*')
                     .eq('id', data.user.id)
                     .maybeSingle();
 
-                if (profileError) {
-                    console.error('Profile fetch error:', profileError);
-                    showMessage('Error loading profile. Please contact support.');
-                    return;
-                }
-
-                if (!profile) {
-                    // Profile doesn't exist – create one
-                    showMessage('Setting up your profile...', false);
-                    const { error: insertError } = await supabase
-                        .from('profiles')
-                        .insert({
-                            id: data.user.id,
-                            student_id: 'TEMP-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
-                            first_name: 'User',
-                            last_name: 'Pending',
-                            section: 'N/A',
-                            role: 'pending'
-                        });
-
-                    if (insertError) {
-                        console.error('Profile creation error:', insertError);
-                        showMessage('Error creating profile. Please contact support.');
-                        return;
-                    }
-
-                    // Fetch the newly created profile
-                    const { data: newProfile } = await supabase
-                        .from('profiles')
-                        .select('*')
-                        .eq('id', data.user.id)
-                        .maybeSingle();
-
-                    if (newProfile) {
-                        // Store session
-                        sessionStorage.setItem('userEmail', email);
-                        sessionStorage.setItem('userId', data.user.id);
-                        sessionStorage.setItem('userRole', newProfile.role);
-                        sessionStorage.setItem('userName', newProfile.first_name + ' ' + newProfile.last_name);
-
-                        if (newProfile.role === 'student') {
-                            window.location.href = 'dashboard.html';
-                        } else if (newProfile.role === 'instructor') {
-                            window.location.href = 'instructor.html';
-                        } else {
-                            showMessage('⏳ Your account is pending approval. Please wait.', false);
-                            await supabase.auth.signOut();
-                            return;
-                        }
-                    }
-                    return;
-                }
-
-                // 3. Store session data
-                sessionStorage.setItem('userEmail', email);
-                sessionStorage.setItem('userId', data.user.id);
-                sessionStorage.setItem('userRole', profile.role);
-                sessionStorage.setItem('userName', profile.first_name + ' ' + profile.last_name);
-
-                // 4. Redirect based on role
-                if (profile.role === 'pending') {
-                    showMessage('⏳ Your account is pending instructor approval. Please wait.', false);
-                    await supabase.auth.signOut();
-                    sessionStorage.clear();
-                    return;
-                }
-
-                if (profile.role === 'student') {
-                    sessionStorage.setItem('studentEmail', email);
-                    sessionStorage.setItem('studentFirstName', profile.first_name);
-                    sessionStorage.setItem('studentLastName', profile.last_name);
-                    sessionStorage.setItem('studentId', profile.student_id);
-                    sessionStorage.setItem('studentSection', profile.section);
-                    window.location.href = 'dashboard.html';
-                    return;
-                }
-
-                if (profile.role === 'instructor') {
+                // 3. Redirect based on role
+                if (profile?.role === 'instructor') {
                     window.location.href = 'instructor.html';
-                    return;
+                } else if (profile?.role === 'student') {
+                    window.location.href = 'dashboard.html';
+                } else {
+                    showMessage('⏳ Account pending approval.', false);
+                    await supabase.auth.signOut();
                 }
-
-                showMessage('Unknown role. Please contact support.');
 
             } catch (error) {
-                console.error('Login error:', error);
-                let msg = error.message || 'Login failed. Please try again.';
-                if (msg.includes('Invalid login credentials')) {
-                    msg = 'Invalid email or password. Please try again.';
-                }
-                showMessage('❌ ' + msg);
+                showMessage(error.message || 'Login failed. Please try again.');
             }
         });
-
-        console.log('✅ Login page loaded.');
     </script>
 </body>
 </html>
