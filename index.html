@@ -54,7 +54,7 @@
         }
     </script>
     <script type="module">
-        import { supabase, checkSessionAndRedirect } from './supabase.js';
+        import { supabase } from './supabase.js';
 
         // ---------- DOM Elements ----------
         const form = document.getElementById('loginForm');
@@ -79,7 +79,35 @@
         }
 
         // -------- Check if already logged in --------
-        checkSessionAndRedirect();
+        async function checkSession() {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session) {
+                    // Try to fetch profile
+                    const { data: profile, error } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', session.user.id)
+                        .maybeSingle();
+
+                    if (profile) {
+                        sessionStorage.setItem('userEmail', session.user.email);
+                        sessionStorage.setItem('userId', session.user.id);
+                        sessionStorage.setItem('userRole', profile.role);
+                        sessionStorage.setItem('userName', profile.first_name + ' ' + profile.last_name);
+
+                        if (profile.role === 'student') {
+                            window.location.href = 'dashboard.html';
+                        } else if (profile.role === 'instructor') {
+                            window.location.href = 'instructor.html';
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log('Session check skipped:', e);
+            }
+        }
+        checkSession();
 
         // -------- Login --------
         form.addEventListener('submit', async (e) => {
@@ -116,16 +144,67 @@
                     throw new Error('Login failed. Please try again.');
                 }
 
-                // 2. Fetch user profile
+                // 2. Fetch user profile (using maybeSingle to avoid errors)
                 const { data: profile, error: profileError } = await supabase
                     .from('profiles')
                     .select('*')
                     .eq('id', data.user.id)
-                    .single();
+                    .maybeSingle();
 
-                if (profileError) throw profileError;
+                if (profileError) {
+                    console.error('Profile fetch error:', profileError);
+                    showMessage('Error loading profile. Please contact support.');
+                    return;
+                }
 
-                // 3. Store session data (client-side)
+                if (!profile) {
+                    // Profile doesn't exist – create one
+                    showMessage('Setting up your profile...', false);
+                    const { error: insertError } = await supabase
+                        .from('profiles')
+                        .insert({
+                            id: data.user.id,
+                            student_id: 'TEMP-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+                            first_name: 'User',
+                            last_name: 'Pending',
+                            section: 'N/A',
+                            role: 'pending'
+                        });
+
+                    if (insertError) {
+                        console.error('Profile creation error:', insertError);
+                        showMessage('Error creating profile. Please contact support.');
+                        return;
+                    }
+
+                    // Fetch the newly created profile
+                    const { data: newProfile } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', data.user.id)
+                        .maybeSingle();
+
+                    if (newProfile) {
+                        // Store session
+                        sessionStorage.setItem('userEmail', email);
+                        sessionStorage.setItem('userId', data.user.id);
+                        sessionStorage.setItem('userRole', newProfile.role);
+                        sessionStorage.setItem('userName', newProfile.first_name + ' ' + newProfile.last_name);
+
+                        if (newProfile.role === 'student') {
+                            window.location.href = 'dashboard.html';
+                        } else if (newProfile.role === 'instructor') {
+                            window.location.href = 'instructor.html';
+                        } else {
+                            showMessage('⏳ Your account is pending approval. Please wait.', false);
+                            await supabase.auth.signOut();
+                            return;
+                        }
+                    }
+                    return;
+                }
+
+                // 3. Store session data
                 sessionStorage.setItem('userEmail', email);
                 sessionStorage.setItem('userId', data.user.id);
                 sessionStorage.setItem('userRole', profile.role);
