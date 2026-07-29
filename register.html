@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register – NCF Exam System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>📝 Create Account</h1>
+            <div class="subtitle">Use your official NCF email</div>
+            <span class="badge">@ncf.edu.ph or @gbox.ncf.edu.ph</span>
+        </div>
+
+        <form id="registerForm">
+            <!-- Email & Password -->
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" placeholder="your.email@ncf.edu.ph" required autofocus>
+                <span class="hint">Only NCF domains are allowed</span>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Min 6 characters" required>
+                <span class="hint">Use a strong password</span>
+            </div>
+            <div class="form-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <input type="password" id="confirmPassword" placeholder="Re-enter password" required>
+            </div>
+
+            <!-- Basic Information -->
+            <div class="form-group">
+                <label for="firstName">First Name</label>
+                <input type="text" id="firstName" placeholder="Juan" required>
+            </div>
+            <div class="form-group">
+                <label for="lastName">Last Name</label>
+                <input type="text" id="lastName" placeholder="Dela Cruz" required>
+            </div>
+
+            <!-- ID Number -->
+            <div class="form-group">
+                <label for="studentId">Student ID Number</label>
+                <input type="text" id="studentId" placeholder="NCF-2024-0001" required>
+                <span class="hint">Your official student ID</span>
+            </div>
+
+            <!-- Contact Details -->
+            <div class="form-group">
+                <label for="phone">Phone Number</label>
+                <input type="tel" id="phone" placeholder="09XX XXX XXXX" required>
+                <span class="hint">Active mobile number</span>
+            </div>
+            <div class="form-group">
+                <label for="address">Address</label>
+                <input type="text" id="address" placeholder="City, Province" required>
+                <span class="hint">Current address</span>
+            </div>
+
+            <!-- Section -->
+            <div class="form-group">
+                <label for="section">Section</label>
+                <select id="section" required>
+                    <option value="">Select your section</option>
+                    <option value="IT3A">IT3A</option>
+                    <option value="IT3B">IT3B</option>
+                    <option value="IT3C">IT3C</option>
+                    <option value="IT2A">IT2A</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn" id="registerBtn">Register</button>
+        </form>
+
+        <div id="message" class="message" style="display:none;"></div>
+
+        <div style="text-align:center; margin-top:1rem;">
+            Already have an account? <a href="index.html" style="color:#3b82f6;">Login</a>
+        </div>
+
+        <div class="footer">
+            National College of Forestry &bull; Academic Year 2025-2026
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2"
+            }
+        }
+    </script>
+    <script type="module">
+        import { supabase } from './supabase.js';
+
+        // ---------- DOM Elements ----------
+        const form = document.getElementById('registerForm');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const confirmInput = document.getElementById('confirmPassword');
+        const firstNameInput = document.getElementById('firstName');
+        const lastNameInput = document.getElementById('lastName');
+        const studentIdInput = document.getElementById('studentId');
+        const phoneInput = document.getElementById('phone');
+        const addressInput = document.getElementById('address');
+        const sectionSelect = document.getElementById('section');
+        const messageDiv = document.getElementById('message');
+
+        const ALLOWED_DOMAINS = ['@ncf.edu.ph', '@gbox.ncf.edu.ph'];
+
+        function showMessage(text, isError = true) {
+            messageDiv.textContent = text;
+            messageDiv.style.display = 'block';
+            messageDiv.style.color = isError ? '#ef4444' : '#22c55e';
+            messageDiv.style.background = isError ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)';
+            messageDiv.style.padding = '0.75rem';
+            messageDiv.style.borderRadius = '0.5rem';
+            messageDiv.style.marginTop = '1rem';
+        }
+
+        function hideMessage() {
+            messageDiv.style.display = 'none';
+        }
+
+        // -------- Validation --------
+        function validateEmail(email) {
+            const domain = email.substring(email.lastIndexOf('@'));
+            return ALLOWED_DOMAINS.includes(domain.toLowerCase());
+        }
+
+        // -------- Form Submit --------
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideMessage();
+
+            // Gather data
+            const email = emailInput.value.trim();
+            const password = passwordInput.value.trim();
+            const confirm = confirmInput.value.trim();
+            const firstName = firstNameInput.value.trim();
+            const lastName = lastNameInput.value.trim();
+            const studentId = studentIdInput.value.trim();
+            const phone = phoneInput.value.trim();
+            const address = addressInput.value.trim();
+            const section = sectionSelect.value;
+
+            // Validate email domain
+            if (!validateEmail(email)) {
+                showMessage('Invalid email domain. Use @ncf.edu.ph or @gbox.ncf.edu.ph');
+                emailInput.focus();
+                return;
+            }
+
+            // Validate password
+            if (password.length < 6) {
+                showMessage('Password must be at least 6 characters.');
+                passwordInput.focus();
+                return;
+            }
+            if (password !== confirm) {
+                showMessage('Passwords do not match.');
+                confirmInput.focus();
+                return;
+            }
+
+            // Validate required fields
+            if (!firstName || !lastName || !studentId || !phone || !address || !section) {
+                showMessage('All fields are required.');
+                return;
+            }
+
+            // Validate phone format (simple)
+            const phoneRegex = /^[0-9]{10,15}$/;
+            if (!phoneRegex.test(phone.replace(/[\s\-()]/g, ''))) {
+                showMessage('Please enter a valid phone number (10-15 digits).');
+                phoneInput.focus();
+                return;
+            }
+
+            try {
+                // 1. Sign up with Supabase Auth
+                const { data: authData, error: authError } = await supabase.auth.signUp({
+                    email,
+                    password,
+                });
+
+                if (authError) throw authError;
+
+                if (!authData.user) {
+                    throw new Error('Sign-up failed, please try again.');
+                }
+
+                // 2. Insert profile record (role = 'pending')
+                const { error: profileError } = await supabase
+                    .from('profiles')
+                    .insert({
+                        id: authData.user.id,
+                        student_id: studentId,
+                        first_name: firstName,
+                        last_name: lastName,
+                        section: section,
+                        phone: phone,
+                        address: address,
+                        role: 'pending'
+                    });
+
+                if (profileError) throw profileError;
+
+                // 3. Success
+                showMessage('✅ Registration successful! Please wait for instructor approval. You will receive a confirmation email.', false);
+                form.reset();
+
+                // Redirect to login after 4 seconds
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 4000);
+
+            } catch (error) {
+                console.error(error);
+                let msg = error.message || 'Registration failed. Please try again.';
+                if (msg.includes('User already registered')) {
+                    msg = 'This email is already registered. Please login.';
+                }
+                showMessage('❌ ' + msg);
+            }
+        });
+
+        console.log('✅ Registration page loaded.');
+    </script>
+</body>
+</html>
