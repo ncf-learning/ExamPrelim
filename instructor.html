@@ -106,12 +106,10 @@
         .step { padding:1rem 0; }
         .step h4 { margin-bottom:1rem; font-size:1.1rem; }
 
-        /* Question list */
         .question-item { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.75rem; margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center; }
         .question-item .q-text { flex:1; margin-right:1rem; font-size:0.9rem; }
         .question-item .q-actions { display:flex; gap:0.5rem; }
 
-        /* Modal overlay for question editor */
         .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); display:none; align-items:center; justify-content:center; z-index:1000; }
         .modal.active { display:flex; }
         .modal-content { background:#fff; border-radius:12px; padding:2rem; max-width:600px; width:90%; max-height:80vh; overflow-y:auto; }
@@ -423,7 +421,7 @@ import { supabase, getCurrentUser, signOut } from './supabase.js';
 let currentUser = null;
 let currentProfile = null;
 let instructorCourses = [];
-let assessmentQuestions = [];  // array of {id, question, type, options, correct, points} – id is temporary for UI
+let assessmentQuestions = [];
 let editingQuestionIndex = -1;
 
 // -------------------- DOM refs --------------------
@@ -464,12 +462,39 @@ function renderSelect(select, options, valueKey, labelKey) {
     });
 }
 
+// -------------------- LOAD SECTIONS FOR SELECT --------------------
+async function loadSectionsForSelect(selectId) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    if (instructorCourses.length === 0) {
+        select.innerHTML = '<option value="">No courses found</option>';
+        return;
+    }
+    const courseIds = instructorCourses.map(c => c.id);
+    const { data: sections, error } = await supabase
+        .from('sections')
+        .select('id, name, course_id')
+        .in('course_id', courseIds);
+    if (error) {
+        console.error('Error loading sections:', error);
+        select.innerHTML = '<option value="">Error loading</option>';
+        return;
+    }
+    if (!sections || sections.length === 0) {
+        select.innerHTML = '<option value="">No sections available</option>';
+        return;
+    }
+    // Map course codes for display
+    const courseMap = {};
+    instructorCourses.forEach(c => courseMap[c.id] = c.code);
+    renderSelect(select, sections, 'id', s => `${s.name} (${courseMap[s.course_id] || 'Unknown'})`);
+}
+
 // -------------------- INIT --------------------
 async function init() {
     const user = await getCurrentUser();
     if (!user) { window.location.href = 'index.html'; return; }
     currentUser = user;
-    console.log('✅ Logged in as:', currentUser.id);
 
     const { data: profile } = await supabase
         .from('profiles')
@@ -490,6 +515,10 @@ async function init() {
     populateCourseSelects();
     setupEventListeners();
     updateStats();
+
+    // Load sections for attendance and schedule selects after courses loaded
+    await loadSectionsForSelect('attSection');
+    await loadSectionsForSelect('scheduleSection');
 }
 
 // -------------------- LOAD COURSES --------------------
@@ -561,9 +590,9 @@ window.rejectUser = async (userId) => {
     else { alert('Rejected.'); loadPendingApprovals(); updateStats(); }
 };
 
-// -------------------- POPULATE SELECTS --------------------
+// -------------------- POPULATE COURSE SELECTS --------------------
 function populateCourseSelects() {
-    const ids = ['attSection','scheduleSection','assessCourse','weightsCourse','computeCourse','finalCourse','reportCourse','intervCourse','enrollCourse'];
+    const ids = ['assessCourse','weightsCourse','computeCourse','finalCourse','reportCourse','intervCourse','enrollCourse'];
     ids.forEach(id => {
         const el = document.getElementById(id);
         if (el) renderSelect(el, instructorCourses, 'id', c => `${c.code} - ${c.name}`);
@@ -604,7 +633,6 @@ window.goToStep = (step) => {
     }
 };
 
-// Render question list
 function renderQuestions() {
     const container = document.getElementById('questionList');
     if (assessmentQuestions.length === 0) {
@@ -625,7 +653,7 @@ function renderQuestions() {
     container.innerHTML = html;
 }
 
-window.addQuestion = () => {
+window.openQuestionEditor = () => {
     editingQuestionIndex = -1;
     document.getElementById('modalTitle').textContent = 'Add Question';
     document.getElementById('questionEditorForm').reset();
@@ -680,7 +708,6 @@ function toggleOptions() {
 }
 window.toggleOptions = toggleOptions;
 
-// Save question from modal
 document.getElementById('questionEditorForm').addEventListener('submit', (e) => {
     e.preventDefault();
     const question = document.getElementById('qText').value.trim();
@@ -704,7 +731,6 @@ document.getElementById('questionEditorForm').addEventListener('submit', (e) => 
     closeQuestionEditor();
 });
 
-// Import from bank
 window.importFromBank = async () => {
     const courseId = document.getElementById('assessCourse').value;
     if (!courseId) { alert('Please select a course first.'); return; }
@@ -717,7 +743,6 @@ window.importFromBank = async () => {
         alert('No questions in the bank for this course.');
         return;
     }
-    // Simple import: add all bank questions to assessment (you could make it selectable)
     const imported = bank.map(b => ({
         question: b.question,
         type: b.type,
@@ -752,6 +777,9 @@ function setupEventListeners() {
         await loadInstructorData();
         populateCourseSelects();
         updateStats();
+        // Reload sections for attendance and schedule
+        await loadSectionsForSelect('attSection');
+        await loadSectionsForSelect('scheduleSection');
     });
 
     // Attendance
@@ -773,7 +801,7 @@ function setupEventListeners() {
         display.style.display = 'block';
     });
 
-    // Schedule
+    // Schedule (FIXED: uses section_id correctly)
     document.getElementById('scheduleForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const sectionId = document.getElementById('scheduleSection').value;
@@ -783,9 +811,17 @@ function setupEventListeners() {
         const room = document.getElementById('scheduleRoom').value;
         if (!sectionId) { alert('Select a section.'); return; }
         const { error } = await supabase.from('schedules').insert({
-            section_id: sectionId, day_of_week: day, start_time: start, end_time: end, room
+            section_id: sectionId,
+            day_of_week: day,
+            start_time: start,
+            end_time: end,
+            room: room || null
         });
-        if (error) { alert('Error: ' + error.message); return; }
+        if (error) {
+            alert('Error: ' + error.message);
+            console.error(error);
+            return;
+        }
         alert('Schedule added!');
         loadSchedules();
     });
@@ -810,7 +846,6 @@ function setupEventListeners() {
         if (!courseId || !title) { alert('Course and Title are required.'); return; }
         if (assessmentQuestions.length === 0) { alert('Please add at least one question.'); return; }
 
-        // Create or get assessment type
         let typeId;
         const { data: existing } = await supabase.from('assessment_types').select('id').eq('course_id', courseId).eq('name', typeName);
         if (existing && existing.length > 0) {
@@ -821,7 +856,6 @@ function setupEventListeners() {
             typeId = newType.id;
         }
 
-        // Insert assessment
         const { data: assess, error: assessError } = await supabase.from('assessments').insert({
             course_id: courseId,
             assessment_type_id: typeId,
@@ -840,7 +874,6 @@ function setupEventListeners() {
         }).select().single();
         if (assessError) { alert('Error creating assessment: ' + assessError.message); return; }
 
-        // Insert questions
         const qData = assessmentQuestions.map(q => ({
             assessment_id: assess.id,
             question: q.question,
@@ -853,7 +886,6 @@ function setupEventListeners() {
         if (qError) { alert('Error saving questions: ' + qError.message); return; }
 
         alert(`Assessment "${title}" created with ${assessmentQuestions.length} questions.`);
-        // Reset form and questions
         document.getElementById('assessmentForm').reset();
         assessmentQuestions = [];
         renderQuestions();
@@ -1010,27 +1042,6 @@ function setupEventListeners() {
         if (!courseId) { alert('Select a course first.'); return; }
         alert('CSV Export – coming soon!');
     });
-
-    // Populate attendance section dropdown with sections
-    document.getElementById('attSection').addEventListener('focus', async () => {
-        const courseId = document.getElementById('attSection').dataset.courseId; // we'll set later
-        // Actually, we can fetch sections for each course, but we'll just load all sections for instructor
-        // We'll handle it differently: we load sections from courses.
-        await loadSectionsForAttendance();
-    });
-}
-
-// -------------------- LOAD SECTIONS FOR ATTENDANCE --------------------
-async function loadSectionsForAttendance() {
-    const select = document.getElementById('attSection');
-    // We'll get all sections from instructor's courses
-    if (instructorCourses.length === 0) return;
-    const courseIds = instructorCourses.map(c => c.id);
-    const { data: sections } = await supabase
-        .from('sections')
-        .select('id, name, course_id')
-        .in('course_id', courseIds);
-    renderSelect(select, sections, 'id', s => `${s.name} (${instructorCourses.find(c => c.id === s.course_id)?.code || ''})`);
 }
 
 // -------------------- LOAD SCHEDULES --------------------
