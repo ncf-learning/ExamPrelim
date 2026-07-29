@@ -56,7 +56,6 @@
     <script type="module">
         import { createClient } from '@supabase/supabase-js';
 
-        // Supabase config (your actual keys)
         const supabaseUrl = 'https://ynpednaybirzfcenmwhd.supabase.co';
         const supabaseAnonKey = 'sb_publishable_hDkrKWcFuZim7MypNeK0VQ_L_FciXAs';
         const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -80,7 +79,6 @@
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value.trim();
 
-            // Domain validation
             const domain = email.substring(email.lastIndexOf('@'));
             if (!ALLOWED_DOMAINS.includes(domain.toLowerCase())) {
                 showMessage('Invalid email domain. Use @ncf.edu.ph or @gbox.ncf.edu.ph');
@@ -93,62 +91,35 @@
             }
 
             try {
-                // 1. Sign in
                 const { data, error } = await supabase.auth.signInWithPassword({ email, password });
                 if (error) throw error;
 
-                // 2. Get profile – using maybeSingle to avoid errors
-                const { data: profile, error: profileError } = await supabase
+                const { data: profile } = await supabase
                     .from('profiles')
                     .select('*')
                     .eq('id', data.user.id)
                     .maybeSingle();
 
-                if (profileError) {
-                    console.error('Profile fetch error:', profileError);
-                    showMessage('Error loading profile. Please contact support.');
-                    return;
-                }
+                console.log('Profile:', profile); // DEBUG – check browser console
 
-                // 3. Handle profile cases
                 if (!profile) {
                     showMessage('No profile found. Please contact support.');
                     return;
                 }
 
-                // 4. Redirect based on role
                 if (profile.role === 'instructor') {
-                    // Store minimal session info
-                    sessionStorage.setItem('userEmail', email);
-                    sessionStorage.setItem('userId', data.user.id);
-                    sessionStorage.setItem('userRole', profile.role);
-                    sessionStorage.setItem('userName', profile.first_name + ' ' + profile.last_name);
                     window.location.href = 'instructor.html';
                 } else if (profile.role === 'student') {
-                    sessionStorage.setItem('userEmail', email);
-                    sessionStorage.setItem('userId', data.user.id);
-                    sessionStorage.setItem('userRole', profile.role);
-                    sessionStorage.setItem('userName', profile.first_name + ' ' + profile.last_name);
-                    sessionStorage.setItem('studentEmail', email);
-                    sessionStorage.setItem('studentFirstName', profile.first_name);
-                    sessionStorage.setItem('studentLastName', profile.last_name);
-                    sessionStorage.setItem('studentId', profile.student_id);
-                    sessionStorage.setItem('studentSection', profile.section);
                     window.location.href = 'dashboard.html';
                 } else if (profile.role === 'pending') {
-                    showMessage('⏳ Your account is pending approval. Please wait.', false);
+                    showMessage('⏳ Account pending approval.', false);
                     await supabase.auth.signOut();
                 } else {
-                    showMessage('Unknown role. Please contact support.');
+                    showMessage('Unknown role: ' + profile.role);
                 }
 
             } catch (error) {
-                console.error('Login error:', error);
-                let msg = error.message || 'Login failed. Please try again.';
-                if (msg.includes('Invalid login credentials')) {
-                    msg = 'Invalid email or password. Please try again.';
-                }
-                showMessage('❌ ' + msg);
+                showMessage(error.message || 'Login failed. Please try again.');
             }
         });
     </script>
