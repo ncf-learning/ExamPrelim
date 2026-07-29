@@ -1,268 +1,169 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Prelim Exam – Social and Professional Issues</title>
-    <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-    <div class="container">
+<script src="data.js"></script>
+<script>
+    (function() {
+        'use strict';
 
-        <div class="logo">
-            <h1>📋 PRELIMINARY EXAMINATION</h1>
-            <div class="subtitle">Social and Professional Issues</div>
-            <span class="badge">Weeks 1–3 • 60 Minutes</span>
-        </div>
+        const form = document.getElementById('loginForm');
+        const emailInput = document.getElementById('email');
+        const firstNameInput = document.getElementById('firstName');
+        const lastNameInput = document.getElementById('lastName');
+        const studentIdInput = document.getElementById('studentId');
+        const sectionSelect = document.getElementById('section');
+        const errorDiv = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
 
-        <div class="domain-info">
-            <span class="icon">🔒</span>
-            <span class="text">Restricted to <strong>@ncf.edu.ph</strong> and <strong>@gbox.ncf.edu.ph</strong></span>
-        </div>
+        const ALLOWED_DOMAINS = ['@ncf.edu.ph', '@gbox.ncf.edu.ph'];
 
-        <form id="loginForm">
-            <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" id="email" placeholder="your.email@ncf.edu.ph" required autofocus />
-                <span class="hint">Use your official NCF email address</span>
-            </div>
+        function showError(msg) {
+            errorText.textContent = msg;
+            errorDiv.classList.add('show');
+        }
+        function hideError() {
+            errorDiv.classList.remove('show');
+        }
 
-            <div class="form-group">
-                <label for="firstName">First Name</label>
-                <input type="text" id="firstName" placeholder="e.g., Juan" required />
-                <span class="hint">Enter your first name</span>
-            </div>
+        emailInput.addEventListener('input', hideError);
+        firstNameInput.addEventListener('input', hideError);
+        lastNameInput.addEventListener('input', hideError);
+        studentIdInput.addEventListener('input', hideError);
+        sectionSelect.addEventListener('change', hideError);
 
-            <div class="form-group">
-                <label for="lastName">Last Name</label>
-                <input type="text" id="lastName" placeholder="e.g., Dela Cruz" required />
-                <span class="hint">Enter your last name</span>
-            </div>
-
-            <div class="form-group">
-                <label for="studentId">Student ID</label>
-                <input type="text" id="studentId" placeholder="e.g., NCF-2024-0001" required />
-                <span class="hint">Enter your official student ID number</span>
-            </div>
-
-            <div class="form-group">
-                <label for="section">Section</label>
-                <select id="section" required>
-                    <option value="">Select your section</option>
-                    <option value="IT3A">IT3A</option>
-                    <option value="IT3B">IT3B</option>
-                    <option value="IT3C">IT3C</option>
-                    <option value="IT2A">IT2A</option>
-                </select>
-                <span class="hint">Select your class section</span>
-            </div>
-
-            <button type="submit" class="btn" id="startBtn">Start Examination</button>
-        </form>
-
-        <div class="error" id="errorMessage">
-            ⚠️ <span id="errorText">Invalid email domain. Please use your NCF email address.</span>
-        </div>
-
-        <div class="exam-rules">
-            <h3>📌 Examination Rules</h3>
-            <ul>
-                <li>60 minutes to complete all questions</li>
-                <li>Questions are randomized for each student</li>
-                <li>No backtracking — answers are final</li>
-                <li>Leaving the page will auto-submit</li>
-                <li>Strictly no copy-paste or right-click</li>
-                <li>Results will be displayed upon submission</li>
-            </ul>
-        </div>
-
-        <div style="text-align:center; margin-top:12px;">
-            <a href="instructor.html" style="color:#38bdf8; font-size:13px; text-decoration:none;">👨‍🏫 Instructor Dashboard</a>
-        </div>
-
-        <div class="footer">
-            National College of Forestry &bull; Academic Year 2025-2026
-        </div>
-    </div>
-
-    <script src="data.js"></script>
-    <script>
-        (function() {
-            'use strict';
-
-            const form = document.getElementById('loginForm');
-            const emailInput = document.getElementById('email');
-            const firstNameInput = document.getElementById('firstName');
-            const lastNameInput = document.getElementById('lastName');
-            const studentIdInput = document.getElementById('studentId');
-            const sectionSelect = document.getElementById('section');
-            const errorDiv = document.getElementById('errorMessage');
-            const errorText = document.getElementById('errorText');
-
-            const ALLOWED_DOMAINS = ['@ncf.edu.ph', '@gbox.ncf.edu.ph'];
-
-            function showError(msg) {
-                errorText.textContent = msg;
-                errorDiv.classList.add('show');
+        // --- Check if exam is active (client-side schedule) ---
+        function isExamActive(section) {
+            const scheduleStr = localStorage.getItem('exam_schedule');
+            if (!scheduleStr) return false;
+            try {
+                const schedule = JSON.parse(scheduleStr);
+                const now = Date.now();
+                const entry = schedule[section];
+                if (!entry) return false;
+                const start = new Date(entry.start).getTime();
+                const end = new Date(entry.end).getTime();
+                return now >= start && now <= end;
+            } catch (e) {
+                return false;
             }
-            function hideError() {
-                errorDiv.classList.remove('show');
+        }
+
+        // --- Login: send to server ---
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const email = emailInput.value.trim();
+            const firstName = firstNameInput.value.trim();
+            const lastName = lastNameInput.value.trim();
+            const studentId = studentIdInput.value.trim();
+            const section = sectionSelect.value;
+
+            // Validate email domain
+            const isValidDomain = ALLOWED_DOMAINS.some(function(domain) {
+                return email.toLowerCase().endsWith(domain);
+            });
+            if (!isValidDomain) {
+                showError('Invalid email domain. Please use @ncf.edu.ph or @gbox.ncf.edu.ph');
+                emailInput.focus();
+                return;
             }
 
-            // Clear error on input change
-            emailInput.addEventListener('input', hideError);
-            firstNameInput.addEventListener('input', hideError);
-            lastNameInput.addEventListener('input', hideError);
-            studentIdInput.addEventListener('input', hideError);
-            sectionSelect.addEventListener('change', hideError);
+            if (!firstName || firstName.length < 1) {
+                showError('Please enter your first name.');
+                firstNameInput.focus();
+                return;
+            }
+            if (!lastName || lastName.length < 1) {
+                showError('Please enter your last name.');
+                lastNameInput.focus();
+                return;
+            }
+            if (!studentId || studentId.length < 5) {
+                showError('Please enter a valid Student ID (at least 5 characters).');
+                studentIdInput.focus();
+                return;
+            }
+            if (!section) {
+                showError('Please select your section.');
+                sectionSelect.focus();
+                return;
+            }
 
-            // --- Check if exam is active for a given section at current time ---
-            function isExamActive(section) {
-                const scheduleStr = localStorage.getItem('exam_schedule');
-                if (!scheduleStr) return false; // no schedule set, exam inactive
-                try {
-                    const schedule = JSON.parse(scheduleStr);
-                    const now = Date.now();
-                    const entry = schedule[section];
-                    if (!entry) return false;
-                    const start = new Date(entry.start).getTime();
-                    const end = new Date(entry.end).getTime();
-                    return now >= start && now <= end;
-                } catch (e) {
-                    return false;
+            if (!isExamActive(section)) {
+                showError('The exam is not currently active for your section. Please check with your instructor.');
+                sectionSelect.focus();
+                return;
+            }
+
+            // Check if already took exam (client-side)
+            try {
+                const existing = getStudentResult(email);
+                if (existing) {
+                    if (confirm('You have already completed this exam. View your results?')) {
+                        sessionStorage.setItem('viewingEmail', email);
+                        window.location.href = 'result.html';
+                    }
+                    return;
                 }
-            }
+            } catch (err) {}
 
-            // --- SERVER-SIDE LOGIN ---
-            form.addEventListener('submit', async function(e) {
-                e.preventDefault();
-
-                const email = emailInput.value.trim();
-                const firstName = firstNameInput.value.trim();
-                const lastName = lastNameInput.value.trim();
-                const studentId = studentIdInput.value.trim();
-                const section = sectionSelect.value;
-
-                // Validate email domain
-                const isValidDomain = ALLOWED_DOMAINS.some(function(domain) {
-                    return email.toLowerCase().endsWith(domain);
+            // Send login request to server
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, firstName, lastName, studentId, section })
                 });
-                if (!isValidDomain) {
-                    showError('Invalid email domain. Please use @ncf.edu.ph or @gbox.ncf.edu.ph');
-                    emailInput.focus();
-                    return;
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Store client-side session data
+                    sessionStorage.setItem('studentEmail', email);
+                    sessionStorage.setItem('studentFirstName', firstName);
+                    sessionStorage.setItem('studentLastName', lastName);
+                    sessionStorage.setItem('studentId', studentId);
+                    sessionStorage.setItem('studentSection', section);
+                    sessionStorage.setItem('examStartTime', String(Date.now()));
+
+                    window.location.href = 'exam.html';
+                } else {
+                    showError(data.error || 'Login failed. Please try again.');
                 }
-
-                // Validate first name
-                if (!firstName || firstName.length < 1) {
-                    showError('Please enter your first name.');
-                    firstNameInput.focus();
-                    return;
-                }
-
-                // Validate last name
-                if (!lastName || lastName.length < 1) {
-                    showError('Please enter your last name.');
-                    lastNameInput.focus();
-                    return;
-                }
-
-                // Validate student ID
-                if (!studentId || studentId.length < 5) {
-                    showError('Please enter a valid Student ID (at least 5 characters).');
-                    studentIdInput.focus();
-                    return;
-                }
-
-                // Validate section
-                if (!section) {
-                    showError('Please select your section.');
-                    sectionSelect.focus();
-                    return;
-                }
-
-                // Check if exam is active for this section (client-side, optional)
-                if (!isExamActive(section)) {
-                    showError('The exam is not currently active for your section. Please check with your instructor.');
-                    sectionSelect.focus();
-                    return;
-                }
-
-                // Check if already took exam (client-side)
-                try {
-                    const existing = getStudentResult(email);
-                    if (existing) {
-                        if (confirm('You have already completed this exam. View your results?')) {
-                            sessionStorage.setItem('viewingEmail', email);
-                            window.location.href = 'result.html';
-                        }
-                        return;
-                    }
-                } catch (err) {}
-
-                // --- Send login request to server ---
-                try {
-                    const response = await fetch('/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email, firstName, lastName, studentId, section })
-                    });
-
-                    const data = await response.json();
-
-                    if (data.success) {
-                        // Store session data for client-side use
-                        sessionStorage.setItem('studentEmail', email);
-                        sessionStorage.setItem('studentFirstName', firstName);
-                        sessionStorage.setItem('studentLastName', lastName);
-                        sessionStorage.setItem('studentId', studentId);
-                        sessionStorage.setItem('studentSection', section);
-                        sessionStorage.setItem('examStartTime', String(Date.now()));
-
-                        // (No encryption key needed anymore – questions come from server)
-                        window.location.href = 'exam.html';
-                    } else {
-                        showError(data.error || 'Login failed. Please try again.');
-                    }
-                } catch (err) {
-                    showError('Server error. Please try again later.');
-                    console.error(err);
-                }
-            });
-
-            // --- Anti-inspection measures (unchanged) ---
-            document.addEventListener('contextmenu', function(e) { e.preventDefault(); return false; });
-
-            document.addEventListener('keydown', function(e) {
-                const isDev = e.key === 'F12' ||
-                              (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J')) ||
-                              (e.ctrlKey && e.key === 'U');
-                if (isDev) {
-                    e.preventDefault();
-                    alert('Developer tools are disabled during the exam.');
-                    return false;
-                }
-            });
-
-            document.querySelectorAll('#loginForm input, #loginForm select').forEach(function(el) {
-                el.addEventListener('copy', function(e) { e.preventDefault(); });
-                el.addEventListener('paste', function(e) { e.preventDefault(); });
-                el.addEventListener('cut', function(e) { e.preventDefault(); });
-            });
-
-            function detectDevTools() {
-                const start = performance.now();
-                debugger;
-                const end = performance.now();
-                if (end - start > 100) {
-                    alert('Developer tools detected. Please close them to continue.');
-                    window.location.href = 'about:blank';
-                }
+            } catch (err) {
+                showError('Server error. Please try again later.');
+                console.error(err);
             }
-            setInterval(detectDevTools, 3000);
+        });
 
-            console.log('✅ Secure login page loaded (server‑side).');
-        })();
-    </script>
-</body>
-</html>
+        // --- Anti-inspection (unchanged) ---
+        document.addEventListener('contextmenu', function(e) { e.preventDefault(); return false; });
+
+        document.addEventListener('keydown', function(e) {
+            const isDev = e.key === 'F12' ||
+                          (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J')) ||
+                          (e.ctrlKey && e.key === 'U');
+            if (isDev) {
+                e.preventDefault();
+                alert('Developer tools are disabled during the exam.');
+                return false;
+            }
+        });
+
+        document.querySelectorAll('#loginForm input, #loginForm select').forEach(function(el) {
+            el.addEventListener('copy', function(e) { e.preventDefault(); });
+            el.addEventListener('paste', function(e) { e.preventDefault(); });
+            el.addEventListener('cut', function(e) { e.preventDefault(); });
+        });
+
+        function detectDevTools() {
+            const start = performance.now();
+            debugger;
+            const end = performance.now();
+            if (end - start > 100) {
+                alert('Developer tools detected. Please close them to continue.');
+                window.location.href = 'about:blank';
+            }
+        }
+        setInterval(detectDevTools, 3000);
+
+        console.log('✅ Secure login page loaded (server-side).');
+    })();
+</script>
