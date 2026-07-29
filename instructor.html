@@ -369,14 +369,13 @@
             </div>
         </section>
 
-        <!-- ENROLL -->
+        <!-- ENROLL (No Section dropdown) -->
         <section id="section-enroll" class="page-section">
             <div class="page-header"><div><h1>Enroll Students</h1></div></div>
             <div class="card">
                 <form id="enrollForm" class="form-grid">
                     <div class="form-group full"><label>Course</label><select id="enrollCourse" required></select></div>
                     <div class="form-group full"><label>Student Email</label><input type="email" id="enrollEmail" placeholder="student@ncf.edu.ph" required></div>
-                    <div class="form-group full"><label>Section</label><select id="enrollSection" required></select></div>
                     <div class="form-group full"><button type="submit" class="btn btn-primary">Enroll</button></div>
                 </form>
             </div>
@@ -508,34 +507,7 @@ async function ensureSectionForCourse(courseId, courseCode) {
 }
 
 // ============================================================
-// LOAD SECTIONS FOR A COURSE DROPDOWN (auto-create if missing)
-// ============================================================
-async function loadSectionsForCourseSelect(selectId) {
-    const select = document.getElementById(selectId);
-    if (!select) return;
-    if (instructorCourses.length === 0) {
-        select.innerHTML = '<option value="">No courses found</option>';
-        return;
-    }
-    const sectionOptions = [];
-    for (const course of instructorCourses) {
-        const sectionId = await ensureSectionForCourse(course.id, course.code);
-        if (sectionId) {
-            sectionOptions.push({
-                id: sectionId,
-                label: `${course.code} - ${course.name}`
-            });
-        }
-    }
-    if (sectionOptions.length === 0) {
-        select.innerHTML = '<option value="">No sections available</option>';
-        return;
-    }
-    renderSelect(select, sectionOptions, 'id', 'label');
-}
-
-// ============================================================
-// POPULATE COURSE DROPDOWNS (for attendance, schedule, etc.)
+// LOAD COURSE DROPDOWNS (for attendance, schedule, etc.)
 // ============================================================
 function populateCourseSelects() {
     const ids = ['attCourse','scheduleCourse','assessCourse','weightsCourse','computeCourse','finalCourse','reportCourse','intervCourse','enrollCourse'];
@@ -543,29 +515,6 @@ function populateCourseSelects() {
         const el = document.getElementById(id);
         if (el) renderSelect(el, instructorCourses, 'id', c => `${c.code} - ${c.name}`);
     });
-}
-
-// ============================================================
-// LOAD SECTIONS FOR ENROLL DROPDOWN (auto-create if needed)
-// ============================================================
-async function loadSectionsForEnroll() {
-    const courseId = document.getElementById('enrollCourse').value;
-    const select = document.getElementById('enrollSection');
-    if (!courseId) {
-        select.innerHTML = '<option value="">Select...</option>';
-        return;
-    }
-    const course = instructorCourses.find(c => c.id === courseId);
-    if (!course) {
-        select.innerHTML = '<option value="">Select...</option>';
-        return;
-    }
-    const sectionId = await ensureSectionForCourse(courseId, course.code);
-    if (sectionId) {
-        renderSelect(select, [{ id: sectionId, name: course.code + ' Section' }], 'id', 'name');
-    } else {
-        select.innerHTML = '<option value="">Error creating section</option>';
-    }
 }
 
 // ============================================================
@@ -598,11 +547,6 @@ async function init() {
     populateCourseSelects();
     setupEventListeners();
     updateStats();
-
-    // Load sections for attendance and schedule (auto-create)
-    await loadSectionsForCourseSelect('attCourse');
-    await loadSectionsForCourseSelect('scheduleCourse');
-    // Load sections for enroll (depends on course selection)
 }
 
 // ============================================================
@@ -889,8 +833,6 @@ function setupEventListeners() {
         await loadInstructorData();
         populateCourseSelects();
         updateStats();
-        await loadSectionsForCourseSelect('attCourse');
-        await loadSectionsForCourseSelect('scheduleCourse');
     });
 
     // Attendance
@@ -901,16 +843,8 @@ function setupEventListeners() {
         const start = document.getElementById('attStart').value;
         const end = document.getElementById('attEnd').value;
         if (!courseId) { alert('Select a course.'); return; }
-        const { data: section } = await supabase
-            .from('sections')
-            .select('id')
-            .eq('course_id', courseId)
-            .limit(1);
-        if (!section || section.length === 0) {
-            alert('No section found for this course. Please try again.');
-            return;
-        }
-        const sectionId = section[0].id;
+        const sectionId = await ensureSectionForCourse(courseId, '');
+        if (!sectionId) { alert('Error creating section. Please try again.'); return; }
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         const expiresAt = new Date(); expiresAt.setMinutes(expiresAt.getMinutes() + 15);
         const { error } = await supabase.from('attendance_sessions').insert({
@@ -931,16 +865,8 @@ function setupEventListeners() {
         const end = document.getElementById('scheduleEnd').value;
         const room = document.getElementById('scheduleRoom').value;
         if (!courseId) { alert('Select a course.'); return; }
-        const { data: section } = await supabase
-            .from('sections')
-            .select('id')
-            .eq('course_id', courseId)
-            .limit(1);
-        if (!section || section.length === 0) {
-            alert('No section found for this course. Please try again.');
-            return;
-        }
-        const sectionId = section[0].id;
+        const sectionId = await ensureSectionForCourse(courseId, '');
+        if (!sectionId) { alert('Error creating section. Please try again.'); return; }
         const { error } = await supabase.from('schedules').insert({
             section_id: sectionId, day_of_week: day, start_time: start, end_time: end, room: room || null
         });
@@ -1108,15 +1034,16 @@ function setupEventListeners() {
         else alert('Intervention recorded!');
     });
 
-    // Enroll
+    // Enroll (No section dropdown – auto-assign)
     document.getElementById('enrollForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const courseId = document.getElementById('enrollCourse').value;
         const email = document.getElementById('enrollEmail').value;
-        const sectionId = document.getElementById('enrollSection').value;
-        if (!courseId || !email || !sectionId) { alert('All fields required.'); return; }
+        if (!courseId || !email) { alert('Course and Email are required.'); return; }
         const { data: user } = await supabase.from('profiles').select('id').eq('email', email).maybeSingle();
         if (!user) { alert('Student not found.'); return; }
+        const sectionId = await ensureSectionForCourse(courseId, '');
+        if (!sectionId) { alert('Error creating section. Please try again.'); return; }
         const { error } = await supabase.from('course_enrollments').insert({
             course_id: courseId, student_id: user.id, section_id: sectionId
         });
@@ -1129,9 +1056,6 @@ function setupEventListeners() {
 
     // Gradebook
     document.getElementById('manualCourseSelect').addEventListener('change', loadGradebook);
-
-    // Load sections for enroll when course changes
-    document.getElementById('enrollCourse').addEventListener('change', loadSectionsForEnroll);
 
     // Load students for intervention
     document.getElementById('intervCourse').addEventListener('change', loadStudentsForIntervention);
