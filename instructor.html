@@ -188,7 +188,10 @@
         <section id="section-courses" class="page-section">
             <div class="page-header">
                 <div><h1>Courses <small>Manage your courses</small></h1></div>
-                <div class="actions"><button class="btn btn-primary" id="addCourseBtn">+ New Course</button></div>
+                <div class="actions">
+                    <button class="btn btn-outline" onclick="loadInstructorData()">🔄 Refresh</button>
+                    <button class="btn btn-primary" id="addCourseBtn">+ New Course</button>
+                </div>
             </div>
             <div class="card"><div id="instructorCourses"><div class="empty-state"><p>Loading your courses...</p></div></div></div>
         </section>
@@ -431,7 +434,7 @@
         <div id="markAttendanceTableWrap" style="margin-top:1rem;">
             <div class="table-wrap">
                 <table>
-                    <thead><tr><th>Student</th><th>Status</th><th>Action</th></tr></thead>
+                    <thead><tr><th>Student</th><th>Current Status</th><th>Update Status</th><th>Action</th></tr></thead>
                     <tbody id="markAttendanceBody"></tbody>
                 </table>
             </div>
@@ -633,7 +636,7 @@ async function init() {
 // ============================================================
 // COURSES CRUD
 // ============================================================
-async function loadInstructorData() {
+window.loadInstructorData = async function() {
     const { data: courses, error } = await supabase
         .from('courses')
         .select('*')
@@ -666,7 +669,7 @@ async function loadInstructorData() {
 
     const gradebookSelect = document.getElementById('manualCourseSelect');
     if (gradebookSelect) renderSelect(gradebookSelect, instructorCourses, 'id', c => `${c.code} - ${c.name}`);
-}
+};
 
 document.getElementById('addCourseBtn').addEventListener('click', async () => {
     const code = prompt('Enter course code:');
@@ -987,7 +990,6 @@ async function loadManualSessions() {
 }
 
 window.openMarkAttendanceModal = async (sessionId) => {
-    // If sessionId is not provided, get it from the dropdown
     if (!sessionId) {
         sessionId = document.getElementById('manualSessionSelect').value;
     }
@@ -1026,7 +1028,7 @@ window.openMarkAttendanceModal = async (sessionId) => {
         .eq('course_id', courseId);
     if (enrollError) { alert('Error loading students: ' + enrollError.message); return; }
     if (!enrollments || enrollments.length === 0) {
-        document.getElementById('markAttendanceBody').innerHTML = '<tr><td colspan="3">No students enrolled.</td></tr>';
+        document.getElementById('markAttendanceBody').innerHTML = '<tr><td colspan="4">No students enrolled.</td></tr>';
         document.getElementById('markAttendanceModal').classList.add('active');
         return;
     }
@@ -1048,6 +1050,7 @@ window.openMarkAttendanceModal = async (sessionId) => {
         const status = recordMap[student.id] || 'present';
         html += `<tr>
             <td>${student.first_name} ${student.last_name}</td>
+            <td><span class="badge ${status === 'present' ? 'badge-approved' : status === 'late' ? 'badge-pending' : 'badge-rejected'}">${status}</span></td>
             <td>
                 <select class="att-status-select" data-student="${student.id}">
                     <option value="present" ${status === 'present' ? 'selected' : ''}>Present</option>
@@ -1463,7 +1466,7 @@ window.handleFileUpload = function(event) {
 };
 
 // ============================================================
-// OTHER EVENT LISTENERS (Gradebook, Weights, Compute, Final, Enroll, Reports)
+// OTHER EVENT LISTENERS
 // ============================================================
 function setupEventListeners() {
     document.getElementById('weightsForm').addEventListener('submit', async (e) => {
