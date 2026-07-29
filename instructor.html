@@ -1088,7 +1088,7 @@ window.handleFileUpload = function(event) {
 };
 
 // ------------------------------------------------------------
-// 12. ASSESSMENT PUBLISH (FIXED)
+// 12. ASSESSMENT PUBLISH (FIXED – column names corrected)
 // ------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', function() {
     const publishBtn = document.getElementById('publishAssessmentBtn');
@@ -1131,6 +1131,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         try {
             for (const courseId of selectedCourseIds) {
+                // 1. Get or create assessment type
                 let typeId;
                 const { data: existingType } = await supabase
                     .from('assessment_types')
@@ -1147,24 +1148,26 @@ document.addEventListener('DOMContentLoaded', function() {
                         .select()
                         .single();
                     if (error) {
-                        alert('Error creating type: ' + error.message);
+                        console.error('Type creation error:', error);
+                        alert('Error creating assessment type: ' + error.message);
                         return;
                     }
                     typeId = newType.id;
                 }
 
+                // 2. Insert assessment (with correct column names)
                 const { data: assess, error: assessError } = await supabase
                     .from('assessments')
                     .insert({
                         course_id: courseId,
                         assessment_type_id: typeId,
-                        title,
+                        title: title,
                         description: desc,
                         max_score: maxScore,
-                        duration_minutes: duration,
-                        date,
+                        duration_minute: duration,         // corrected column name
+                        date: date,
                         is_published: true,
-                        randomize_questions: randomize,
+                        randomize_ques: randomize,        // corrected column name
                         questions_to_show: questionsToShow,
                         shuffle_options: shuffleOptions,
                         show_answers: showAnswers,
@@ -1175,10 +1178,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     .single();
 
                 if (assessError) {
+                    console.error('Assessment insert error:', assessError);
                     alert('Error creating assessment: ' + assessError.message);
                     return;
                 }
 
+                // 3. Insert questions
                 const qData = assessmentQuestions.map(q => ({
                     assessment_id: assess.id,
                     question: q.question,
@@ -1192,6 +1197,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     .from('assessment_questions')
                     .insert(qData);
                 if (qError) {
+                    console.error('Question insert error:', qError);
                     alert('Error saving questions: ' + qError.message);
                     return;
                 }
