@@ -6,12 +6,9 @@
     <title>Instructor Dashboard – NCF Learning System</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <style>
-        /* ===== RESET & BASE ===== */
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family:'Inter',sans-serif; background:#f1f5f9; color:#0f172a; }
         .app { display:flex; min-height:100vh; }
-
-        /* ===== SIDEBAR ===== */
         .sidebar {
             width:260px; background:#0f172a; padding:1.5rem 1rem;
             position:sticky; top:0; height:100vh; overflow-y:auto;
@@ -33,22 +30,16 @@
         .sidebar .user-section .user-card .info .role { font-size:0.7rem; color:#94a3b8; }
         .sidebar .user-section .logout-btn { display:flex; align-items:center; gap:0.5rem; padding:0.6rem 0.75rem; border-radius:8px; color:#f87171; font-size:0.85rem; font-weight:500; cursor:pointer; border:none; background:transparent; width:100%; font-family:inherit; transition:0.2s; }
         .sidebar .user-section .logout-btn:hover { background:rgba(239,68,68,0.1); }
-
-        /* ===== MAIN ===== */
         .main { flex:1; padding:2rem 2.5rem; overflow-y:auto; background:#f1f5f9; }
         .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem; flex-wrap:wrap; gap:1rem; }
         .page-header h1 { font-size:1.6rem; font-weight:700; }
         .page-header h1 small { font-size:0.85rem; font-weight:400; color:#94a3b8; display:block; }
         .page-header .actions { display:flex; gap:0.75rem; align-items:center; }
-
-        /* ===== STATS ===== */
         .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1rem; margin-bottom:2rem; }
         .stat-card { background:#fff; border-radius:12px; padding:1.25rem 1.5rem; border:1px solid #e2e8f0; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
         .stat-card .number { font-size:1.8rem; font-weight:700; }
         .stat-card .label { font-size:0.8rem; color:#94a3b8; font-weight:500; }
         .stat-card .icon { float:right; font-size:1.6rem; opacity:0.4; }
-
-        /* ===== CARDS & TABLES ===== */
         .card { background:#fff; border-radius:12px; border:1px solid #e2e8f0; padding:1.5rem; margin-bottom:1.5rem; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
         .card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
         .card-header h3 { font-size:1rem; font-weight:600; }
@@ -57,8 +48,6 @@
         table th { text-align:left; padding:0.6rem 0.75rem; color:#475569; font-weight:600; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.5px; border-bottom:2px solid #e2e8f0; background:#f1f5f9; }
         table td { padding:0.6rem 0.75rem; border-bottom:1px solid #f1f5f9; }
         table tbody tr:hover { background:#f1f5f9; }
-
-        /* ===== FORMS ===== */
         .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
         .form-grid .full { grid-column:1/-1; }
         .form-group { display:flex; flex-direction:column; gap:0.25rem; }
@@ -67,8 +56,7 @@
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,0.1); }
         .form-group input[type="file"] { padding:0.4rem; border:2px dashed #e2e8f0; cursor:pointer; }
         .form-group input[type="checkbox"] { width:auto; }
-
-        /* ===== BUTTONS ===== */
+        .form-group select[multiple] { min-height:100px; }
         .btn { padding:0.55rem 1.25rem; border-radius:8px; font-size:0.85rem; font-weight:600; font-family:inherit; cursor:pointer; border:none; transition:0.2s; display:inline-flex; align-items:center; gap:0.5rem; }
         .btn-primary { background:#3b82f6; color:#fff; }
         .btn-primary:hover { background:#2563eb; }
@@ -81,20 +69,15 @@
         .btn-sm { padding:0.2rem 0.7rem; font-size:0.75rem; }
         .btn-danger-outline { background:transparent; color:#ef4444; border:1px solid #ef4444; }
         .btn-danger-outline:hover { background:#fee2e2; }
-
         .badge { display:inline-block; padding:0.15rem 0.6rem; border-radius:20px; font-size:0.7rem; font-weight:600; }
         .badge-pending { background:#fef3c7; color:#92400e; }
         .badge-approved { background:#d1fae5; color:#065f46; }
         .badge-rejected { background:#fee2e2; color:#991b1b; }
-
         .empty-state { text-align:center; padding:2.5rem 1rem; color:#94a3b8; }
         .empty-state .icon { font-size:2.5rem; margin-bottom:0.5rem; }
-
-        /* ===== PAGE SECTIONS ===== */
         .page-section { display:none; }
         .page-section.active { display:block; animation:fadeIn 0.25s ease; }
         @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
-
         .text-muted { color:#94a3b8; }
         .text-sm { font-size:0.8rem; }
         .mt-1 { margin-top:0.5rem; }
@@ -102,16 +85,11 @@
         .flex { display:flex; }
         .gap-2 { gap:1rem; }
         .fw-600 { font-weight:600; }
-
-        /* ===== ASSESSMENT BUILDER STEPS ===== */
         .step { padding:1rem 0; }
         .step h4 { margin-bottom:1rem; font-size:1.1rem; }
-
         .question-item { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.75rem; margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center; }
         .question-item .q-text { flex:1; margin-right:1rem; font-size:0.9rem; }
         .question-item .q-actions { display:flex; gap:0.5rem; }
-
-        /* ===== MODALS ===== */
         .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); display:none; align-items:center; justify-content:center; z-index:1000; }
         .modal.active { display:flex; }
         .modal-content { background:#fff; border-radius:12px; padding:2rem; max-width:800px; width:95%; max-height:80vh; overflow-y:auto; }
@@ -119,7 +97,6 @@
         .modal-content .close { float:right; background:none; border:none; font-size:1.5rem; cursor:pointer; }
         .modal-content table { width:100%; }
         .modal-content select { padding:0.3rem 0.6rem; border-radius:4px; border:1px solid #e2e8f0; }
-
         .debug-box { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.75rem; margin-top:0.5rem; font-family:monospace; font-size:0.8rem; max-height:200px; overflow-y:auto; white-space:pre-wrap; }
 
         @media (max-width:1024px) { .sidebar { width:220px; } .main { padding:1.5rem; } .form-grid { grid-template-columns:1fr; } }
@@ -191,12 +168,12 @@
             <div class="page-header">
                 <div><h1>Courses <small>Manage your courses</small></h1></div>
                 <div class="actions">
-                    <button class="btn btn-outline" onclick="loadInstructorData()">🔄 Refresh</button>
                     <button class="btn btn-primary" id="addCourseBtn">+ New Course</button>
                 </div>
             </div>
             <div class="card">
                 <div id="instructorCourses"><div class="empty-state"><p>Loading your courses...</p></div></div>
+                <div id="debugInfo" style="margin-top:0.5rem;font-size:0.8rem;color:#64748b;"></div>
             </div>
         </section>
 
@@ -255,7 +232,12 @@
                     <div class="step active" data-step="1">
                         <h4>1. Assessment Details</h4>
                         <div class="form-grid">
-                            <div class="form-group full"><label>Course</label><select id="assessCourse" required></select></div>
+                            <div class="form-group full">
+                                <label>Courses (hold Ctrl/Cmd to select multiple)</label>
+                                <select id="assessCourses" multiple required>
+                                    <option value="">Select courses...</option>
+                                </select>
+                            </div>
                             <div class="form-group"><label>Type</label><select id="assessType"><option>Quiz</option><option>Exam</option><option>Project</option></select></div>
                             <div class="form-group"><label>Duration (min)</label><input type="number" id="assessDuration" value="60" min="1"></div>
                             <div class="form-group full"><label>Title</label><input type="text" id="assessTitle" placeholder="e.g., Midterm Exam" required></div>
@@ -440,7 +422,7 @@
 </div>
 
 <!-- ============================================================
-     SCRIPTS – SIMPLIFIED & GUARANTEED TO WORK
+     SCRIPTS
      ============================================================ -->
 <script type="importmap">
 {
@@ -514,8 +496,41 @@ function timeToMinutes(time) {
 }
 
 // ============================================================
-// GET OR CREATE SECTION
+// AUTO-CREATE SECTIONS
 // ============================================================
+async function ensureSingleSectionPerCourse() {
+    const { data: courses, error: coursesError } = await supabase
+        .from('courses')
+        .select('id, code');
+    if (coursesError) {
+        console.error('Error fetching courses:', coursesError);
+        return;
+    }
+    for (const course of courses) {
+        const { data: sections, error: sectionsError } = await supabase
+            .from('sections')
+            .select('id')
+            .eq('course_id', course.id);
+        if (sectionsError) {
+            console.error('Error fetching sections:', sectionsError);
+            continue;
+        }
+        if (sections && sections.length > 1) {
+            const keepId = sections[0].id;
+            const deleteIds = sections.slice(1).map(s => s.id);
+            for (const id of deleteIds) {
+                await supabase.from('sections').delete().eq('id', id);
+            }
+        } else if (!sections || sections.length === 0) {
+            const sectionName = course.code + ' Section';
+            await supabase.from('sections').insert({
+                course_id: course.id,
+                name: sectionName
+            });
+        }
+    }
+}
+
 async function ensureSectionForCourse(courseId) {
     const { data: sections, error } = await supabase
         .from('sections')
@@ -543,93 +558,101 @@ async function ensureSectionForCourse(courseId) {
 }
 
 function populateCourseSelects() {
-    const ids = ['attCourse','scheduleCourse','assessCourse','weightsCourse','computeCourse','finalCourse','reportCourse','intervCourse','enrollCourse'];
+    const ids = ['attCourse','scheduleCourse','weightsCourse','computeCourse','finalCourse','reportCourse','intervCourse','enrollCourse','manualCourseSelect'];
     ids.forEach(id => {
         const el = document.getElementById(id);
         if (el) renderSelect(el, instructorCourses, 'id', c => `${c.code} - ${c.name}`);
     });
+    // Populate the multi-select for assessments
+    const assessMulti = document.getElementById('assessCourses');
+    if (assessMulti) {
+        assessMulti.innerHTML = '';
+        if (instructorCourses.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = 'No courses available';
+            assessMulti.appendChild(opt);
+            return;
+        }
+        instructorCourses.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = `${c.code} - ${c.name}`;
+            assessMulti.appendChild(opt);
+        });
+    }
 }
 
 // ============================================================
-// INIT – LOADS USER AND COURSES
-// ============================================================
-async function init() {
-    console.log('🔐 Initialising...');
-    const user = await getCurrentUser();
-    if (!user) { 
-        window.location.href = 'index.html'; 
-        return; 
-    }
-    currentUser = user;
-    console.log('✅ Logged in as:', currentUser.id);
-
-    // Load profile
-    const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle();
-    if (profileError) {
-        alert('Error loading profile: ' + profileError.message);
-        return;
-    }
-    if (!profile || profile.role !== 'instructor') {
-        alert('Not authorized as instructor.');
-        window.location.href = 'index.html';
-        return;
-    }
-    currentProfile = profile;
-    document.getElementById('userAvatar').textContent = (profile.first_name?.[0] || 'N') + (profile.last_name?.[0] || 'C');
-    document.getElementById('userName').textContent = `${profile.first_name} ${profile.last_name}`;
-
-    // Load courses – using a simple fetch WITHOUT FILTER (or with filter, but we'll handle it)
-    await loadInstructorData();
-
-    // Load other data
-    await loadPendingApprovals();
-    populateCourseSelects();
-    setupEventListeners();
-    updateStats();
-    loadSchedules();
-    loadAttendanceSessions();
-    loadManualSessions();
-    loadAssessmentsList();
-    loadInterventions();
-
-    console.log('🏁 Dashboard ready.');
-}
-
-// ============================================================
-// LOAD COURSES – ALWAYS WORKS
+// LOAD COURSES – AUTOMATIC, NO REFRESH BUTTON
 // ============================================================
 window.loadInstructorData = async function() {
     console.log('🔄 Loading courses...');
-    // Fetch ALL courses (no RLS filter)
-    const { data: allCourses, error } = await supabase
+    if (!currentUser) {
+        alert('Not logged in.');
+        return;
+    }
+
+    // Try to fetch courses assigned to this instructor
+    const { data: myCourses, error: myError } = await supabase
+        .from('courses')
+        .select('*')
+        .eq('instructor_id', currentUser.id);
+
+    if (myError) {
+        alert('Error loading courses: ' + myError.message);
+        return;
+    }
+
+    const debugDiv = document.getElementById('debugInfo');
+
+    if (myCourses && myCourses.length > 0) {
+        instructorCourses = myCourses;
+        debugDiv.textContent = `✅ Loaded ${myCourses.length} course(s) assigned to you.`;
+        renderCourseTable(myCourses);
+        populateCourseSelects();
+        return;
+    }
+
+    // No courses assigned – show all courses as fallback
+    debugDiv.textContent = '⚠️ No courses assigned to you. Showing all courses in the system.';
+
+    const { data: allCourses, error: allError } = await supabase
         .from('courses')
         .select('*');
-    if (error) {
-        alert('Error loading courses: ' + error.message);
+
+    if (allError) {
+        alert('Error loading all courses: ' + allError.message);
         return;
     }
-    console.log('📚 All courses:', allCourses);
 
-    // Filter courses assigned to this instructor
-    const myCourses = allCourses.filter(c => c.instructor_id === currentUser.id);
-    instructorCourses = myCourses;
+    if (!allCourses || allCourses.length === 0) {
+        document.getElementById('instructorCourses').innerHTML = `
+            <div class="empty-state">
+                <span class="icon">📘</span>
+                <p>No courses exist in the database.</p>
+                <p style="font-size:0.8rem; color:#94a3b8;">Add a course using the "+ New Course" button.</p>
+            </div>
+        `;
+        instructorCourses = [];
+        populateCourseSelects();
+        return;
+    }
 
+    instructorCourses = allCourses;
+    renderCourseTable(allCourses);
+    populateCourseSelects();
+    debugDiv.textContent += ` (Total: ${allCourses.length} courses)`;
+};
+
+function renderCourseTable(courses) {
     const container = document.getElementById('instructorCourses');
-    if (instructorCourses.length === 0) {
-        container.innerHTML = `<div class="empty-state">
-            <span class="icon">📘</span>
-            <p>No courses assigned to you. (You have ${allCourses.length} total courses in the system.)</p>
-            <p style="font-size:0.8rem; color:#94a3b8;">If you see courses above, click "Refresh" to load them.</p>
-        </div>`;
+    if (!courses || courses.length === 0) {
+        container.innerHTML = '<div class="empty-state"><span class="icon">📘</span><p>No courses to display.</p></div>';
         return;
     }
-
     let html = '<div class="table-wrap"><table><thead><tr><th>Code</th><th>Name</th><th>Description</th><th>Actions</th></tr></thead><tbody>';
-    for (const c of instructorCourses) {
+    for (const c of courses) {
         html += `<tr>
             <td><strong>${c.code}</strong></td>
             <td>${c.name}</td>
@@ -642,15 +665,10 @@ window.loadInstructorData = async function() {
     }
     html += '</tbody></table></div>';
     container.innerHTML = html;
-
-    // Update dropdowns
-    populateCourseSelects();
-    const gradebookSelect = document.getElementById('manualCourseSelect');
-    if (gradebookSelect) renderSelect(gradebookSelect, instructorCourses, 'id', c => `${c.code} - ${c.name}`);
-};
+}
 
 // ============================================================
-// COURSES CRUD (Add, Edit, Delete)
+// COURSES CRUD
 // ============================================================
 document.getElementById('addCourseBtn').addEventListener('click', async () => {
     const code = prompt('Enter course code:');
@@ -727,7 +745,7 @@ window.deleteCourse = async function(courseId) {
 };
 
 // ============================================================
-// SCHEDULES CRUD (simplified – same as before)
+// SCHEDULES CRUD
 // ============================================================
 async function loadSchedules() {
     const container = document.getElementById('scheduleList');
@@ -858,7 +876,7 @@ window.deleteSchedule = async function(scheduleId) {
 };
 
 // ============================================================
-// ATTENDANCE – same as before (shortened for brevity)
+// ATTENDANCE
 // ============================================================
 async function loadAttendanceSessions() {
     const container = document.getElementById('attendanceSessionsList');
@@ -942,7 +960,7 @@ window.deleteAttendanceSession = async function(sessionId) {
 };
 
 // ============================================================
-// MANUAL ATTENDANCE MARKING
+// MANUAL ATTENDANCE
 // ============================================================
 async function loadManualSessions() {
     const select = document.getElementById('manualSessionSelect');
@@ -1089,15 +1107,698 @@ window.deleteAttendanceRecord = async (sessionId, studentId) => {
 };
 
 // ============================================================
-// ASSESSMENTS, INTERVENTIONS, PENDING APPROVALS, STATS, etc.
+// ASSESSMENTS CRUD – NOW SUPPORTS MULTIPLE COURSES
 // ============================================================
-// (All other functions are the same as before – I'll keep them minimal)
+async function loadAssessmentsList() {
+    const container = document.getElementById('assessmentsList');
+    const { data, error } = await supabase
+        .from('assessments')
+        .select(`
+            id,
+            title,
+            description,
+            max_score,
+            date,
+            is_published,
+            courses ( code, name )
+        `)
+        .order('date', { ascending: false });
+    if (error || !data || data.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No assessments created yet.</p></div>';
+        return;
+    }
+    let html = `<div class="table-wrap"><table><thead><tr><th>Course</th><th>Title</th><th>Max Score</th><th>Date</th><th>Published</th><th>Action</th></tr></thead><tbody>`;
+    data.forEach(a => {
+        const course = a.courses;
+        const courseLabel = course ? `${course.code} - ${course.name}` : 'Unknown';
+        const published = a.is_published ? '✅' : '❌';
+        html += `<tr>
+            <td>${courseLabel}</td>
+            <td>${a.title}</td>
+            <td>${a.max_score}</td>
+            <td>${new Date(a.date).toLocaleString()}</td>
+            <td>${published}</td>
+            <td><button class="btn btn-danger btn-sm" onclick="deleteAssessment('${a.id}')">🗑️</button></td>
+        </tr>`;
+    });
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
 
-// The rest is standard – you can keep your existing functions for assessments, interventions, etc.
+window.deleteAssessment = async function(assessmentId) {
+    if (!confirm('Delete this assessment and all questions?')) return;
+    const { error } = await supabase
+        .from('assessments')
+        .delete()
+        .eq('id', assessmentId);
+    if (error) { alert('Error: ' + error.message); return; }
+    alert('Assessment deleted.');
+    loadAssessmentsList();
+    updateStats();
+};
 
 // ============================================================
-// START
+// ASSESSMENT FORM SUBMISSION – MULTI-COURSE
 // ============================================================
+document.getElementById('assessmentForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const courseSelect = document.getElementById('assessCourses');
+    const selectedCourseIds = Array.from(courseSelect.selectedOptions).map(opt => opt.value);
+    if (selectedCourseIds.length === 0) {
+        alert('Please select at least one course.');
+        return;
+    }
+
+    const typeName = document.getElementById('assessType').value;
+    const title = document.getElementById('assessTitle').value.trim();
+    const desc = document.getElementById('assessDesc').value.trim();
+    const duration = parseInt(document.getElementById('assessDuration').value) || 60;
+    const maxScore = parseFloat(document.getElementById('assessMaxScore').value) || 100;
+    const date = document.getElementById('assessDate').value;
+    const questionsToShow = parseInt(document.getElementById('assessShow').value) || null;
+    const randomize = document.getElementById('assessRandomize').checked;
+    const ai = document.getElementById('assessAI').value;
+    const shuffleOptions = document.getElementById('assessShuffleOptions').checked;
+    const showAnswers = document.getElementById('assessShowAnswers').checked;
+    const passing = parseInt(document.getElementById('assessPassing').value) || 60;
+
+    if (!title) { alert('Title is required.'); return; }
+    if (assessmentQuestions.length === 0) { alert('Please add at least one question.'); return; }
+
+    // For each selected course, create a separate assessment
+    for (const courseId of selectedCourseIds) {
+        // Create or get assessment type for this course
+        let typeId;
+        const { data: existingType } = await supabase
+            .from('assessment_types')
+            .select('id')
+            .eq('course_id', courseId)
+            .eq('name', typeName)
+            .maybeSingle();
+        if (existingType) {
+            typeId = existingType.id;
+        } else {
+            const { data: newType, error } = await supabase
+                .from('assessment_types')
+                .insert({ course_id: courseId, name: typeName, weight: 0 })
+                .select()
+                .single();
+            if (error) {
+                alert('Error creating type for course ' + courseId + ': ' + error.message);
+                return;
+            }
+            typeId = newType.id;
+        }
+
+        // Insert the assessment
+        const { data: assess, error: assessError } = await supabase
+            .from('assessments')
+            .insert({
+                course_id: courseId,
+                assessment_type_id: typeId,
+                title,
+                description: desc,
+                max_score: maxScore,
+                duration_minutes: duration,
+                date: date,
+                is_published: true,
+                randomize_questions: randomize,
+                questions_to_show: questionsToShow,
+                shuffle_options: shuffleOptions,
+                show_answers: showAnswers,
+                passing_score: passing,
+                ai_grading: ai
+            })
+            .select()
+            .single();
+        if (assessError) {
+            alert('Error creating assessment for course ' + courseId + ': ' + assessError.message);
+            return;
+        }
+
+        // Insert questions for this assessment
+        const qData = assessmentQuestions.map(q => ({
+            assessment_id: assess.id,
+            question: q.question,
+            type: q.type,
+            points: q.points,
+            options: q.options || null,
+            correct_answer: q.correct !== undefined && q.correct !== null ? q.correct : null
+        }));
+        const { error: qError } = await supabase
+            .from('assessment_questions')
+            .insert(qData);
+        if (qError) {
+            alert('Error saving questions for course ' + courseId + ': ' + qError.message);
+            return;
+        }
+    }
+
+    alert(`Assessment "${title}" created for ${selectedCourseIds.length} course(s).`);
+    document.getElementById('assessmentForm').reset();
+    assessmentQuestions = [];
+    renderQuestions();
+    goToStep(1);
+    updateStats();
+    loadAssessmentsList();
+});
+
+// ============================================================
+// ASSESSMENT BUILDER FUNCTIONS
+// ============================================================
+window.goToStep = (step) => {
+    document.querySelectorAll('.step').forEach(el => {
+        el.style.display = 'none';
+        el.classList.remove('active');
+    });
+    const target = document.querySelector(`.step[data-step="${step}"]`);
+    if (target) {
+        target.style.display = 'block';
+        target.classList.add('active');
+    }
+};
+
+function renderQuestions() {
+    const container = document.getElementById('questionList');
+    if (assessmentQuestions.length === 0) {
+        container.innerHTML = '<div class="empty-state">No questions added yet.</div>';
+        return;
+    }
+    let html = '';
+    assessmentQuestions.forEach((q, idx) => {
+        const typeLabel = {mc:'Multiple Choice', tf:'True/False', essay:'Essay', fill:'Fill in the Blank'}[q.type] || q.type;
+        html += `<div class="question-item">
+            <div class="q-text"><strong>${idx+1}.</strong> ${q.question} <span class="text-muted">(${typeLabel}, ${q.points} pts)</span></div>
+            <div class="q-actions">
+                <button class="btn btn-outline btn-sm" onclick="editQuestion(${idx})">✏️</button>
+                <button class="btn btn-danger-outline btn-sm" onclick="removeQuestion(${idx})">🗑️</button>
+            </div>
+        </div>`;
+    });
+    container.innerHTML = html;
+}
+
+window.openQuestionEditor = () => {
+    editingQuestionIndex = -1;
+    document.getElementById('modalTitle').textContent = 'Add Question';
+    document.getElementById('questionEditorForm').reset();
+    document.getElementById('qText').value = '';
+    document.getElementById('qOptions').value = '';
+    document.getElementById('qType').value = 'mc';
+    toggleOptions();
+    document.getElementById('questionModal').classList.add('active');
+};
+
+window.editQuestion = (idx) => {
+    editingQuestionIndex = idx;
+    const q = assessmentQuestions[idx];
+    document.getElementById('modalTitle').textContent = 'Edit Question';
+    document.getElementById('qText').value = q.question;
+    document.getElementById('qType').value = q.type;
+    document.getElementById('qPoints').value = q.points;
+    if (q.options && q.options.length) {
+        let opts = q.options.map((o, i) => (i === q.correct ? `*${o}` : o)).join('\n');
+        document.getElementById('qOptions').value = opts;
+    } else {
+        document.getElementById('qOptions').value = '';
+    }
+    toggleOptions();
+    document.getElementById('questionModal').classList.add('active');
+};
+
+window.removeQuestion = (idx) => {
+    if (!confirm('Remove this question?')) return;
+    assessmentQuestions.splice(idx, 1);
+    renderQuestions();
+};
+
+window.clearQuestions = () => {
+    if (!confirm('Clear all questions?')) return;
+    assessmentQuestions = [];
+    renderQuestions();
+};
+
+window.closeQuestionEditor = () => {
+    document.getElementById('questionModal').classList.remove('active');
+};
+
+function toggleOptions() {
+    const type = document.getElementById('qType').value;
+    const group = document.getElementById('optionsGroup');
+    if (type === 'essay' || type === 'fill') {
+        group.style.display = 'none';
+    } else {
+        group.style.display = 'block';
+    }
+}
+window.toggleOptions = toggleOptions;
+
+document.getElementById('questionEditorForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const question = document.getElementById('qText').value.trim();
+    const type = document.getElementById('qType').value;
+    const points = parseInt(document.getElementById('qPoints').value) || 1;
+    let options = null;
+    let correct = null;
+    if (type === 'mc' || type === 'tf') {
+        const raw = document.getElementById('qOptions').value.split('\n').filter(s => s.trim() !== '');
+        options = raw.map(s => s.replace(/^\*\s*/, '').trim());
+        const idx = raw.findIndex(s => s.trim().startsWith('*'));
+        correct = (idx !== -1) ? idx : 0;
+    }
+    const q = { question, type, options, correct, points };
+    if (editingQuestionIndex === -1) {
+        assessmentQuestions.push(q);
+    } else {
+        assessmentQuestions[editingQuestionIndex] = q;
+    }
+    renderQuestions();
+    closeQuestionEditor();
+});
+
+window.importFromBank = async () => {
+    // This imports from the question_bank table – requires a course selection, but we'll keep as is.
+    // For multi-course, we might need to select a course, but we'll keep simple.
+    const firstCourse = document.getElementById('assessCourses').value;
+    if (!firstCourse) { alert('Please select at least one course first.'); return; }
+    const { data: bank, error } = await supabase.from('question_bank').select('*').eq('course_id', firstCourse);
+    if (error) { alert('Error loading bank: ' + error.message); return; }
+    if (!bank || bank.length === 0) { alert('No questions in the bank for this course.'); return; }
+    const imported = bank.map(b => ({
+        question: b.question, type: b.type, options: b.options || null, correct: b.correct_answer || null, points: 1
+    }));
+    assessmentQuestions = assessmentQuestions.concat(imported);
+    renderQuestions();
+    alert(`Imported ${imported.length} questions.`);
+};
+
+window.uploadQuestions = () => {
+    document.getElementById('jsonFileInput').click();
+};
+
+window.handleFileUpload = function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            let content = e.target.result;
+            let jsonData;
+            if (file.name.endsWith('.js')) {
+                const match = content.match(/const\s+QUESTION_BANK\s*=\s*(\[[\s\S]*?\]);/);
+                if (match) jsonData = eval(match[1]);
+                else throw new Error('Could not find QUESTION_BANK array.');
+            } else {
+                jsonData = JSON.parse(content);
+            }
+            if (!Array.isArray(jsonData)) throw new Error('File must contain an array.');
+            const imported = jsonData.map(q => ({
+                question: q.question || q.text || '',
+                type: q.type || 'mc',
+                options: q.options || null,
+                correct: q.correct !== undefined ? q.correct : (q.answer !== undefined ? q.answer : null),
+                points: q.points || 1
+            })).filter(q => q.question.trim() !== '');
+            if (imported.length === 0) { alert('No valid questions found.'); return; }
+            assessmentQuestions = assessmentQuestions.concat(imported);
+            renderQuestions();
+            alert(`Imported ${imported.length} questions.`);
+        } catch (err) {
+            alert('Error parsing file: ' + err.message);
+            console.error(err);
+        }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+};
+
+// ============================================================
+// OTHER HELPER FUNCTIONS (stats, approvals, etc.)
+// ============================================================
+async function loadPendingApprovals() {
+    const container = document.getElementById('pendingApprovalsList');
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('id, student_id, first_name, last_name, section, created_at')
+        .eq('role', 'pending')
+        .order('created_at', { ascending: true });
+    if (error || data.length === 0) {
+        container.innerHTML = '<div class="empty-state"><span class="icon">✅</span><p>No pending approvals.</p></div>';
+        return;
+    }
+    let html = '<div class="table-wrap"><table><thead><tr><th>ID</th><th>Name</th><th>Section</th><th>Date</th><th>Actions</th></tr></thead><tbody>';
+    data.forEach(p => {
+        html += `<tr>
+            <td>${p.student_id}</td>
+            <td>${p.first_name} ${p.last_name}</td>
+            <td>${p.section}</td>
+            <td>${new Date(p.created_at).toLocaleDateString()}</td>
+            <td>
+                <button class="btn btn-success btn-sm" onclick="window.approveUser('${p.id}')">Approve</button>
+                <button class="btn btn-danger btn-sm" onclick="window.rejectUser('${p.id}')">Reject</button>
+            </td>
+        </tr>`;
+    });
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+window.approveUser = async (userId) => {
+    if (!confirm('Approve this user?')) return;
+    const { error } = await supabase.from('profiles').update({ role: 'student' }).eq('id', userId);
+    if (error) alert('Error: ' + error.message);
+    else { alert('Approved!'); loadPendingApprovals(); updateStats(); }
+};
+
+window.rejectUser = async (userId) => {
+    if (!confirm('Reject this user?')) return;
+    const { error } = await supabase.from('profiles').update({ role: 'rejected' }).eq('id', userId);
+    if (error) alert('Error: ' + error.message);
+    else { alert('Rejected.'); loadPendingApprovals(); updateStats(); }
+};
+
+async function updateStats() {
+    let totalStudents = 0;
+    for (const c of instructorCourses) {
+        const { count } = await supabase.from('course_enrollments').select('*', { count:'exact', head:true }).eq('course_id', c.id);
+        totalStudents += count || 0;
+    }
+    document.getElementById('statCourses').textContent = instructorCourses.length;
+    document.getElementById('statStudents').textContent = totalStudents;
+
+    const { count: pending } = await supabase.from('profiles').select('*', { count:'exact', head:true }).eq('role', 'pending');
+    document.getElementById('statPending').textContent = pending || 0;
+
+    let totalAssessments = 0;
+    for (const c of instructorCourses) {
+        const { count } = await supabase.from('assessments').select('*', { count:'exact', head:true }).eq('course_id', c.id);
+        totalAssessments += count || 0;
+    }
+    document.getElementById('statAssessments').textContent = totalAssessments;
+}
+
+// ============================================================
+// INTERVENTIONS CRUD
+// ============================================================
+async function loadInterventions() {
+    const container = document.getElementById('interventionHistory');
+    const { data, error } = await supabase
+        .from('interventions')
+        .select(`
+            id,
+            type,
+            adjustment_value,
+            description,
+            created_at,
+            profiles ( first_name, last_name )
+        `)
+        .order('created_at', { ascending: false });
+    if (error || !data || data.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No interventions recorded.</p></div>';
+        return;
+    }
+    let html = `<div class="table-wrap"><table><thead><tr><th>Student</th><th>Type</th><th>Adjustment</th><th>Description</th><th>Date</th><th>Action</th></tr></thead><tbody>`;
+    data.forEach(i => {
+        const name = i.profiles ? `${i.profiles.first_name} ${i.profiles.last_name}` : 'Unknown';
+        html += `<tr>
+            <td>${name}</td>
+            <td>${i.type}</td>
+            <td>${i.adjustment_value || 0}</td>
+            <td>${i.description || '-'}</td>
+            <td>${new Date(i.created_at).toLocaleDateString()}</td>
+            <td><button class="btn btn-danger btn-sm" onclick="deleteIntervention('${i.id}')">🗑️</button></td>
+        </tr>`;
+    });
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+document.getElementById('interventionForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const courseId = document.getElementById('intervCourse').value;
+    const studentId = document.getElementById('intervStudent').value;
+    const type = document.getElementById('intervType').value;
+    const adjustment = parseFloat(document.getElementById('intervAdjustment').value) || 0;
+    const desc = document.getElementById('intervDesc').value;
+    if (!courseId || !studentId) { alert('Select course and student.'); return; }
+    const { error } = await supabase.from('interventions').insert({
+        student_id: studentId,
+        course_id: courseId,
+        type,
+        adjustment_value: adjustment,
+        description: desc,
+        instructor_id: currentUser.id
+    });
+    if (error) { alert('Error: ' + error.message); return; }
+    alert('Intervention recorded.');
+    loadInterventions();
+    document.getElementById('interventionForm').reset();
+});
+
+window.deleteIntervention = async function(interventionId) {
+    if (!confirm('Delete this intervention?')) return;
+    const { error } = await supabase
+        .from('interventions')
+        .delete()
+        .eq('id', interventionId);
+    if (error) { alert('Error: ' + error.message); return; }
+    alert('Intervention deleted.');
+    loadInterventions();
+};
+
+// ============================================================
+// GRADEBOOK, WEIGHTS, COMPUTE, FINAL, ENROLL, REPORTS
+// ============================================================
+document.getElementById('weightsForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const courseId = document.getElementById('weightsCourse').value;
+    if (!courseId) { alert('Select a course.'); return; }
+    const inputs = document.querySelectorAll('#weightsInputs input');
+    for (const inp of inputs) {
+        const typeId = inp.dataset.typeId;
+        const weight = parseFloat(inp.value) || 0;
+        await supabase.from('assessment_types').update({ weight }).eq('id', typeId);
+    }
+    alert('Weights saved!');
+});
+
+document.getElementById('computeForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const courseId = document.getElementById('computeCourse').value;
+    const period = document.getElementById('computePeriod').value;
+    if (!courseId) { alert('Select a course.'); return; }
+    const { data: enrollments } = await supabase.from('course_enrollments').select('student_id').eq('course_id', courseId);
+    if (!enrollments || enrollments.length === 0) {
+        document.getElementById('computedGradesResult').innerHTML = '<div class="empty-state"><p>No students.</p></div>';
+        return;
+    }
+    const studentIds = enrollments.map(e => e.student_id);
+    const { data: grades } = await supabase.from('grades').select('student_id, assessment_types(name, weight), score, max_score')
+        .eq('course_id', courseId).in('student_id', studentIds);
+    let html = '<div class="table-wrap"><table><thead><tr><th>Student</th><th>Period Grade</th></tr></thead><tbody>';
+    for (const sid of studentIds) {
+        const studentGrades = grades.filter(g => g.student_id === sid);
+        let totalWeighted = 0, totalWeight = 0;
+        for (const g of studentGrades) {
+            const pct = (g.score / g.max_score) * 100;
+            const w = g.assessment_types.weight || 0;
+            totalWeighted += pct * w;
+            totalWeight += w;
+        }
+        const periodGrade = totalWeight > 0 ? (totalWeighted / totalWeight) : 0;
+        await supabase.from('period_grades').upsert({
+            student_id: sid, course_id: courseId, period: period, grade: periodGrade,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'student_id,course_id,period' });
+        const { data: student } = await supabase.from('profiles').select('first_name, last_name').eq('id', sid).single();
+        const name = student ? `${student.first_name} ${student.last_name}` : sid;
+        html += `<tr><td>${name}</td><td>${periodGrade.toFixed(2)}</td></tr>`;
+    }
+    html += '</tbody></table></div>';
+    document.getElementById('computedGradesResult').innerHTML = html;
+});
+
+document.getElementById('finalForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const courseId = document.getElementById('finalCourse').value;
+    if (!courseId) { alert('Select a course.'); return; }
+    const { data: enrollments } = await supabase.from('course_enrollments').select('student_id').eq('course_id', courseId);
+    if (!enrollments || enrollments.length === 0) {
+        document.getElementById('finalResult').innerHTML = '<div class="empty-state"><p>No students.</p></div>';
+        return;
+    }
+    const studentIds = enrollments.map(e => e.student_id);
+    const { data: periodGrades } = await supabase.from('period_grades').select('student_id, grade').eq('course_id', courseId).in('student_id', studentIds);
+    let html = '<div class="table-wrap"><table><thead><tr><th>Student</th><th>Final Grade</th></tr></thead><tbody>';
+    for (const sid of studentIds) {
+        const grades = periodGrades.filter(g => g.student_id === sid);
+        const avg = grades.reduce((sum, g) => sum + g.grade, 0) / (grades.length || 1);
+        await supabase.from('final_ratings').upsert({
+            student_id: sid, course_id: courseId, final_grade: avg,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'student_id,course_id' });
+        const { data: student } = await supabase.from('profiles').select('first_name, last_name').eq('id', sid).single();
+        const name = student ? `${student.first_name} ${student.last_name}` : sid;
+        html += `<tr><td>${name}</td><td>${avg.toFixed(2)}</td></tr>`;
+    }
+    html += '</tbody></table></div>';
+    document.getElementById('finalResult').innerHTML = html;
+});
+
+document.getElementById('enrollForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const courseId = document.getElementById('enrollCourse').value;
+    const email = document.getElementById('enrollEmail').value;
+    if (!courseId || !email) { alert('Course and Email are required.'); return; }
+    const { data: user } = await supabase.from('profiles').select('id').eq('email', email).maybeSingle();
+    if (!user) { alert('Student not found.'); return; }
+    const sectionId = await ensureSectionForCourse(courseId);
+    if (!sectionId) { alert('Error creating section.'); return; }
+    const { error } = await supabase.from('course_enrollments').insert({
+        course_id: courseId, student_id: user.id, section_id: sectionId
+    });
+    if (error) alert('Error: ' + error.message);
+    else { alert('Student enrolled!'); updateStats(); }
+});
+
+document.getElementById('manualCourseSelect').addEventListener('change', loadGradebook);
+document.getElementById('intervCourse').addEventListener('change', loadStudentsForIntervention);
+document.getElementById('weightsCourse').addEventListener('change', loadWeightsInputs);
+
+document.getElementById('reportForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const courseId = document.getElementById('reportCourse').value;
+    const type = document.getElementById('reportType').value;
+    if (!courseId) { alert('Select a course.'); return; }
+    document.getElementById('reportOutput').textContent = `${type} report (to be implemented).`;
+});
+
+document.getElementById('exportGrades').addEventListener('click', () => alert('CSV Export – coming soon!'));
+
+async function loadGradebook() {
+    const courseId = document.getElementById('manualCourseSelect').value;
+    const container = document.getElementById('gradebookContainer');
+    if (!courseId) {
+        container.innerHTML = '<div class="empty-state"><p>Select a course to view grades.</p></div>';
+        return;
+    }
+    const { data: enrollments } = await supabase.from('course_enrollments').select('student_id').eq('course_id', courseId);
+    if (!enrollments || enrollments.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No students enrolled.</p></div>';
+        return;
+    }
+    const studentIds = enrollments.map(e => e.student_id);
+    const { data: students } = await supabase.from('profiles').select('id, first_name, last_name, student_id').in('id', studentIds);
+    const { data: types } = await supabase.from('assessment_types').select('id, name').eq('course_id', courseId);
+    const { data: grades } = await supabase.from('grades').select('student_id, assessment_type_id, score, max_score')
+        .eq('course_id', courseId).in('student_id', studentIds);
+    if (!students || students.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No student data.</p></div>';
+        return;
+    }
+    let html = '<div class="table-wrap"><table><thead><tr><th>Student</th>';
+    types.forEach(t => html += `<th>${t.name}</th>`);
+    html += `<th>Average</th></tr></thead><tbody>`;
+    for (const s of students) {
+        html += `<tr><td><strong>${s.first_name} ${s.last_name}</strong><br><span class="text-muted text-sm">${s.student_id}</span></td>`;
+        let total = 0, count = 0;
+        for (const t of types) {
+            const g = grades.find(g => g.student_id === s.id && g.assessment_type_id === t.id);
+            if (g) {
+                const pct = (g.score / g.max_score) * 100;
+                total += pct; count++;
+                html += `<td>${pct.toFixed(1)}%</td>`;
+            } else {
+                html += `<td class="text-muted">—</td>`;
+            }
+        }
+        const avg = count > 0 ? (total / count).toFixed(1) : '—';
+        html += `<td><strong>${avg}%</strong></td></tr>`;
+    }
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+async function loadStudentsForIntervention() {
+    const courseId = document.getElementById('intervCourse').value;
+    const select = document.getElementById('intervStudent');
+    if (!courseId) { select.innerHTML = '<option value="">Select...</option>'; return; }
+    const { data: enrollments } = await supabase.from('course_enrollments').select('student_id').eq('course_id', courseId);
+    if (!enrollments || enrollments.length === 0) { select.innerHTML = '<option value="">No students</option>'; return; }
+    const ids = enrollments.map(e => e.student_id);
+    const { data: students } = await supabase.from('profiles').select('id, first_name, last_name').in('id', ids);
+    renderSelect(select, students, 'id', s => `${s.first_name} ${s.last_name}`);
+}
+
+async function loadWeightsInputs() {
+    const courseId = document.getElementById('weightsCourse').value;
+    const container = document.getElementById('weightsInputs');
+    if (!courseId) { container.innerHTML = ''; return; }
+    const { data: types } = await supabase.from('assessment_types').select('id, name, weight').eq('course_id', courseId);
+    if (!types || types.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No assessment types. Create an assessment first.</p></div>';
+        return;
+    }
+    let html = '';
+    types.forEach(t => {
+        html += `<div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.5rem;">
+            <label style="min-width:100px; font-weight:500;">${t.name}</label>
+            <input type="number" data-type-id="${t.id}" value="${t.weight || 0}" step="0.01" min="0" max="100" style="width:100px; padding:0.4rem 0.6rem; border:1px solid #e2e8f0; border-radius:8px;">
+            <span>%</span>
+        </div>`;
+    });
+    container.innerHTML = html;
+}
+
+// ============================================================
+// INIT
+// ============================================================
+async function init() {
+    console.log('🔐 Initialising...');
+    const user = await getCurrentUser();
+    if (!user) { 
+        window.location.href = 'index.html'; 
+        return; 
+    }
+    currentUser = user;
+    console.log('✅ Logged in as:', currentUser.id);
+
+    const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+    if (profileError) {
+        alert('Error loading profile: ' + profileError.message);
+        return;
+    }
+    if (!profile || profile.role !== 'instructor') {
+        alert('Not authorized as instructor.');
+        window.location.href = 'index.html';
+        return;
+    }
+    currentProfile = profile;
+    document.getElementById('userAvatar').textContent = (profile.first_name?.[0] || 'N') + (profile.last_name?.[0] || 'C');
+    document.getElementById('userName').textContent = `${profile.first_name} ${profile.last_name}`;
+
+    await ensureSingleSectionPerCourse();
+
+    await loadInstructorData();
+    await loadPendingApprovals();
+    populateCourseSelects();
+    setupEventListeners(); // Not used, but we keep for compatibility
+    updateStats();
+    loadSchedules();
+    loadAttendanceSessions();
+    loadManualSessions();
+    loadAssessmentsList();
+    loadInterventions();
+
+    console.log('🏁 Dashboard ready.');
+}
+
+// We'll just call init directly
 init();
 </script>
 </body>
