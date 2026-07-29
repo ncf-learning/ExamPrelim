@@ -477,6 +477,11 @@ function renderSelect(select, options, valueKey, labelKey) {
     });
 }
 
+function timeToMinutes(time) {
+    const [h, m] = time.split(':').map(Number);
+    return h * 60 + m;
+}
+
 // ============================================================
 // AUTO-CREATE SECTIONS FOR COURSES (hidden from user)
 // ============================================================
@@ -507,7 +512,7 @@ async function ensureSectionForCourse(courseId, courseCode) {
 }
 
 // ============================================================
-// LOAD COURSE DROPDOWNS (for attendance, schedule, etc.)
+// POPULATE COURSE DROPDOWNS
 // ============================================================
 function populateCourseSelects() {
     const ids = ['attCourse','scheduleCourse','assessCourse','weightsCourse','computeCourse','finalCourse','reportCourse','intervCourse','enrollCourse'];
@@ -550,7 +555,7 @@ async function init() {
 }
 
 // ============================================================
-// LOAD COURSES (no sections column)
+// LOAD COURSES (with delete button)
 // ============================================================
 async function loadInstructorData() {
     const { data: courses, error } = await supabase
@@ -568,9 +573,14 @@ async function loadInstructorData() {
         container.innerHTML = '<div class="empty-state"><span class="icon">📘</span><p>No courses assigned yet.</p></div>';
         return;
     }
-    let html = '<div class="table-wrap"><table><thead><tr><th>Code</th><th>Name</th><th>Description</th></tr></thead><tbody>';
+    let html = '<div class="table-wrap"><table><thead><tr><th>Code</th><th>Name</th><th>Description</th><th>Action</th></tr></thead><tbody>';
     for (const c of instructorCourses) {
-        html += `<tr><td><strong>${c.code}</strong></td><td>${c.name}</td><td>${c.description || '-'}</td></tr>`;
+        html += `<tr>
+            <td><strong>${c.code}</strong></td>
+            <td>${c.name}</td>
+            <td>${c.description || '-'}</td>
+            <td><button class="btn btn-danger btn-sm" onclick="deleteCourse('${c.id}')">🗑️</button></td>
+        </tr>`;
     }
     html += '</tbody></table></div>';
     container.innerHTML = html;
@@ -578,6 +588,26 @@ async function loadInstructorData() {
     const gradebookSelect = document.getElementById('manualCourseSelect');
     if (gradebookSelect) renderSelect(gradebookSelect, instructorCourses, 'id', c => `${c.code} - ${c.name}`);
 }
+
+// ============================================================
+// DELETE COURSE
+// ============================================================
+window.deleteCourse = async function(courseId) {
+    if (!confirm('Delete this course and all associated data? This cannot be undone.')) return;
+    const { error } = await supabase
+        .from('courses')
+        .delete()
+        .eq('id', courseId);
+    if (error) {
+        alert('Error deleting: ' + error.message);
+    } else {
+        alert('Course deleted.');
+        await loadInstructorData();
+        populateCourseSelects();
+        updateStats();
+        loadSchedules();
+    }
+};
 
 // ============================================================
 // PENDING APPROVALS
@@ -856,7 +886,7 @@ function setupEventListeners() {
         display.style.display = 'block';
     });
 
-    // Schedule
+    // Schedule (with conflict check)
     document.getElementById('scheduleForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const courseId = document.getElementById('scheduleCourse').value;
@@ -865,14 +895,50 @@ function setupEventListeners() {
         const end = document.getElementById('scheduleEnd').value;
         const room = document.getElementById('scheduleRoom').value;
         if (!courseId) { alert('Select a course.'); return; }
+
         const sectionId = await ensureSectionForCourse(courseId, '');
         if (!sectionId) { alert('Error creating section. Please try again.'); return; }
-        const { error } = await supabase.from('schedules').insert({
-            section_id: sectionId, day_of_week: day, start_time: start, end_time: end, room: room || null
+
+        // Check conflicts
+        const { data: existing, error } = await supabase
+            .from('schedules')
+            .select('*')
+            .eq('section_id', sectionId)
+            .eq('day_of_week', day);
+
+        if (error) {
+            alert('Error checking conflicts: ' + error.message);
+            return;
+        }
+
+        const startMin = timeToMinutes(start);
+        const endMin = timeToMinutes(end);
+        const conflict = existing?.some(s => {
+            const sStart = timeToMinutes(s.start_time);
+            const sEnd = timeToMinutes(s.end_time);
+            return (startMin < sEnd && endMin > sStart);
         });
-        if (error) { alert('Error: ' + error.message); return; }
+
+        if (conflict) {
+            alert('❌ This schedule conflicts with an existing schedule for this course on ' + day + '.');
+            return;
+        }
+
+        // No conflict – insert
+        const { error: insertError } = await supabase.from('schedules').insert({
+            section_id: sectionId,
+            day_of_week: day,
+            start_time: start,
+            end_time: end,
+            room: room || null
+        });
+        if (insertError) {
+            alert('Error: ' + insertError.message);
+            return;
+        }
         alert('Schedule added!');
         loadSchedules();
+        document.getElementById('scheduleForm').reset();
     });
 
     // Assessment
@@ -1034,7 +1100,7 @@ function setupEventListeners() {
         else alert('Intervention recorded!');
     });
 
-    // Enroll (No section dropdown – auto-assign)
+    // Enroll (No section dropdown)
     document.getElementById('enrollForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const courseId = document.getElementById('enrollCourse').value;
@@ -1068,22 +1134,21 @@ function setupEventListeners() {
 }
 
 // ============================================================
-// LOAD SCHEDULES (shows Course, not Section)
+// LOAD SCHEDULES (with delete button)
 // ============================================================
 async function loadSchedules() {
     const container = document.getElementById('scheduleList');
     const { data, error } = await supabase
         .from('schedules')
         .select(`
-            *,
+            id,
+            day_of_week,
+            start_time,
+            end_time,
+            room,
             sections (
-                id,
-                name,
                 course_id,
-                courses (
-                    code,
-                    name
-                )
+                courses ( code, name )
             )
         `);
     if (error || !data || data.length === 0) {
@@ -1091,7 +1156,7 @@ async function loadSchedules() {
         return;
     }
     let html = `<div class="table-wrap"><table>
-        <thead><tr><th>Course</th><th>Day</th><th>Start</th><th>End</th><th>Room</th></tr></thead><tbody>`;
+        <thead><tr><th>Course</th><th>Day</th><th>Start</th><th>End</th><th>Room</th><th>Action</th></tr></thead><tbody>`;
     data.forEach(s => {
         const course = s.sections?.courses;
         const courseLabel = course ? `${course.code} - ${course.name}` : (s.sections?.name || 'Unknown');
@@ -1101,11 +1166,29 @@ async function loadSchedules() {
             <td>${s.start_time}</td>
             <td>${s.end_time}</td>
             <td>${s.room || '-'}</td>
+            <td><button class="btn btn-danger btn-sm" onclick="deleteSchedule('${s.id}')">🗑️</button></td>
         </tr>`;
     });
     html += '</tbody></table></div>';
     container.innerHTML = html;
 }
+
+// ============================================================
+// DELETE SCHEDULE
+// ============================================================
+window.deleteSchedule = async function(scheduleId) {
+    if (!confirm('Delete this schedule permanently?')) return;
+    const { error } = await supabase
+        .from('schedules')
+        .delete()
+        .eq('id', scheduleId);
+    if (error) {
+        alert('Error deleting: ' + error.message);
+    } else {
+        alert('Schedule deleted.');
+        loadSchedules();
+    }
+};
 
 // ============================================================
 // LOAD STUDENTS FOR INTERVENTION
