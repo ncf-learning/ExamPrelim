@@ -3,345 +3,1209 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instructor Dashboard</title>
+    <title>Instructor Dashboard – NCF Learning System</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Dashboard-specific styles */
+        .dashboard-layout {
+            display: flex;
+            min-height: 100vh;
+            background: #0f172a;
+        }
+        .sidebar {
+            width: 260px;
+            background: #1e293b;
+            padding: 1.5rem 1rem;
+            border-right: 1px solid #334155;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
+        .sidebar .brand {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid #334155;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        .sidebar .nav-item {
+            display: block;
+            padding: 0.7rem 1rem;
+            color: #94a3b8;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            margin-bottom: 0.2rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .sidebar .nav-item:hover {
+            background: #0f172a;
+            color: #f1f5f9;
+        }
+        .sidebar .nav-item.active {
+            background: #3b82f6;
+            color: #fff;
+        }
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+        .page-section {
+            display: none;
+        }
+        .page-section.active {
+            display: block;
+        }
+        .card {
+            background: #1e293b;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #334155;
+        }
+        .card-header {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            margin-bottom: 1rem;
+        }
+        .table-wrap {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            color: #e2e8f0;
+        }
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #334155;
+        }
+        th {
+            color: #94a3b8;
+            font-weight: 500;
+        }
+        .btn-sm {
+            padding: 0.3rem 0.8rem;
+            font-size: 0.8rem;
+            border-radius: 0.3rem;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-success { background: #22c55e; color: #fff; }
+        .btn-danger { background: #ef4444; color: #fff; }
+        .btn-warning { background: #f59e0b; color: #fff; }
+        .btn-primary { background: #3b82f6; color: #fff; }
+        .btn-secondary { background: #64748b; color: #fff; }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .form-row .full-width {
+            grid-column: 1 / -1;
+        }
+        .badge-pending { background: #f59e0b; color: #000; padding: 0.2rem 0.6rem; border-radius: 2rem; font-size: 0.75rem; }
+        .badge-approved { background: #22c55e; color: #000; padding: 0.2rem 0.6rem; border-radius: 2rem; font-size: 0.75rem; }
+        .badge-rejected { background: #ef4444; color: #fff; padding: 0.2rem 0.6rem; border-radius: 2rem; font-size: 0.75rem; }
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: #1e293b;
+            padding: 2rem;
+            border-radius: 1rem;
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+    </style>
 </head>
-<body style="display:block; background:#0f172a; min-height:100vh;">
+<body>
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="brand">📚 NCF LTS</div>
+            <nav>
+                <div class="nav-item active" data-section="dashboard">📊 Dashboard</div>
+                <div class="nav-item" data-section="attendance">📋 Attendance</div>
+                <div class="nav-item" data-section="schedule">📅 Schedule</div>
+                <div class="nav-item" data-section="create-assessment">✏️ Create Assessment</div>
+                <div class="nav-item" data-section="grades">📈 Grades & Weights</div>
+                <div class="nav-item" data-section="compute">🧮 Compute Grades</div>
+                <div class="nav-item" data-section="final-rating">⭐ Final Rating</div>
+                <div class="nav-item" data-section="reports">📄 Reports & Memos</div>
+                <div class="nav-item" data-section="intervention">🛠️ Interventions</div>
+                <div class="nav-item" data-section="students">👥 Add Students</div>
+                <div class="nav-item" style="margin-top:2rem; border-top:1px solid #334155; padding-top:1rem; color:#ef4444;" id="logoutBtn">🚪 Logout</div>
+            </nav>
+        </div>
 
-    <!-- PASSWORD OVERLAY -->
-    <div id="loginOverlay" class="overlay">
-        <div class="login-box">
-            <h2>🔒 Instructor Access</h2>
-            <p style="color:#94a3b8; margin-bottom:16px;">Enter the dashboard password</p>
-            <input type="password" id="instructorPwdInput" placeholder="Enter password" autofocus>
-            <button class="btn" onclick="handleInstructorLogin()" style="margin-top:12px;">Unlock Dashboard</button>
-            <p id="loginError" style="color:#f87171; margin-top:12px; display:none;">❌ Incorrect password. Try again.</p>
-            <div style="margin-top:16px; font-size:12px; color:#475569;">
-                Default password: <strong>1111</strong>
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Dashboard Section -->
+            <div id="section-dashboard" class="page-section active">
+                <h1 style="color:#f1f5f9; margin-bottom:1.5rem;">Instructor Dashboard</h1>
+                <div class="card">
+                    <div class="card-header">Pending Approvals</div>
+                    <div id="pendingApprovalsList"><p style="color:#94a3b8;">Loading...</p></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">Your Courses</div>
+                    <div id="instructorCourses"><p style="color:#94a3b8;">Loading...</p></div>
+                </div>
+            </div>
+
+            <!-- Attendance Section -->
+            <div id="section-attendance" class="page-section">
+                <h1 style="color:#f1f5f9; margin-bottom:1.5rem;">Attendance Management</h1>
+                <div class="card">
+                    <div class="card-header">Create Attendance Session</div>
+                    <form id="attendanceSessionForm">
+                        <div class="form-row">
+                            <div class="full-width">
+                                <label>Section</label>
+                                <select id="attSectionSelect" required></select>
+                            </div>
+                            <div>
+                                <label>Date</label>
+                                <input type="date" id="attDate" required>
+                            </div>
+                            <div>
+                                <label>Start Time</label>
+                                <input type="time" id="attStartTime" required>
+                            </div>
+                            <div>
+                                <label>End Time</label>
+                                <input type="time" id="attEndTime" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Generate Code</button>
+                    </form>
+                    <div id="attendanceCodeDisplay" style="margin-top:1rem; padding:0.5rem; background:#0f172a; border-radius:0.5rem; font-family:monospace; font-size:1.5rem; text-align:center; display:none;"></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">Attendance Records</div>
+                    <div id="attendanceRecords"><p style="color:#94a3b8;">Select a section to view.</p></div>
+                </div>
+            </div>
+
+            <!-- Schedule Section -->
+            <div id="section-schedule" class="page-section">
+                <h1 style="color:#f1f5f9; margin-bottom:1.5rem;">Set Schedule</h1>
+                <div class="card">
+                    <form id="scheduleForm">
+                        <div class="form-row">
+                            <div class="full-width">
+                                <label>Section</label>
+                                <select id="scheduleSectionSelect" required></select>
+                            </div>
+                            <div>
+                                <label>Day</label>
+                                <select id="scheduleDay" required>
+                                    <option value="Monday">Monday</option>
+                                    <option value="Tuesday">Tuesday</option>
+                                    <option value="Wednesday">Wednesday</option>
+                                    <option value="Thursday">Thursday</option>
+                                    <option value="Friday">Friday</option>
+                                    <option value="Saturday">Saturday</option>
+                                    <option value="Sunday">Sunday</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Start Time</label>
+                                <input type="time" id="scheduleStart" required>
+                            </div>
+                            <div>
+                                <label>End Time</label>
+                                <input type="time" id="scheduleEnd" required>
+                            </div>
+                            <div>
+                                <label>Room</label>
+                                <input type="text" id="scheduleRoom" placeholder="Room 101">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Schedule</button>
+                    </form>
+                </div>
+                <div class="card">
+                    <div class="card-header">Current Schedules</div>
+                    <div id="scheduleList"><p style="color:#94a3b8;">No schedules set.</p></div>
+                </div>
+            </div>
+
+            <!-- Create Assessment Section -->
+            <div id="section-create-assessment" class="page-section">
+                <h1 style="color:#f1f5f9; margin-bottom:1.5rem;">Create Assessment</h1>
+                <div class="card">
+                    <form id="assessmentForm">
+                        <div class="form-row">
+                            <div class="full-width">
+                                <label>Course</label>
+                                <select id="assessCourseSelect" required></select>
+                            </div>
+                            <div>
+                                <label>Assessment Type</label>
+                                <select id="assessTypeSelect" required>
+                                    <option value="Quiz">Quiz</option>
+                                    <option value="Exam">Exam</option>
+                                    <option value="Project">Project</option>
+                                    <option value="Recitation">Recitation</option>
+                                </select>
+                            </div>
+                            <div class="full-width">
+                                <label>Title</label>
+                                <input type="text" id="assessTitle" placeholder="e.g., Midterm Exam" required>
+                            </div>
+                            <div class="full-width">
+                                <label>Description</label>
+                                <textarea id="assessDesc" rows="2" placeholder="Instructions or description"></textarea>
+                            </div>
+                            <div>
+                                <label>Duration (minutes)</label>
+                                <input type="number" id="assessDuration" value="60" min="1">
+                            </div>
+                            <div>
+                                <label>Max Score</label>
+                                <input type="number" id="assessMaxScore" value="100" min="1">
+                            </div>
+                            <div class="full-width">
+                                <label>Date</label>
+                                <input type="datetime-local" id="assessDate" required>
+                            </div>
+                            <div class="full-width">
+                                <label>Questions (one per line, separate options with |, mark correct answer with *)</label>
+                                <textarea id="assessQuestions" rows="8" placeholder="What is 2+2?|3|4|5|*4&#10;The Earth is flat.|True|False|*False"></textarea>
+                                <span class="hint">For MC: Question|Option1|Option2|*CorrectOption. For Essay: Question|Essay (no options, just text)</span>
+                            </div>
+                            <div class="full-width">
+                                <label>AI Grading (for essay questions)</label>
+                                <select id="assessAI">
+                                    <option value="none">None</option>
+                                    <option value="openai">OpenAI (GPT)</option>
+                                    <option value="gemini">Gemini</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Create Assessment</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Grades & Weights -->
+            <div id="section-grades" class="page-section">
+                <h1 style="color:#f1f5f9; margin-bottom:1.5rem;">Manage Grades & Weights</h1>
+                <div class="card">
+                    <div class="card-header">Set Weights per Assessment Type</div>
+                    <form id="weightsForm">
+                        <div class="form-row">
+                            <div class="full-width">
+                                <label>Course</label>
+                                <select id="weightsCourseSelect" required></select>
+                            </div>
+                            <div id="weightsInputs"></div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save Weights</button>
+                    </form>
+                </div>
+                <div class="card">
+                    <div class="card-header">Input Manual Grades</div>
+                    <form id="manualGradeForm">
+                        <div class="form-row">
+                            <div class="full-width">
+                                <label>Course</label>
+                                <select id="manualCourseSelect" required></select>
+                            </div>
+                            <div class="full-width">
+                                <label>Student</label>
+                                <select id="manualStudentSelect" required></select>
+                            </div>
+                            <div>
+                                <label>Assessment Type</label>
+                                <select id="manualTypeSelect" required></select>
+                            </div>
+                            <div>
+                                <label>Score</label>
+                                <input type="number" id="manualScore" placeholder="e.g., 85" required>
+                            </div>
+                            <div>
+                                <label>Max Score</label>
+                                <input type="number" id="manualMaxScore" value="100">
+                            </div>
+                            <div class="full-width">
+                                <label>Notes</label>
+                                <input type="text" id="manualNotes" placeholder="Optional notes">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save Grade</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Compute Grades -->
+            <div id="section-compute" class="page-section">
+                <h1 style="color:#f1f5f9; margin-bottom:1.5rem;">Compute Period Grades</h1>
+                <div class="card">
+                    <form id="computeForm">
+                        <div class="form-row">
+                            <div class="full-width">
+                                <label>Course</label>
+                                <select id="computeCourseSelect" required></select>
+                            </div>
+                            <div>
+                                <label>Period</label>
+                                <select id="computePeriod">
+                                    <option value="prelim">Prelim</option>
+                                    <option value="midterm">Midterm</option>
+                                    <option value="semifinal">Semi-Final</option>
+                                    <option value="final">Final</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Compute Grades</button>
+                    </form>
+                    <div id="computedGradesResult"></div>
+                </div>
+            </div>
+
+            <!-- Final Rating -->
+            <div id="section-final-rating" class="page-section">
+                <h1 style="color:#f1f5f9; margin-bottom:1.5rem;">Compute Final Rating</h1>
+                <div class="card">
+                    <form id="finalRatingForm">
+                        <div class="form-row">
+                            <div class="full-width">
+                                <label>Course</label>
+                                <select id="finalCourseSelect" required></select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Compute Final Rating</button>
+                    </form>
+                    <div id="finalRatingResult"></div>
+                </div>
+            </div>
+
+            <!-- Reports -->
+            <div id="section-reports" class="page-section">
+                <h1 style="color:#f1f5f9; margin-bottom:1.5rem;">Generate Reports & Memos</h1>
+                <div class="card">
+                    <form id="reportForm">
+                        <div class="form-row">
+                            <div class="full-width">
+                                <label>Course</label>
+                                <select id="reportCourseSelect" required></select>
+                            </div>
+                            <div>
+                                <label>Report Type</label>
+                                <select id="reportType">
+                                    <option value="absenteeism">Absenteeism</option>
+                                    <option value="failing">Failing Grades</option>
+                                    <option value="summary">Summary</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Generate Report</button>
+                    </form>
+                    <div id="reportOutput" style="margin-top:1rem; background:#0f172a; padding:1rem; border-radius:0.5rem; white-space:pre-wrap; font-family:monospace;"></div>
+                </div>
+            </div>
+
+            <!-- Interventions -->
+            <div id="section-intervention" class="page-section">
+                <h1 style="color:#f1f5f9; margin-bottom:1.5rem;">Student Interventions</h1>
+                <div class="card">
+                    <form id="interventionForm">
+                        <div class="form-row">
+                            <div class="full-width">
+                                <label>Course</label>
+                                <select id="intervCourseSelect" required></select>
+                            </div>
+                            <div class="full-width">
+                                <label>Student</label>
+                                <select id="intervStudentSelect" required></select>
+                            </div>
+                            <div>
+                                <label>Type</label>
+                                <select id="intervType">
+                                    <option value="grade_adjustment">Grade Adjustment</option>
+                                    <option value="extra_credit">Extra Credit</option>
+                                    <option value="remediation">Remediation</option>
+                                    <option value="counseling">Counseling</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Adjustment Value (if applicable)</label>
+                                <input type="number" id="intervAdjustment" step="0.01" placeholder="e.g., +5">
+                            </div>
+                            <div class="full-width">
+                                <label>Description</label>
+                                <input type="text" id="intervDesc" placeholder="Reason for intervention">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Apply Intervention</button>
+                    </form>
+                    <div id="interventionHistory" style="margin-top:1rem;"></div>
+                </div>
+            </div>
+
+            <!-- Add Students -->
+            <div id="section-students" class="page-section">
+                <h1 style="color:#f1f5f9; margin-bottom:1.5rem;">Add Students to Section</h1>
+                <div class="card">
+                    <form id="addStudentForm">
+                        <div class="form-row">
+                            <div class="full-width">
+                                <label>Course</label>
+                                <select id="addCourseSelect" required></select>
+                            </div>
+                            <div class="full-width">
+                                <label>Student Email</label>
+                                <input type="email" id="addStudentEmail" placeholder="student@ncf.edu.ph" required>
+                            </div>
+                            <div>
+                                <label>Section</label>
+                                <select id="addSectionSelect" required></select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Student</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- DASHBOARD (hidden until login) -->
-    <div id="instructorDashboard" style="display:none;">
-
-        <div class="instructor-container">
-            <div class="instructor-header">
-                <div>
-                    <h1>👨‍🏫 Instructor Dashboard</h1>
-                    <p style="color:#94a3b8; font-size:14px;">Exam Results &amp; Schedule Management</p>
-                </div>
-                <div style="display:flex; gap:12px; flex-wrap:wrap;">
-                    <button class="btn" onclick="window.location.href='index.html'" style="width:auto; padding:10px 24px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15);">
-                        🔙 Back
-                    </button>
-                    <button class="btn" onclick="downloadResultsCSV()" style="width:auto; padding:10px 24px;">
-                        📥 Download CSV
-                    </button>
-                    <button class="btn" onclick="clearAllData()" style="width:auto; padding:10px 24px; background:rgba(239,68,68,0.2); border:1px solid rgba(239,68,68,0.3); color:#f87171;">
-                        🗑️ Clear All Data
-                    </button>
-                </div>
-            </div>
-
-            <!-- Stats -->
-            <div class="instructor-stats" id="statsContainer"></div>
-
-            <!-- Schedule Management -->
-            <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:24px; margin-bottom:24px;">
-                <h3 style="color:#e2e8f0; font-size:18px; margin-bottom:12px;">📅 Exam Schedule Management</h3>
-                <p style="color:#94a3b8; font-size:14px; margin-bottom:16px;">Set the start and end date/time for each section. Students can only take the exam within the active window.</p>
-                <div id="scheduleControls">
-                    <!-- dynamically filled -->
-                </div>
-                <button class="btn" onclick="saveSchedule()" style="width:auto; padding:10px 24px; margin-top:12px;">💾 Save Schedule</button>
-                <p id="scheduleStatus" style="margin-top:8px; color:#34d399; display:none;">✅ Schedule saved successfully!</p>
-            </div>
-
-            <!-- Section filters -->
-            <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
-                <button class="btn btn-secondary" onclick="filterTable('all')" style="width:auto; padding:8px 20px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">
-                    All Sections
-                </button>
-                <button class="btn btn-secondary" onclick="filterTable('IT3A')" style="width:auto; padding:8px 20px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">
-                    IT3A
-                </button>
-                <button class="btn btn-secondary" onclick="filterTable('IT3B')" style="width:auto; padding:8px 20px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">
-                    IT3B
-                </button>
-                <button class="btn btn-secondary" onclick="filterTable('IT3C')" style="width:auto; padding:8px 20px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">
-                    IT3C
-                </button>
-                <button class="btn btn-secondary" onclick="filterTable('IT2A')" style="width:auto; padding:8px 20px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">
-                    IT2A
-                </button>
-            </div>
-
-            <!-- Results table -->
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Email</th>
-                            <th>Student ID</th>
-                            <th>Section</th>
-                            <th>Score</th>
-                            <th>Percentage</th>
-                            <th>Status</th>
-                            <th>Date</th>
-                        </tr>
-                    </thead>
-                    <tbody id="resultsTable"></tbody>
-                </table>
-            </div>
-
-            <div style="text-align:center; margin-top:16px; color:#64748b; font-size:13px;" id="rowCount"></div>
-
-            <!-- Change Password -->
-            <div style="margin-top:40px; border-top:1px solid rgba(255,255,255,0.08); padding-top:24px;">
-                <h3 style="color:#e2e8f0; font-size:18px; margin-bottom:12px;">🔑 Change Dashboard Password</h3>
-                <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
-                    <input type="password" id="newPwd1" placeholder="New password" style="padding:10px 16px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:#f1f5f9; min-width:200px;">
-                    <input type="password" id="newPwd2" placeholder="Confirm new password" style="padding:10px 16px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:#f1f5f9; min-width:200px;">
-                    <button class="btn" onclick="changePassword()" style="width:auto; padding:10px 24px;">
-                        Update Password
-                    </button>
-                </div>
-                <p id="pwdChangeMessage" style="margin-top:8px; font-size:14px; color:#94a3b8;"></p>
-                <p style="margin-top:4px; font-size:12px; color:#475569;">
-                    Current password: <span id="currentPwdDisplay">••••</span>
-                </p>
-            </div>
-
+    <!-- Modal for editing grades, etc. (reusable) -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div id="modalBody"></div>
+            <button class="btn btn-secondary" onclick="closeModal()">Close</button>
         </div>
     </div>
 
-    <script src="data.js"></script>
-    <script>
-        // ============================================================
-        // PASSWORD MANAGEMENT
-        // ============================================================
-        const PASS_KEY = 'instructor_password';
-
-        function getStoredPassword() {
-            let pwd = localStorage.getItem(PASS_KEY);
-            if (!pwd) {
-                pwd = '1111';
-                localStorage.setItem(PASS_KEY, pwd);
-            }
-            return pwd;
-        }
-
-        function verifyPassword(input) {
-            return input === getStoredPassword();
-        }
-
-        function handleInstructorLogin() {
-            const input = document.getElementById('instructorPwdInput');
-            const error = document.getElementById('loginError');
-            if (verifyPassword(input.value)) {
-                error.style.display = 'none';
-                document.getElementById('loginOverlay').style.display = 'none';
-                document.getElementById('instructorDashboard').style.display = 'block';
-                document.getElementById('currentPwdDisplay').textContent = '••••';
-                renderStats();
-                renderTable('all');
-                renderScheduleControls();
-            } else {
-                error.style.display = 'block';
-                input.value = '';
-                input.focus();
+    <!-- ============================================================ -->
+    <!-- SCRIPTS -->
+    <!-- ============================================================ -->
+    <script type="importmap">
+        {
+            "imports": {
+                "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2"
             }
         }
+    </script>
+    <script type="module">
+        import { supabase, getCurrentUser, signOut } from './supabase.js';
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const pwdInput = document.getElementById('instructorPwdInput');
-            if (pwdInput) {
-                pwdInput.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter') {
-                        handleInstructorLogin();
-                    }
-                });
-            }
-            document.getElementById('loginOverlay').style.display = 'flex';
-            document.getElementById('instructorDashboard').style.display = 'none';
-            pwdInput.focus();
+        // -------- Global State --------
+        let currentUser = null;
+        let currentProfile = null;
+        let instructorCourses = [];
+        let allStudents = [];
+
+        // -------- DOM refs --------
+        const sections = document.querySelectorAll('.page-section');
+        const navItems = document.querySelectorAll('.nav-item');
+
+        // -------- Navigation --------
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                if (item.id === 'logoutBtn') return;
+                const target = item.dataset.section;
+                navItems.forEach(n => n.classList.remove('active'));
+                item.classList.add('active');
+                sections.forEach(s => s.classList.remove('active'));
+                document.getElementById(`section-${target}`).classList.add('active');
+            });
         });
 
-        function changePassword() {
-            const p1 = document.getElementById('newPwd1').value;
-            const p2 = document.getElementById('newPwd2').value;
-            const msg = document.getElementById('pwdChangeMessage');
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await signOut();
+        });
 
-            if (p1.length < 4) {
-                msg.style.color = '#f87171';
-                msg.textContent = 'Password must be at least 4 characters.';
-                return;
-            }
-
-            if (p1 !== p2) {
-                msg.style.color = '#f87171';
-                msg.textContent = 'Passwords do not match.';
-                return;
-            }
-
-            localStorage.setItem(PASS_KEY, p1);
-            msg.style.color = '#34d399';
-            msg.textContent = '✅ Password updated successfully!';
-            document.getElementById('newPwd1').value = '';
-            document.getElementById('newPwd2').value = '';
-            document.getElementById('currentPwdDisplay').textContent = '••••';
+        // -------- Helpers --------
+        function showMessage(el, msg, isError = true) {
+            el.textContent = msg;
+            el.style.display = 'block';
+            el.style.color = isError ? '#ef4444' : '#22c55e';
         }
 
-        // ============================================================
-        // SCHEDULE MANAGEMENT
-        // ============================================================
-        const SECTIONS = ['IT3A', 'IT3B', 'IT3C', 'IT2A'];
-
-        function getSchedule() {
-            const stored = localStorage.getItem('exam_schedule');
-            if (stored) {
-                try {
-                    return JSON.parse(stored);
-                } catch (e) {}
-            }
-            return {};
+        function renderSelect(select, options, valueKey, labelKey) {
+            select.innerHTML = '<option value="">Select...</option>';
+            options.forEach(opt => {
+                const op = document.createElement('option');
+                op.value = opt[valueKey];
+                op.textContent = opt[labelKey];
+                select.appendChild(op);
+            });
         }
 
-        function saveSchedule() {
-            const schedule = {};
-            SECTIONS.forEach(section => {
-                const startInput = document.getElementById(`start_${section}`);
-                const endInput = document.getElementById(`end_${section}`);
-                if (startInput && endInput) {
-                    const startVal = startInput.value;
-                    const endVal = endInput.value;
-                    if (startVal && endVal) {
-                        schedule[section] = {
-                            start: new Date(startVal).getTime(),
-                            end: new Date(endVal).getTime()
-                        };
-                    } else {
-                        // if empty, remove entry
-                        // we'll just skip saving that section
-                    }
+        function getSectionIdByName(name, sections) {
+            const found = sections.find(s => s.name === name);
+            return found ? found.id : null;
+        }
+
+        // -------- Auth & Profile --------
+        async function init() {
+            const user = await getCurrentUser();
+            if (!user) {
+                window.location.href = 'index.html';
+                return;
+            }
+            currentUser = user;
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .single();
+            if (!profile || profile.role !== 'instructor') {
+                alert('You are not authorized as an instructor.');
+                window.location.href = 'index.html';
+                return;
+            }
+            currentProfile = profile;
+
+            // Load instructor's courses
+            await loadInstructorData();
+
+            // Load pending approvals
+            loadPendingApprovals();
+
+            // Populate all course selects
+            populateCourseSelects();
+
+            // Setup event listeners
+            setupEventListeners();
+        }
+
+        async function loadInstructorData() {
+            const { data: courses } = await supabase
+                .from('courses')
+                .select('*')
+                .eq('instructor_id', currentUser.id);
+            instructorCourses = courses || [];
+            const container = document.getElementById('instructorCourses');
+            if (courses.length === 0) {
+                container.innerHTML = '<p style="color:#94a3b8;">You are not assigned to any courses yet.</p>';
+            } else {
+                container.innerHTML = courses.map(c => `<div>📘 ${c.code} - ${c.name}</div>`).join('');
+            }
+        }
+
+        async function loadPendingApprovals() {
+            const container = document.getElementById('pendingApprovalsList');
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('id, student_id, first_name, last_name, section, created_at')
+                .eq('role', 'pending')
+                .order('created_at', { ascending: true });
+            if (error) {
+                container.innerHTML = '<p style="color:#ef4444;">Error loading pending approvals.</p>';
+                return;
+            }
+            if (data.length === 0) {
+                container.innerHTML = '<p style="color:#94a3b8;">No pending approvals.</p>';
+                return;
+            }
+            let html = `<table><thead><tr><th>ID</th><th>Name</th><th>Section</th><th>Date</th><th>Actions</th></tr></thead><tbody>`;
+            data.forEach(p => {
+                html += `<tr>
+                    <td>${p.student_id}</td>
+                    <td>${p.first_name} ${p.last_name}</td>
+                    <td>${p.section}</td>
+                    <td>${new Date(p.created_at).toLocaleDateString()}</td>
+                    <td>
+                        <button class="btn-sm btn-success" onclick="approveUser('${p.id}')">Approve</button>
+                        <button class="btn-sm btn-danger" onclick="rejectUser('${p.id}')">Reject</button>
+                    </td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // -------- Global Functions (exposed) --------
+        window.approveUser = async (userId) => {
+            if (!confirm('Approve this user?')) return;
+            const { error } = await supabase
+                .from('profiles')
+                .update({ role: 'student' })
+                .eq('id', userId);
+            if (error) alert('Error: ' + error.message);
+            else {
+                alert('User approved!');
+                loadPendingApprovals();
+            }
+        };
+
+        window.rejectUser = async (userId) => {
+            if (!confirm('Reject this user? They will be deleted.')) return;
+            // Delete auth user (requires admin) – we'll just set role to 'rejected' or delete profile
+            const { error } = await supabase
+                .from('profiles')
+                .update({ role: 'rejected' })
+                .eq('id', userId);
+            if (error) alert('Error: ' + error.message);
+            else {
+                alert('User rejected.');
+                loadPendingApprovals();
+            }
+        };
+
+        // -------- Populate Course Selects --------
+        function populateCourseSelects() {
+            const selects = [
+                'attSectionSelect', 'scheduleSectionSelect', 'assessCourseSelect',
+                'weightsCourseSelect', 'manualCourseSelect', 'computeCourseSelect',
+                'finalCourseSelect', 'reportCourseSelect', 'intervCourseSelect', 'addCourseSelect'
+            ];
+            selects.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    renderSelect(el, instructorCourses, 'id', (c) => `${c.code} - ${c.name}`);
                 }
             });
-            localStorage.setItem('exam_schedule', JSON.stringify(schedule));
-            document.getElementById('scheduleStatus').style.display = 'block';
-            setTimeout(() => {
-                document.getElementById('scheduleStatus').style.display = 'none';
-            }, 3000);
-            renderScheduleControls(); // refresh display
         }
 
-        function renderScheduleControls() {
-            const container = document.getElementById('scheduleControls');
-            const schedule = getSchedule();
+        // -------- Setup Event Listeners --------
+        function setupEventListeners() {
+            // Attendance Session
+            document.getElementById('attendanceSessionForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const sectionId = document.getElementById('attSectionSelect').value;
+                const date = document.getElementById('attDate').value;
+                const start = document.getElementById('attStartTime').value;
+                const end = document.getElementById('attEndTime').value;
+                if (!sectionId) { alert('Select a section.'); return; }
+                const code = Math.floor(100000 + Math.random() * 900000).toString();
+                const expiresAt = new Date();
+                expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+                const { data, error } = await supabase
+                    .from('attendance_sessions')
+                    .insert({
+                        section_id: sectionId,
+                        date,
+                        start_time: start,
+                        end_time: end,
+                        code,
+                        expires_at: expiresAt.toISOString()
+                    })
+                    .select()
+                    .single();
+                if (error) alert('Error: ' + error.message);
+                else {
+                    document.getElementById('attendanceCodeDisplay').style.display = 'block';
+                    document.getElementById('attendanceCodeDisplay').textContent = `Code: ${code} (valid 15 mins)`;
+                }
+            });
+
+            // Schedule
+            document.getElementById('scheduleForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const sectionId = document.getElementById('scheduleSectionSelect').value;
+                const day = document.getElementById('scheduleDay').value;
+                const start = document.getElementById('scheduleStart').value;
+                const end = document.getElementById('scheduleEnd').value;
+                const room = document.getElementById('scheduleRoom').value;
+                if (!sectionId) { alert('Select a section.'); return; }
+                const { error } = await supabase
+                    .from('schedules')
+                    .insert({ section_id: sectionId, day_of_week: day, start_time: start, end_time: end, room });
+                if (error) alert('Error: ' + error.message);
+                else {
+                    alert('Schedule added!');
+                    loadSchedules();
+                }
+            });
+
+            // Create Assessment
+            document.getElementById('assessmentForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const courseId = document.getElementById('assessCourseSelect').value;
+                const typeName = document.getElementById('assessTypeSelect').value;
+                const title = document.getElementById('assessTitle').value;
+                const desc = document.getElementById('assessDesc').value;
+                const duration = parseInt(document.getElementById('assessDuration').value);
+                const maxScore = parseFloat(document.getElementById('assessMaxScore').value);
+                const date = document.getElementById('assessDate').value;
+                const questionsRaw = document.getElementById('assessQuestions').value;
+                const ai = document.getElementById('assessAI').value;
+
+                if (!courseId || !title || !questionsRaw) {
+                    alert('Course, Title, and Questions are required.');
+                    return;
+                }
+
+                // Get or create assessment type
+                let typeId = null;
+                const { data: existingTypes } = await supabase
+                    .from('assessment_types')
+                    .select('id')
+                    .eq('course_id', courseId)
+                    .eq('name', typeName);
+                if (existingTypes && existingTypes.length > 0) {
+                    typeId = existingTypes[0].id;
+                } else {
+                    const { data: newType, error: typeError } = await supabase
+                        .from('assessment_types')
+                        .insert({ course_id: courseId, name: typeName, weight: 0 })
+                        .select()
+                        .single();
+                    if (typeError) { alert('Error creating type: ' + typeError.message); return; }
+                    typeId = newType.id;
+                }
+
+                // Create assessment
+                const { data: assess, error: assessError } = await supabase
+                    .from('assessments')
+                    .insert({
+                        course_id: courseId,
+                        assessment_type_id: typeId,
+                        title,
+                        description: desc,
+                        max_score: maxScore,
+                        duration_minutes: duration,
+                        date: date,
+                        is_published: true
+                    })
+                    .select()
+                    .single();
+                if (assessError) { alert('Error: ' + assessError.message); return; }
+
+                // Parse questions
+                const lines = questionsRaw.split('\n').filter(line => line.trim() !== '');
+                const questions = [];
+                for (const line of lines) {
+                    const parts = line.split('|');
+                    if (parts.length < 2) continue;
+                    const questionText = parts[0].trim();
+                    const options = parts.slice(1);
+                    let type = 'mc';
+                    let correctAnswer = null;
+                    if (options.length === 1 && options[0].toLowerCase().includes('essay')) {
+                        type = 'essay';
+                    } else {
+                        // Find correct answer marked with *
+                        const idx = options.findIndex(o => o.trim().startsWith('*'));
+                        if (idx !== -1) {
+                            correctAnswer = idx;
+                            options[idx] = options[idx].replace('*', '').trim();
+                        } else {
+                            // If no *, treat as essay
+                            type = 'essay';
+                        }
+                    }
+                    const qData = {
+                        assessment_id: assess.id,
+                        question: questionText,
+                        type: type,
+                        points: 1,
+                    };
+                    if (type === 'mc') {
+                        qData.options = options;
+                        qData.correct_answer = correctAnswer;
+                    } else if (type === 'truefalse') {
+                        qData.options = ['True', 'False'];
+                        qData.correct_answer = options[0].toLowerCase().includes('true') ? 0 : 1;
+                    } else {
+                        qData.options = null;
+                        qData.correct_answer = null;
+                    }
+                    questions.push(qData);
+                }
+                if (questions.length === 0) {
+                    alert('No valid questions found.');
+                    return;
+                }
+                const { error: qError } = await supabase
+                    .from('assessment_questions')
+                    .insert(questions);
+                if (qError) { alert('Error saving questions: ' + qError.message); return; }
+
+                alert(`Assessment "${title}" created with ${questions.length} questions.`);
+                document.getElementById('assessmentForm').reset();
+            });
+
+            // Weights
+            document.getElementById('weightsForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const courseId = document.getElementById('weightsCourseSelect').value;
+                if (!courseId) { alert('Select a course.'); return; }
+                const inputs = document.querySelectorAll('#weightsInputs input');
+                const weights = {};
+                for (const inp of inputs) {
+                    weights[inp.dataset.typeId] = parseFloat(inp.value) || 0;
+                }
+                for (const [typeId, weight] of Object.entries(weights)) {
+                    await supabase
+                        .from('assessment_types')
+                        .update({ weight })
+                        .eq('id', typeId);
+                }
+                alert('Weights saved!');
+            });
+
+            // Manual Grade
+            document.getElementById('manualGradeForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const courseId = document.getElementById('manualCourseSelect').value;
+                const studentId = document.getElementById('manualStudentSelect').value;
+                const typeId = document.getElementById('manualTypeSelect').value;
+                const score = parseFloat(document.getElementById('manualScore').value);
+                const maxScore = parseFloat(document.getElementById('manualMaxScore').value);
+                const notes = document.getElementById('manualNotes').value;
+                if (!courseId || !studentId || !typeId || isNaN(score)) {
+                    alert('Fill all required fields.');
+                    return;
+                }
+                const { error } = await supabase
+                    .from('manual_grades')
+                    .insert({
+                        student_id: studentId,
+                        course_id: courseId,
+                        assessment_type_id: typeId,
+                        score,
+                        max_score: maxScore,
+                        notes
+                    });
+                if (error) alert('Error: ' + error.message);
+                else alert('Grade saved!');
+            });
+
+            // Compute Grades
+            document.getElementById('computeForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const courseId = document.getElementById('computeCourseSelect').value;
+                const period = document.getElementById('computePeriod').value;
+                if (!courseId) { alert('Select a course.'); return; }
+                // Fetch all students in this course
+                const { data: enrollments } = await supabase
+                    .from('course_enrollments')
+                    .select('student_id')
+                    .eq('course_id', courseId);
+                if (!enrollments || enrollments.length === 0) {
+                    document.getElementById('computedGradesResult').innerHTML = '<p>No students enrolled.</p>';
+                    return;
+                }
+                const studentIds = enrollments.map(e => e.student_id);
+                // Fetch all grades for these students
+                const { data: grades } = await supabase
+                    .from('grades')
+                    .select('student_id, assessment_types(name, weight), score, max_score')
+                    .eq('course_id', courseId)
+                    .in('student_id', studentIds);
+                // Compute per student
+                let resultHtml = '<table><thead><tr><th>Student</th><th>Period Grade</th></tr></thead><tbody>';
+                for (const sid of studentIds) {
+                    const studentGrades = grades.filter(g => g.student_id === sid);
+                    let totalWeighted = 0;
+                    let totalWeight = 0;
+                    for (const g of studentGrades) {
+                        const pct = (g.score / g.max_score) * 100;
+                        const weight = g.assessment_types.weight || 0;
+                        totalWeighted += pct * weight;
+                        totalWeight += weight;
+                    }
+                    const periodGrade = totalWeight > 0 ? (totalWeighted / totalWeight) : 0;
+                    // Save to period_grades
+                    await supabase
+                        .from('period_grades')
+                        .upsert({
+                            student_id: sid,
+                            course_id: courseId,
+                            period: period,
+                            grade: periodGrade,
+                            updated_at: new Date().toISOString()
+                        }, { onConflict: 'student_id,course_id,period' });
+                    // Get student name
+                    const { data: student } = await supabase
+                        .from('profiles')
+                        .select('first_name, last_name')
+                        .eq('id', sid)
+                        .single();
+                    const name = student ? `${student.first_name} ${student.last_name}` : sid;
+                    resultHtml += `<tr><td>${name}</td><td>${periodGrade.toFixed(2)}</td></tr>`;
+                }
+                resultHtml += '</tbody></table>';
+                document.getElementById('computedGradesResult').innerHTML = resultHtml;
+            });
+
+            // Final Rating
+            document.getElementById('finalRatingForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const courseId = document.getElementById('finalCourseSelect').value;
+                if (!courseId) { alert('Select a course.'); return; }
+                // Fetch all period grades for students in this course
+                const { data: enrollments } = await supabase
+                    .from('course_enrollments')
+                    .select('student_id')
+                    .eq('course_id', courseId);
+                if (!enrollments || enrollments.length === 0) {
+                    document.getElementById('finalRatingResult').innerHTML = '<p>No students.</p>';
+                    return;
+                }
+                const studentIds = enrollments.map(e => e.student_id);
+                const { data: periodGrades } = await supabase
+                    .from('period_grades')
+                    .select('student_id, period, grade')
+                    .eq('course_id', courseId)
+                    .in('student_id', studentIds);
+                // Compute final grade = average of periods (or weighted)
+                let resultHtml = '<table><thead><tr><th>Student</th><th>Final Grade</th></tr></thead><tbody>';
+                for (const sid of studentIds) {
+                    const grades = periodGrades.filter(g => g.student_id === sid);
+                    const avg = grades.reduce((sum, g) => sum + g.grade, 0) / (grades.length || 1);
+                    await supabase
+                        .from('final_ratings')
+                        .upsert({
+                            student_id: sid,
+                            course_id: courseId,
+                            final_grade: avg,
+                            updated_at: new Date().toISOString()
+                        }, { onConflict: 'student_id,course_id' });
+                    const { data: student } = await supabase
+                        .from('profiles')
+                        .select('first_name, last_name')
+                        .eq('id', sid)
+                        .single();
+                    const name = student ? `${student.first_name} ${student.last_name}` : sid;
+                    resultHtml += `<tr><td>${name}</td><td>${avg.toFixed(2)}</td></tr>`;
+                }
+                resultHtml += '</tbody></table>';
+                document.getElementById('finalRatingResult').innerHTML = resultHtml;
+            });
+
+            // Reports
+            document.getElementById('reportForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const courseId = document.getElementById('reportCourseSelect').value;
+                const type = document.getElementById('reportType').value;
+                if (!courseId) { alert('Select a course.'); return; }
+                let report = '';
+                if (type === 'absenteeism') {
+                    // Fetch attendance records
+                    const { data: sessions } = await supabase
+                        .from('attendance_sessions')
+                        .select('id, date')
+                        .eq('section_id', (await supabase.from('sections').select('id').eq('course_id', courseId).single()).data?.id);
+                    // ... compute absenteeism per student
+                    report = 'Absenteeism report (placeholder) – implement as needed.';
+                } else if (type === 'failing') {
+                    // Fetch students with grade < 75
+                    const { data: grades } = await supabase
+                        .from('period_grades')
+                        .select('student_id, grade')
+                        .eq('course_id', courseId)
+                        .lt('grade', 75);
+                    report = 'Failing students:\n' + grades.map(g => g.student_id).join('\n');
+                } else {
+                    report = 'Summary report – implement as needed.';
+                }
+                document.getElementById('reportOutput').textContent = report;
+            });
+
+            // Interventions
+            document.getElementById('interventionForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const courseId = document.getElementById('intervCourseSelect').value;
+                const studentId = document.getElementById('intervStudentSelect').value;
+                const type = document.getElementById('intervType').value;
+                const adjustment = parseFloat(document.getElementById('intervAdjustment').value) || 0;
+                const desc = document.getElementById('intervDesc').value;
+                if (!courseId || !studentId) { alert('Select course and student.'); return; }
+                const { error } = await supabase
+                    .from('interventions')
+                    .insert({
+                        student_id: studentId,
+                        course_id: courseId,
+                        type,
+                        adjustment_value: adjustment,
+                        description: desc,
+                        instructor_id: currentUser.id
+                    });
+                if (error) alert('Error: ' + error.message);
+                else alert('Intervention recorded!');
+            });
+
+            // Add Student
+            document.getElementById('addStudentForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const courseId = document.getElementById('addCourseSelect').value;
+                const email = document.getElementById('addStudentEmail').value;
+                const sectionId = document.getElementById('addSectionSelect').value;
+                if (!courseId || !email || !sectionId) {
+                    alert('Fill all fields.');
+                    return;
+                }
+                // Find student by email
+                const { data: user } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('email', email)
+                    .maybeSingle();
+                if (!user) {
+                    alert('Student not found. They must register first.');
+                    return;
+                }
+                // Enroll
+                const { error } = await supabase
+                    .from('course_enrollments')
+                    .insert({
+                        course_id: courseId,
+                        student_id: user.id,
+                        section_id: sectionId
+                    });
+                if (error) alert('Error: ' + error.message);
+                else alert('Student added to section!');
+            });
+
+            // Load schedules for schedule section
+            loadSchedules();
+
+            // Load students for manual grade dropdown when course changes
+            document.getElementById('manualCourseSelect').addEventListener('change', loadStudentsForManualGrade);
+            document.getElementById('intervCourseSelect').addEventListener('change', loadStudentsForIntervention);
+
+            // Load assessment types for weights
+            document.getElementById('weightsCourseSelect').addEventListener('change', loadWeightsInputs);
+
+            // Load sections for add student dropdown
+            document.getElementById('addCourseSelect').addEventListener('change', loadSectionsForAddStudent);
+        }
+
+        // -------- Load Schedules --------
+        async function loadSchedules() {
+            const container = document.getElementById('scheduleList');
+            const { data, error } = await supabase
+                .from('schedules')
+                .select('*, sections(name)');
+            if (error) { container.innerHTML = '<p style="color:#ef4444;">Error loading schedules.</p>'; return; }
+            if (!data || data.length === 0) {
+                container.innerHTML = '<p style="color:#94a3b8;">No schedules set.</p>';
+                return;
+            }
+            let html = '<table><thead><tr><th>Section</th><th>Day</th><th>Start</th><th>End</th><th>Room</th></tr></thead><tbody>';
+            data.forEach(s => {
+                html += `<tr>
+                    <td>${s.sections?.name || 'N/A'}</td>
+                    <td>${s.day_of_week}</td>
+                    <td>${s.start_time}</td>
+                    <td>${s.end_time}</td>
+                    <td>${s.room || '-'}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // -------- Load Students for Manual Grade --------
+        async function loadStudentsForManualGrade() {
+            const courseId = document.getElementById('manualCourseSelect').value;
+            const studentSelect = document.getElementById('manualStudentSelect');
+            if (!courseId) { studentSelect.innerHTML = '<option value="">Select...</option>'; return; }
+            const { data: enrollments } = await supabase
+                .from('course_enrollments')
+                .select('student_id')
+                .eq('course_id', courseId);
+            if (!enrollments || enrollments.length === 0) {
+                studentSelect.innerHTML = '<option value="">No students enrolled</option>';
+                return;
+            }
+            const ids = enrollments.map(e => e.student_id);
+            const { data: students } = await supabase
+                .from('profiles')
+                .select('id, first_name, last_name')
+                .in('id', ids);
+            renderSelect(studentSelect, students, 'id', (s) => `${s.first_name} ${s.last_name}`);
+
+            // Also load assessment types for this course
+            const typeSelect = document.getElementById('manualTypeSelect');
+            const { data: types } = await supabase
+                .from('assessment_types')
+                .select('id, name')
+                .eq('course_id', courseId);
+            renderSelect(typeSelect, types, 'id', 'name');
+        }
+
+        async function loadStudentsForIntervention() {
+            const courseId = document.getElementById('intervCourseSelect').value;
+            const studentSelect = document.getElementById('intervStudentSelect');
+            if (!courseId) { studentSelect.innerHTML = '<option value="">Select...</option>'; return; }
+            const { data: enrollments } = await supabase
+                .from('course_enrollments')
+                .select('student_id')
+                .eq('course_id', courseId);
+            if (!enrollments || enrollments.length === 0) {
+                studentSelect.innerHTML = '<option value="">No students enrolled</option>';
+                return;
+            }
+            const ids = enrollments.map(e => e.student_id);
+            const { data: students } = await supabase
+                .from('profiles')
+                .select('id, first_name, last_name')
+                .in('id', ids);
+            renderSelect(studentSelect, students, 'id', (s) => `${s.first_name} ${s.last_name}`);
+        }
+
+        // -------- Load Weights Inputs --------
+        async function loadWeightsInputs() {
+            const courseId = document.getElementById('weightsCourseSelect').value;
+            const container = document.getElementById('weightsInputs');
+            if (!courseId) { container.innerHTML = ''; return; }
+            const { data: types } = await supabase
+                .from('assessment_types')
+                .select('id, name, weight')
+                .eq('course_id', courseId);
+            if (!types || types.length === 0) {
+                container.innerHTML = '<p style="color:#94a3b8;">No assessment types defined yet. Create an assessment first.</p>';
+                return;
+            }
             let html = '';
-            SECTIONS.forEach(section => {
-                const entry = schedule[section] || {};
-                const start = entry.start ? new Date(entry.start) : null;
-                const end = entry.end ? new Date(entry.end) : null;
-                const startStr = start ? start.toISOString().slice(0, 16) : '';
-                const endStr = end ? end.toISOString().slice(0, 16) : '';
-                html += `
-                    <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:12px; background:rgba(255,255,255,0.04); padding:12px; border-radius:8px;">
-                        <strong style="color:#e2e8f0; min-width:60px;">${section}</strong>
-                        <label style="color:#94a3b8; font-size:13px;">Start:</label>
-                        <input type="datetime-local" id="start_${section}" value="${startStr}" style="padding:8px 12px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:8px; color:#f1f5f9;">
-                        <label style="color:#94a3b8; font-size:13px;">End:</label>
-                        <input type="datetime-local" id="end_${section}" value="${endStr}" style="padding:8px 12px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:8px; color:#f1f5f9;">
-                        <span style="color:#94a3b8; font-size:13px;">${entry.start ? '✅ Active' : '⏸️ Inactive'}</span>
-                    </div>
-                `;
+            types.forEach(t => {
+                html += `<div class="form-row">
+                    <label>${t.name}</label>
+                    <input type="number" data-type-id="${t.id}" value="${t.weight || 0}" step="0.01" min="0" max="100" style="width:100px;">
+                    <span>%</span>
+                </div>`;
             });
             container.innerHTML = html;
         }
 
-        // ============================================================
-        // RESULTS & STATS (unchanged from original)
-        // ============================================================
-        let currentFilter = 'all';
-
-        function renderStats() {
-            const stats = getStats();
-            const container = document.getElementById('statsContainer');
-            container.innerHTML = `
-                <div class="stat-card">
-                    <div class="number">${stats.total}</div>
-                    <div class="label">Total Students</div>
-                </div>
-                <div class="stat-card">
-                    <div class="number" style="color:#34d399;">${stats.passed}</div>
-                    <div class="label">Passed</div>
-                </div>
-                <div class="stat-card">
-                    <div class="number" style="color:#f87171;">${stats.failed}</div>
-                    <div class="label">Failed</div>
-                </div>
-                <div class="stat-card">
-                    <div class="number" style="color:#38bdf8;">${stats.passRate}%</div>
-                    <div class="label">Pass Rate</div>
-                </div>
-            `;
+        // -------- Load Sections for Add Student --------
+        async function loadSectionsForAddStudent() {
+            const courseId = document.getElementById('addCourseSelect').value;
+            const select = document.getElementById('addSectionSelect');
+            if (!courseId) { select.innerHTML = '<option value="">Select...</option>'; return; }
+            const { data: sections } = await supabase
+                .from('sections')
+                .select('id, name')
+                .eq('course_id', courseId);
+            renderSelect(select, sections, 'id', 'name');
         }
 
-        function renderTable(filter = 'all') {
-            const results = getAllResults();
-            const filtered = filter === 'all' ? results : results.filter(r => r.section === filter);
+        // -------- Modal --------
+        window.closeModal = function() {
+            document.getElementById('modal').classList.remove('active');
+        };
 
-            const tbody = document.getElementById('resultsTable');
-            if (filtered.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="7" style="text-align:center; padding:32px; color:#64748b;">
-                            No results found${filter !== 'all' ? ` for section ${filter}` : ''}.
-                        </td>
-                    </tr>
-                `;
-                document.getElementById('rowCount').textContent = '0 records';
-                return;
-            }
+        // -------- Init --------
+        init();
 
-            tbody.innerHTML = filtered.map(r => {
-                const pct = ((r.score / r.total) * 100).toFixed(1);
-                const passed = pct >= 60;
-                return `
-                    <tr>
-                        <td>${r.email}</td>
-                        <td>${r.studentId}</td>
-                        <td>${r.section}</td>
-                        <td>${r.score}/${r.total}</td>
-                        <td>${pct}%</td>
-                        <td>
-                            <span class="score-badge ${passed ? 'pass' : 'fail'}">
-                                ${passed ? '✅ Passed' : '❌ Failed'}
-                            </span>
-                        </td>
-                        <td>${new Date(r.date).toLocaleDateString()}</td>
-                    </tr>
-                `;
-            }).join('');
-
-            document.getElementById('rowCount').textContent = `${filtered.length} record(s)`;
-        }
-
-        function filterTable(section) {
-            currentFilter = section;
-            renderTable(section);
-        }
-
-        function clearAllData() {
-            if (confirm('⚠️ Are you sure you want to delete ALL exam data? This cannot be undone.')) {
-                if (confirm('Final confirmation: Delete all student results?')) {
-                    localStorage.removeItem(STORAGE_KEY);
-                    renderStats();
-                    renderTable(currentFilter);
-                    alert('All data has been cleared.');
-                }
-            }
-        }
+        console.log('✅ Instructor Portal loaded.');
     </script>
 </body>
 </html>
