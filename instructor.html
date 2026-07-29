@@ -6,7 +6,7 @@
     <title>Instructor Dashboard – NCF Learning System</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <style>
-        /* (your existing styles – unchanged) */
+        /* ====== All your original styles – unchanged ====== */
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family:'Inter',sans-serif; background:#f1f5f9; color:#0f172a; }
         .app { display:flex; min-height:100vh; }
@@ -145,6 +145,7 @@
 
     <!-- MAIN CONTENT -->
     <main class="main">
+        <!-- ===== DASHBOARD ===== -->
         <section id="section-dashboard" class="page-section active">
             <div class="page-header">
                 <div><h1>Dashboard <small>Overview of your classes</small></h1></div>
@@ -160,11 +161,13 @@
             <div class="card"><div class="card-header"><h3>🚀 Quick Actions</h3></div><div class="flex gap-2" style="flex-wrap:wrap;"><button class="btn btn-outline" onclick="switchSection('attendance')">📋 Take Attendance</button><button class="btn btn-outline" onclick="switchSection('assessments')">✏️ Create Assessment</button><button class="btn btn-outline" onclick="switchSection('gradebook')">📈 View Grades</button><button class="btn btn-outline" onclick="switchSection('enroll')">👥 Enroll Student</button></div></div>
         </section>
 
+        <!-- ===== COURSES ===== -->
         <section id="section-courses" class="page-section">
             <div class="page-header"><div><h1>Courses <small>Manage your courses</small></h1></div><div class="actions"><button class="btn btn-primary" id="addCourseBtn">+ New Course</button></div></div>
             <div class="card"><div id="instructorCourses"><div class="empty-state"><p>Loading your courses...</p></div></div></div>
         </section>
 
+        <!-- ===== ATTENDANCE ===== -->
         <section id="section-attendance" class="page-section">
             <div class="page-header"><div><h1>Attendance <small>Create sessions and track attendance</small></h1></div></div>
             <div class="card">
@@ -188,6 +191,7 @@
             <div class="card"><div class="card-header"><h3>Attendance Sessions</h3></div><div id="attendanceSessionsList"><div class="empty-state"><p>No sessions yet.</p></div></div></div>
         </section>
 
+        <!-- ===== SCHEDULE ===== -->
         <section id="section-schedule" class="page-section">
             <div class="page-header"><div><h1>Schedule <small>Set class schedules</small></h1></div></div>
             <div class="card">
@@ -204,12 +208,11 @@
             <div class="card"><div class="card-header"><h3>Current Schedules</h3></div><div id="scheduleList"><div class="empty-state"><p>No schedules set.</p></div></div></div>
         </section>
 
-        <!-- ========== ASSESSMENTS SECTION (FIXED) ========== -->
+        <!-- ===== ASSESSMENTS (FIXED) ===== -->
         <section id="section-assessments" class="page-section">
             <div class="page-header"><h1>Assessments <small>Build professional exams</small></h1></div>
             <div class="card">
                 <div class="card-header"><h3>Create / Edit Assessment</h3></div>
-                <!-- onsubmit="return false;" prevents any default form submission -->
                 <form id="assessmentForm" onsubmit="return false;">
                     <div class="step active" data-step="1">
                         <h4>1. Assessment Details</h4>
@@ -245,7 +248,6 @@
                             <div class="form-group"><label>Show correct answers after submission?</label><input type="checkbox" id="assessShowAnswers"></div>
                             <div class="form-group full"><label>Passing Score (%)</label><input type="number" id="assessPassing" value="60" min="0" max="100"></div>
                         </div>
-                        <!-- Use type="button" and call a custom publish function instead of submit -->
                         <button type="button" class="btn btn-success mt-2" id="publishAssessmentBtn">🚀 Publish Assessment</button>
                         <button type="button" class="btn btn-outline" onclick="goToStep(2)">← Back</button>
                     </div>
@@ -255,11 +257,7 @@
             <div class="card"><div class="card-header"><h3>Existing Assessments</h3></div><div id="assessmentsList"><div class="empty-state"><p>No assessments created yet.</p></div></div></div>
         </section>
 
-        <!-- ====== The rest of your sections (gradebook, weights, etc.) are unchanged ====== -->
-        <!-- ... (I'll include them below) ... -->
-        <!-- For brevity, I'll copy the remaining sections exactly as in your original code -->
-        <!-- But since you said "full code", I'll include everything -->
-
+        <!-- ===== GRADEBOOK ===== -->
         <section id="section-gradebook" class="page-section">
             <div class="page-header"><div><h1>Gradebook <small>Spreadsheet view</small></h1></div></div>
             <div class="card">
@@ -269,6 +267,7 @@
             </div>
         </section>
 
+        <!-- ===== WEIGHTS ===== -->
         <section id="section-weights" class="page-section">
             <div class="page-header"><div><h1>Grade Weights</h1></div></div>
             <div class="card">
@@ -280,6 +279,7 @@
             </div>
         </section>
 
+        <!-- ===== COMPUTE ===== -->
         <section id="section-compute" class="page-section">
             <div class="page-header"><div><h1>Compute Period Grades</h1></div></div>
             <div class="card">
@@ -292,6 +292,7 @@
             </div>
         </section>
 
+        <!-- ===== FINAL ===== -->
         <section id="section-final" class="page-section">
             <div class="page-header"><div><h1>Final Rating</h1></div></div>
             <div class="card">
@@ -303,6 +304,7 @@
             </div>
         </section>
 
+        <!-- ===== REPORTS ===== -->
         <section id="section-reports" class="page-section">
             <div class="page-header"><div><h1>Reports</h1></div></div>
             <div class="card">
@@ -315,6 +317,7 @@
             </div>
         </section>
 
+        <!-- ===== INTERVENTIONS ===== -->
         <section id="section-interventions" class="page-section">
             <div class="page-header"><div><h1>Interventions</h1></div></div>
             <div class="card">
@@ -330,6 +333,7 @@
             </div>
         </section>
 
+        <!-- ===== ENROLL ===== -->
         <section id="section-enroll" class="page-section">
             <div class="page-header"><div><h1>Enroll Students</h1></div></div>
             <div class="card">
@@ -344,11 +348,69 @@
     </main>
 </div>
 
-<!-- MODALS (unchanged) -->
-<div class="modal" id="editCourseModal">...</div>
-<div class="modal" id="editScheduleModal">...</div>
-<div class="modal" id="markAttendanceModal">...</div>
-<div class="modal" id="questionModal">...</div>
+<!-- MODALS -->
+<div class="modal" id="editCourseModal">
+    <div class="modal-content">
+        <button class="close" onclick="closeEditCourseModal()">✕</button>
+        <h3>Edit Course</h3>
+        <form id="editCourseForm" class="form-grid">
+            <input type="hidden" id="editCourseId" />
+            <div class="form-group full"><label>Course Code</label><input type="text" id="editCourseCode" required /></div>
+            <div class="form-group full"><label>Course Name</label><input type="text" id="editCourseName" required /></div>
+            <div class="form-group full"><label>Description</label><textarea id="editCourseDesc" rows="2"></textarea></div>
+            <div class="form-group full"><button type="submit" class="btn btn-primary">Update Course</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="modal" id="editScheduleModal">
+    <div class="modal-content">
+        <button class="close" onclick="closeEditScheduleModal()">✕</button>
+        <h3>Edit Schedule</h3>
+        <form id="editScheduleForm" class="form-grid">
+            <input type="hidden" id="editScheduleId" />
+            <div class="form-group full"><label>Day</label><select id="editScheduleDay"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select></div>
+            <div class="form-group"><label>Start</label><input type="time" id="editScheduleStart" required /></div>
+            <div class="form-group"><label>End</label><input type="time" id="editScheduleEnd" required /></div>
+            <div class="form-group full"><label>Room</label><input type="text" id="editScheduleRoom" placeholder="Room 101" /></div>
+            <div class="form-group full"><button type="submit" class="btn btn-primary">Update Schedule</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="modal" id="markAttendanceModal">
+    <div class="modal-content">
+        <button class="close" onclick="closeMarkAttendanceModal()">✕</button>
+        <h3>Mark Attendance</h3>
+        <div id="markAttendanceInfo"></div>
+        <div id="markAttendanceTableWrap" style="margin-top:1rem;">
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Student</th><th>Current Status</th><th>Update Status</th><th>Action</th></tr></thead>
+                    <tbody id="markAttendanceBody"></tbody>
+                </table>
+            </div>
+        </div>
+        <div style="margin-top:1rem; display:flex; gap:0.5rem; justify-content:flex-end;">
+            <button class="btn btn-success" onclick="saveManualAttendance()">💾 Save All</button>
+            <button class="btn btn-outline" onclick="closeMarkAttendanceModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="questionModal">
+    <div class="modal-content">
+        <button class="close" onclick="closeQuestionEditor()">✕</button>
+        <h3 id="modalTitle">Add Question</h3>
+        <form id="questionEditorForm" class="form-grid">
+            <div class="form-group full"><label>Question Text</label><input type="text" id="qText" required placeholder="Enter your question here..." /></div>
+            <div class="form-group full"><label>Question Type</label><select id="qType" onchange="toggleOptions()"><option value="mc">Multiple Choice</option><option value="tf">True / False</option><option value="essay">Essay</option><option value="fill">Fill in the Blank</option></select></div>
+            <div class="form-group full" id="optionsGroup"><label>Options (put <code>*</code> before the correct answer, one per line)</label><textarea id="qOptions" rows="4" placeholder="Option 1&#10;*Option 2 (correct)&#10;Option 3"></textarea><span class="text-muted text-sm">Example: Option A<br>*Option B (correct)</span></div>
+            <div class="form-group"><label>Points</label><input type="number" id="qPoints" value="1" min="1" /></div>
+            <div class="form-group full" style="display:flex; gap:0.5rem; margin-top:0.5rem;"><button type="submit" class="btn btn-primary">💾 Save Question</button><button type="button" class="btn btn-outline" onclick="closeQuestionEditor()">Cancel</button></div>
+        </form>
+    </div>
+</div>
 
 <script type="module">
 // ------------------------------------------------------------
@@ -386,7 +448,6 @@ function timeToMinutes(time) {
     return (h || 0) * 60 + (m || 0);
 }
 
-// Expose some functions globally for inline onclick attributes
 window.switchSection = function(section) {
     const target = document.querySelector(`.nav-item[data-section="${section}"]`);
     if (target) target.click();
@@ -1027,10 +1088,9 @@ window.handleFileUpload = function(event) {
 };
 
 // ------------------------------------------------------------
-// 12. ASSESSMENT PUBLISH (NEW HANDLER)
+// 12. ASSESSMENT PUBLISH (FIXED)
 // ------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', function() {
-    // Use the button's click event instead of form submit
     const publishBtn = document.getElementById('publishAssessmentBtn');
     if (!publishBtn) {
         console.error('❌ Publish button not found!');
@@ -1041,7 +1101,6 @@ document.addEventListener('DOMContentLoaded', function() {
     publishBtn.addEventListener('click', async function() {
         console.log('🚀 Publish button clicked!');
 
-        // Gather data
         const courseSelect = document.getElementById('assessCourses');
         const selectedCourseIds = Array.from(courseSelect.selectedOptions).map(opt => opt.value);
         if (selectedCourseIds.length === 0) {
@@ -1072,7 +1131,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         try {
             for (const courseId of selectedCourseIds) {
-                // Get or create assessment type
                 let typeId;
                 const { data: existingType } = await supabase
                     .from('assessment_types')
@@ -1140,7 +1198,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             alert('Assessment "' + title + '" created for ' + selectedCourseIds.length + ' course(s).');
-            // Reset form
             document.getElementById('assessmentForm').reset();
             assessmentQuestions = [];
             renderQuestions();
@@ -1156,17 +1213,457 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ------------------------------------------------------------
-// 13. GRADEBOOK, WEIGHTS, INTERVENTIONS, etc. (unchanged)
+// 13. GRADEBOOK
 // ------------------------------------------------------------
-// (I'm omitting the rest to avoid exceeding output length, but they are the same as your original)
-// The full file includes all functions exactly as you had them.
-// I'll include them in the final deliverable.
+async function loadGradebook() {
+    const courseId = document.getElementById('manualCourseSelect').value;
+    const container = document.getElementById('gradebookContainer');
+    if (!courseId) {
+        container.innerHTML = '<div class="empty-state"><p>Select a course to view grades.</p></div>';
+        return;
+    }
+    try {
+        const { data: enrollments } = await supabase
+            .from('course_enrollments')
+            .select('student_id')
+            .eq('course_id', courseId);
+        if (!enrollments || enrollments.length === 0) {
+            container.innerHTML = '<div class="empty-state"><p>No students enrolled.</p></div>';
+            return;
+        }
+        const studentIds = enrollments.map(e => e.student_id);
+        const { data: grades } = await supabase
+            .from('grades')
+            .select('student_id, assessment_id, score, max_score, assessments(title, assessment_types(name))')
+            .eq('course_id', courseId)
+            .in('student_id', studentIds);
+        const { data: students } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name')
+            .in('id', studentIds);
+
+        let html = '<div class="table-wrap"><table><thead><tr><th>Student</th>';
+        const assessmentMap = {};
+        if (grades) {
+            for (const g of grades) {
+                const key = g.assessment_id;
+                if (!assessmentMap[key]) {
+                    assessmentMap[key] = g.assessments?.title || 'Assessment';
+                }
+            }
+        }
+        const assessIds = Object.keys(assessmentMap);
+        for (const id of assessIds) {
+            html += `<th>${assessmentMap[id]}</th>`;
+        }
+        html += '<th>Average</th></tr></thead><tbody>';
+        for (const sid of studentIds) {
+            const s = students?.find(p => p.id === sid);
+            const name = s ? `${s.first_name} ${s.last_name}` : sid;
+            html += `<tr><td>${name}</td>`;
+            let totalPct = 0, count = 0;
+            for (const aid of assessIds) {
+                const g = grades?.find(g => g.student_id === sid && g.assessment_id === aid);
+                if (g) {
+                    const pct = (g.score / g.max_score) * 100;
+                    html += `<td>${pct.toFixed(1)}%</td>`;
+                    totalPct += pct;
+                    count++;
+                } else {
+                    html += `<td>-</td>`;
+                }
+            }
+            const avg = count > 0 ? (totalPct / count) : 0;
+            html += `<td><strong>${avg.toFixed(1)}%</strong></td>`;
+            html += '</tr>';
+        }
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+    } catch (err) {
+        console.error('loadGradebook error:', err);
+        container.innerHTML = '<div class="empty-state"><p>Error loading grades.</p></div>';
+    }
+}
 
 // ------------------------------------------------------------
-// 14. START
+// 14. WEIGHTS
+// ------------------------------------------------------------
+async function loadWeightsInputs() {
+    const courseId = document.getElementById('weightsCourse').value;
+    const container = document.getElementById('weightsInputs');
+    if (!courseId) {
+        container.innerHTML = '<div class="empty-state"><p>Select a course to manage weights.</p></div>';
+        return;
+    }
+    try {
+        const { data: types, error } = await supabase
+            .from('assessment_types')
+            .select('id, name, weight')
+            .eq('course_id', courseId);
+        if (error) throw error;
+        if (!types || types.length === 0) {
+            container.innerHTML = '<div class="empty-state"><p>No assessment types yet.</p></div>';
+            return;
+        }
+        let html = '';
+        for (const t of types) {
+            html += `<div class="form-group" style="margin-bottom:0.5rem;">
+                <label>${t.name}</label>
+                <input type="number" step="0.01" min="0" max="100" value="${t.weight || 0}" data-type-id="${t.id}" class="weight-input" />
+            </div>`;
+        }
+        container.innerHTML = html;
+    } catch (err) {
+        console.error('loadWeightsInputs error:', err);
+        container.innerHTML = '<div class="empty-state"><p>Error loading weights.</p></div>';
+    }
+}
+
+document.getElementById('weightsForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const inputs = document.querySelectorAll('#weightsInputs .weight-input');
+    for (const inp of inputs) {
+        const typeId = inp.dataset.typeId;
+        const weight = parseFloat(inp.value) || 0;
+        await supabase.from('assessment_types').update({ weight }).eq('id', typeId);
+    }
+    alert('Weights saved!');
+});
+
+// ------------------------------------------------------------
+// 15. INTERVENTIONS
+// ------------------------------------------------------------
+async function loadInterventions() {
+    const container = document.getElementById('interventionHistory');
+    try {
+        const { data: interventions, error } = await supabase
+            .from('interventions')
+            .select('*, profiles(first_name, last_name)')
+            .in('course_id', instructorCourses.map(c => c.id))
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        if (!interventions || interventions.length === 0) {
+            container.innerHTML = '<div class="empty-state"><p>No interventions recorded.</p></div>';
+            return;
+        }
+        let html = '<div class="table-wrap"><table><thead><tr><th>Student</th><th>Type</th><th>Adjustment</th><th>Description</th><th>Actions</th></tr></thead><tbody>';
+        for (const iv of interventions) {
+            const name = iv.profiles ? `${iv.profiles.first_name} ${iv.profiles.last_name}` : 'Unknown';
+            html += `<tr>
+                <td>${name}</td>
+                <td>${iv.type}</td>
+                <td>${iv.adjustment_value}</td>
+                <td>${iv.description || '-'}</td>
+                <td><button class="btn btn-danger btn-sm" onclick="deleteIntervention('${iv.id}')">🗑️</button></td>
+            </tr>`;
+        }
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+    } catch (err) {
+        console.error('loadInterventions error:', err);
+        container.innerHTML = '<div class="empty-state"><p>Error loading interventions.</p></div>';
+    }
+}
+
+window.deleteIntervention = async function(interventionId) {
+    if (!confirm('Delete this intervention?')) return;
+    const { error } = await supabase.from('interventions').delete().eq('id', interventionId);
+    if (error) { alert('Error: ' + error.message); return; }
+    alert('Intervention deleted.');
+    await loadInterventions();
+};
+
+async function loadStudentsForIntervention() {
+    const courseId = document.getElementById('intervCourse').value;
+    const studentSelect = document.getElementById('intervStudent');
+    if (!courseId) {
+        studentSelect.innerHTML = '<option value="">Select course first</option>';
+        return;
+    }
+    try {
+        const { data: enrollments } = await supabase
+            .from('course_enrollments')
+            .select('student_id')
+            .eq('course_id', courseId);
+        if (!enrollments || enrollments.length === 0) {
+            studentSelect.innerHTML = '<option value="">No students</option>';
+            return;
+        }
+        const studentIds = enrollments.map(e => e.student_id);
+        const { data: students } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name')
+            .in('id', studentIds);
+        renderSelect(studentSelect, students, 'id', s => `${s.first_name} ${s.last_name}`);
+    } catch (err) {
+        console.error('loadStudentsForIntervention error:', err);
+    }
+}
+
+// ------------------------------------------------------------
+// 16. ADDITIONAL FORM EVENTS
+// ------------------------------------------------------------
+document.getElementById('computeForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const courseId = document.getElementById('computeCourse').value;
+    const period = document.getElementById('computePeriod').value;
+    if (!courseId) { alert('Select a course.'); return; }
+    const { data: enrollments } = await supabase.from('course_enrollments').select('student_id').eq('course_id', courseId);
+    if (!enrollments || enrollments.length === 0) {
+        document.getElementById('computedGradesResult').innerHTML = '<div class="empty-state"><p>No students.</p></div>';
+        return;
+    }
+    const studentIds = enrollments.map(e => e.student_id);
+    const { data: grades } = await supabase
+        .from('grades')
+        .select('student_id, assessment_types(name, weight), score, max_score')
+        .eq('course_id', courseId)
+        .in('student_id', studentIds);
+    let html = '<div class="table-wrap"><table><thead><tr><th>Student</th><th>Period Grade</th></tr></thead><tbody>';
+    for (const sid of studentIds) {
+        const studentGrades = grades.filter(g => g.student_id === sid);
+        let totalWeighted = 0, totalWeight = 0;
+        for (const g of studentGrades) {
+            const pct = (g.score / g.max_score) * 100;
+            const w = g.assessment_types?.weight || 0;
+            totalWeighted += pct * w;
+            totalWeight += w;
+        }
+        const periodGrade = totalWeight > 0 ? (totalWeighted / totalWeight) : 0;
+        await supabase.from('period_grades').upsert({
+            student_id: sid,
+            course_id: courseId,
+            period: period,
+            grade: periodGrade,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'student_id,course_id,period' });
+        const { data: student } = await supabase.from('profiles').select('first_name, last_name').eq('id', sid).single();
+        const name = student ? `${student.first_name} ${student.last_name}` : sid;
+        html += `<tr><td>${name}</td><td>${periodGrade.toFixed(2)}</td></tr>`;
+    }
+    html += '</tbody></table></div>';
+    document.getElementById('computedGradesResult').innerHTML = html;
+});
+
+document.getElementById('finalForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const courseId = document.getElementById('finalCourse').value;
+    if (!courseId) { alert('Select a course.'); return; }
+    const { data: enrollments } = await supabase.from('course_enrollments').select('student_id').eq('course_id', courseId);
+    if (!enrollments || enrollments.length === 0) {
+        document.getElementById('finalResult').innerHTML = '<div class="empty-state"><p>No students.</p></div>';
+        return;
+    }
+    const studentIds = enrollments.map(e => e.student_id);
+    const { data: periodGrades } = await supabase
+        .from('period_grades')
+        .select('student_id, grade')
+        .eq('course_id', courseId)
+        .in('student_id', studentIds);
+    let html = '<div class="table-wrap"><table><thead><tr><th>Student</th><th>Final Grade</th></tr></thead><tbody>';
+    for (const sid of studentIds) {
+        const grades = periodGrades.filter(g => g.student_id === sid);
+        const avg = grades.reduce((sum, g) => sum + g.grade, 0) / (grades.length || 1);
+        await supabase.from('final_ratings').upsert({
+            student_id: sid,
+            course_id: courseId,
+            final_grade: avg,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'student_id,course_id' });
+        const { data: student } = await supabase.from('profiles').select('first_name, last_name').eq('id', sid).single();
+        const name = student ? `${student.first_name} ${student.last_name}` : sid;
+        html += `<tr><td>${name}</td><td>${avg.toFixed(2)}</td></tr>`;
+    }
+    html += '</tbody></table></div>';
+    document.getElementById('finalResult').innerHTML = html;
+});
+
+document.getElementById('enrollForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const courseId = document.getElementById('enrollCourse').value;
+    const email = document.getElementById('enrollEmail').value.trim();
+    if (!courseId || !email) { alert('Course and Email are required.'); return; }
+    const { data: user, error: userError } = await supabase.from('profiles').select('id').eq('email', email).maybeSingle();
+    if (userError || !user) { alert('Student not found. Please check the email.'); return; }
+    const sectionId = await ensureSectionForCourse(courseId);
+    if (!sectionId) { alert('Error creating section.'); return; }
+    const { error } = await supabase.from('course_enrollments').insert({ course_id: courseId, student_id: user.id, section_id: sectionId });
+    if (error) { alert('Error: ' + error.message); return; }
+    alert('Student enrolled!');
+    await updateStats();
+});
+
+document.getElementById('reportForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const type = document.getElementById('reportType').value;
+    document.getElementById('reportOutput').textContent = type + ' report – coming soon.';
+});
+
+// ------------------------------------------------------------
+// 17. NAVIGATION & EVENTS
+// ------------------------------------------------------------
+document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', async function() {
+        if (this.id === 'logoutBtn') return;
+        const target = this.dataset.section;
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        this.classList.add('active');
+        document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+        document.getElementById(`section-${target}`).classList.add('active');
+        switch (target) {
+            case 'courses': await loadInstructorData(); break;
+            case 'schedule': await loadSchedules(); break;
+            case 'attendance': await loadAttendanceSessions(); await loadManualSessions(); break;
+            case 'assessments': await loadAssessmentsList(); break;
+            case 'interventions': await loadInterventions(); break;
+            case 'gradebook': await loadGradebook(); break;
+            case 'weights': await loadWeightsInputs(); break;
+        }
+    });
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async function() {
+    await signOut();
+    window.location.href = 'index.html';
+});
+
+document.getElementById('addCourseBtn').addEventListener('click', window.addCourse);
+
+document.getElementById('editCourseForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('editCourseId').value;
+    const code = document.getElementById('editCourseCode').value.trim();
+    const name = document.getElementById('editCourseName').value.trim();
+    const desc = document.getElementById('editCourseDesc').value.trim();
+    const { error } = await supabase.from('courses').update({ code, name, description: desc }).eq('id', id);
+    if (error) { alert('Error: ' + error.message); return; }
+    alert('Course updated.');
+    closeEditCourseModal();
+    await loadInstructorData();
+    await populateCourseSelects();
+    await updateStats();
+});
+
+document.getElementById('scheduleForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const courseId = document.getElementById('scheduleCourse').value;
+    const day = document.getElementById('scheduleDay').value;
+    const start = document.getElementById('scheduleStart').value;
+    const end = document.getElementById('scheduleEnd').value;
+    const room = document.getElementById('scheduleRoom').value;
+    if (!courseId) { alert('Select a course.'); return; }
+    const sectionId = await ensureSectionForCourse(courseId);
+    if (!sectionId) { alert('Error creating section.'); return; }
+    const { data: existing } = await supabase.from('schedules').select('*').eq('section_id', sectionId).eq('day_of_week', day);
+    const startMin = timeToMinutes(start); const endMin = timeToMinutes(end);
+    const conflict = existing?.some(s => {
+        const sStart = timeToMinutes(s.start_time);
+        const sEnd = timeToMinutes(s.end_time);
+        return (startMin < sEnd && endMin > sStart);
+    });
+    if (conflict) { alert('Conflict: overlapping schedule on ' + day); return; }
+    const { error } = await supabase.from('schedules').insert({ section_id: sectionId, day_of_week: day, start_time: start, end_time: end, room: room || null });
+    if (error) { alert('Error: ' + error.message); return; }
+    alert('Schedule added!');
+    await loadSchedules();
+    document.getElementById('scheduleForm').reset();
+});
+
+document.getElementById('editScheduleForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('editScheduleId').value;
+    const day = document.getElementById('editScheduleDay').value;
+    const start = document.getElementById('editScheduleStart').value;
+    const end = document.getElementById('editScheduleEnd').value;
+    const room = document.getElementById('editScheduleRoom').value.trim();
+    const { error } = await supabase.from('schedules').update({ day_of_week: day, start_time: start, end_time: end, room: room || null }).eq('id', id);
+    if (error) { alert('Error: ' + error.message); return; }
+    alert('Schedule updated.');
+    closeEditScheduleModal();
+    await loadSchedules();
+});
+
+document.getElementById('attendanceForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const courseId = document.getElementById('attCourse').value;
+    const date = document.getElementById('attDate').value;
+    const start = document.getElementById('attStart').value;
+    const end = document.getElementById('attEnd').value;
+    if (!courseId) { alert('Select a course.'); return; }
+    const sectionId = await ensureSectionForCourse(courseId);
+    if (!sectionId) { alert('Error creating section.'); return; }
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(); expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+    const { error } = await supabase.from('attendance_sessions').insert({
+        section_id: sectionId,
+        date,
+        start_time: start,
+        end_time: end,
+        code,
+        expires_at: expiresAt.toISOString()
+    });
+    if (error) { alert('Error: ' + error.message); return; }
+    document.getElementById('attCodeDisplay').textContent = 'Code: ' + code + ' (valid 15 mins)';
+    document.getElementById('attCodeDisplay').style.display = 'block';
+    await loadAttendanceSessions();
+    await loadManualSessions();
+    document.getElementById('attendanceForm').reset();
+});
+
+window.addCourse = async function() {
+    const code = prompt('Enter course code:'); if (!code) return;
+    const name = prompt('Enter course name:'); if (!name) return;
+    const desc = prompt('Enter description (optional):');
+    const { error } = await supabase.from('courses').insert({
+        code: code.trim(),
+        name: name.trim(),
+        description: desc?.trim() || '',
+        instructor_id: currentUser.id
+    });
+    if (error) { alert('Error: ' + error.message); return; }
+    alert('Course added!');
+    await loadInstructorData();
+    await populateCourseSelects();
+    await updateStats();
+};
+
+window.openEditCourseModal = async function(courseId) {
+    const { data: course, error } = await supabase.from('courses').select('*').eq('id', courseId).single();
+    if (error) { alert('Error loading course: ' + error.message); return; }
+    document.getElementById('editCourseId').value = course.id;
+    document.getElementById('editCourseCode').value = course.code;
+    document.getElementById('editCourseName').value = course.name;
+    document.getElementById('editCourseDesc').value = course.description || '';
+    document.getElementById('editCourseModal').classList.add('active');
+};
+
+window.closeEditCourseModal = function() {
+    document.getElementById('editCourseModal').classList.remove('active');
+};
+
+window.deleteCourse = async function(courseId) {
+    if (!confirm('Delete this course and all associated data?')) return;
+    const { error } = await supabase.from('courses').delete().eq('id', courseId);
+    if (error) { alert('Error deleting: ' + error.message); return; }
+    alert('Course deleted.');
+    await loadInstructorData();
+    await populateCourseSelects();
+    await updateStats();
+    await loadSchedules();
+    await loadAttendanceSessions();
+    await loadManualSessions();
+    await loadAssessmentsList();
+};
+
+document.getElementById('manualCourseSelect').addEventListener('change', loadGradebook);
+document.getElementById('weightsCourse').addEventListener('change', loadWeightsInputs);
+document.getElementById('intervCourse').addEventListener('change', loadStudentsForIntervention);
+document.getElementById('exportGrades').addEventListener('click', () => alert('CSV Export – coming soon!'));
+
+// ------------------------------------------------------------
+// 18. START
 // ------------------------------------------------------------
 init();
-
 </script>
 </body>
 </html>
