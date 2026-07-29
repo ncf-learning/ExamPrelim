@@ -114,9 +114,11 @@
         /* ===== MODALS ===== */
         .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); display:none; align-items:center; justify-content:center; z-index:1000; }
         .modal.active { display:flex; }
-        .modal-content { background:#fff; border-radius:12px; padding:2rem; max-width:600px; width:90%; max-height:80vh; overflow-y:auto; }
+        .modal-content { background:#fff; border-radius:12px; padding:2rem; max-width:800px; width:95%; max-height:80vh; overflow-y:auto; }
         .modal-content .form-grid { grid-template-columns:1fr; }
         .modal-content .close { float:right; background:none; border:none; font-size:1.5rem; cursor:pointer; }
+        .modal-content table { width:100%; }
+        .modal-content select { padding:0.3rem 0.6rem; border-radius:4px; border:1px solid #e2e8f0; }
 
         @media (max-width:1024px) { .sidebar { width:220px; } .main { padding:1.5rem; } .form-grid { grid-template-columns:1fr; } }
         @media (max-width:768px) { .app { flex-direction:column; } .sidebar { width:100%; height:auto; position:static; padding:1rem; } .sidebar nav { display:flex; flex-wrap:wrap; gap:0.25rem; } .sidebar nav .nav-label { display:none; } .sidebar nav .nav-item { padding:0.4rem 0.7rem; font-size:0.8rem; } .sidebar .user-section { display:none; } .main { padding:1rem; } .stats-grid { grid-template-columns:1fr 1fr; } }
@@ -194,8 +196,10 @@
         <!-- ATTENDANCE -->
         <section id="section-attendance" class="page-section">
             <div class="page-header"><div><h1>Attendance <small>Create sessions and track attendance</small></h1></div></div>
+
+            <!-- Create Session (Code Generation) -->
             <div class="card">
-                <div class="card-header"><h3>Create Session</h3></div>
+                <div class="card-header"><h3>Create Session (Self‑Check‑In)</h3></div>
                 <form id="attendanceForm" class="form-grid">
                     <div class="form-group full"><label>Course</label><select id="attCourse" required></select></div>
                     <div class="form-group"><label>Date</label><input type="date" id="attDate" required></div>
@@ -205,6 +209,22 @@
                 </form>
                 <div id="attCodeDisplay" style="display:none; margin-top:0.75rem; padding:0.75rem; background:#f1f5f9; border-radius:8px; text-align:center; font-size:1.5rem; font-weight:700; letter-spacing:4px; font-family:monospace;"></div>
             </div>
+
+            <!-- Manual Marking -->
+            <div class="card">
+                <div class="card-header"><h3>Manual Attendance Marking</h3></div>
+                <div class="form-grid">
+                    <div class="form-group full"><label>Select Session</label>
+                        <select id="manualSessionSelect"><option value="">Choose a session...</option></select>
+                    </div>
+                    <div class="form-group full">
+                        <button class="btn btn-primary" onclick="openMarkAttendanceModal()">📝 Mark Attendance</button>
+                        <button class="btn btn-outline" onclick="loadManualSessions()">🔄 Refresh Sessions</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Session List -->
             <div class="card"><div class="card-header"><h3>Attendance Sessions</h3></div><div id="attendanceSessionsList"><div class="empty-state"><p>No sessions yet.</p></div></div></div>
         </section>
 
@@ -402,6 +422,27 @@
     </div>
 </div>
 
+<!-- Manual Attendance Marking Modal -->
+<div class="modal" id="markAttendanceModal">
+    <div class="modal-content">
+        <button class="close" onclick="closeMarkAttendanceModal()">✕</button>
+        <h3>Mark Attendance</h3>
+        <div id="markAttendanceInfo"></div>
+        <div id="markAttendanceTableWrap" style="margin-top:1rem;">
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Student</th><th>Status</th><th>Action</th></tr></thead>
+                    <tbody id="markAttendanceBody"></tbody>
+                </table>
+            </div>
+        </div>
+        <div style="margin-top:1rem; display:flex; gap:0.5rem; justify-content:flex-end;">
+            <button class="btn btn-success" onclick="saveManualAttendance()">💾 Save All</button>
+            <button class="btn btn-outline" onclick="closeMarkAttendanceModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
 <!-- ============================================================
      SCRIPTS
      ============================================================ -->
@@ -423,6 +464,7 @@ let currentProfile = null;
 let instructorCourses = [];
 let assessmentQuestions = [];
 let editingQuestionIndex = -1;
+let currentManualSessionId = null;
 
 // ============================================================
 // DOM REFS & NAVIGATION
@@ -441,7 +483,7 @@ navItems.forEach(item => {
         // Refresh data on tab change
         if (target === 'courses') loadInstructorData();
         if (target === 'schedule') loadSchedules();
-        if (target === 'attendance') loadAttendanceSessions();
+        if (target === 'attendance') { loadAttendanceSessions(); loadManualSessions(); }
         if (target === 'assessments') loadAssessmentsList();
         if (target === 'interventions') loadInterventions();
     });
@@ -480,7 +522,6 @@ function timeToMinutes(time) {
 // AUTO-CREATE / CLEANUP SECTIONS (ensure exactly one per course)
 // ============================================================
 async function ensureSingleSectionPerCourse() {
-    // Get all courses
     const { data: courses, error: coursesError } = await supabase
         .from('courses')
         .select('id, code');
@@ -489,7 +530,6 @@ async function ensureSingleSectionPerCourse() {
         return;
     }
     for (const course of courses) {
-        // Get all sections for this course
         const { data: sections, error: sectionsError } = await supabase
             .from('sections')
             .select('id')
@@ -498,33 +538,26 @@ async function ensureSingleSectionPerCourse() {
             console.error('Error fetching sections:', sectionsError);
             continue;
         }
-        // If more than one, keep the first, delete the rest
         if (sections && sections.length > 1) {
             const keepId = sections[0].id;
             const deleteIds = sections.slice(1).map(s => s.id);
-            console.log(`Course ${course.code} has ${sections.length} sections. Keeping ${keepId}, deleting ${deleteIds.length} extras.`);
-            // Delete extra sections (cascade will remove schedules and attendance sessions)
             for (const id of deleteIds) {
                 await supabase.from('sections').delete().eq('id', id);
             }
         } else if (!sections || sections.length === 0) {
-            // No section – create one
             const sectionName = course.code + ' Section';
             await supabase.from('sections').insert({
                 course_id: course.id,
                 name: sectionName
             });
-            console.log(`Created default section for ${course.code}`);
         }
     }
-    // Now verify: each course has exactly one section
 }
 
 // ============================================================
 // GET OR CREATE SECTION FOR A COURSE
 // ============================================================
 async function ensureSectionForCourse(courseId) {
-    // First, check if there are any sections for this course
     const { data: sections, error } = await supabase
         .from('sections')
         .select('id')
@@ -534,10 +567,8 @@ async function ensureSectionForCourse(courseId) {
         return null;
     }
     if (sections && sections.length > 0) {
-        // Return the first one (should be only one)
         return sections[0].id;
     }
-    // If none, create one
     const course = instructorCourses.find(c => c.id === courseId);
     const sectionName = course ? course.code + ' Section' : 'Default Section';
     const { data: newSection, error: insertError } = await supabase
@@ -585,7 +616,6 @@ async function init() {
     document.getElementById('userAvatar').textContent = (profile.first_name?.[0] || 'N') + (profile.last_name?.[0] || 'C');
     document.getElementById('userName').textContent = `${profile.first_name} ${profile.last_name}`;
 
-    // Ensure each course has exactly one section (cleanup)
     await ensureSingleSectionPerCourse();
 
     await loadInstructorData();
@@ -595,6 +625,7 @@ async function init() {
     updateStats();
     loadSchedules();
     loadAttendanceSessions();
+    loadManualSessions();
     loadAssessmentsList();
     loadInterventions();
 }
@@ -637,7 +668,6 @@ async function loadInstructorData() {
     if (gradebookSelect) renderSelect(gradebookSelect, instructorCourses, 'id', c => `${c.code} - ${c.name}`);
 }
 
-// Add Course
 document.getElementById('addCourseBtn').addEventListener('click', async () => {
     const code = prompt('Enter course code:');
     if (!code) return;
@@ -655,14 +685,12 @@ document.getElementById('addCourseBtn').addEventListener('click', async () => {
     await loadInstructorData();
     populateCourseSelects();
     updateStats();
-    // Ensure section created
     const newCourse = instructorCourses.find(c => c.code === code.trim());
     if (newCourse) {
         await ensureSectionForCourse(newCourse.id);
     }
 });
 
-// Edit Course Modal
 window.openEditCourseModal = async (courseId) => {
     const { data: course, error } = await supabase
         .from('courses')
@@ -697,7 +725,6 @@ document.getElementById('editCourseForm').addEventListener('submit', async (e) =
     updateStats();
 });
 
-// Delete Course
 window.deleteCourse = async function(courseId) {
     if (!confirm('Delete this course and all associated data? This cannot be undone.')) return;
     const { error } = await supabase
@@ -711,6 +738,7 @@ window.deleteCourse = async function(courseId) {
     updateStats();
     loadSchedules();
     loadAttendanceSessions();
+    loadManualSessions();
     loadAssessmentsList();
 };
 
@@ -737,8 +765,6 @@ async function loadSchedules() {
         container.innerHTML = '<div class="empty-state"><p>No schedules set.</p></div>';
         return;
     }
-    // Deduplicate: if a course has multiple schedules on the same day/time, show once? 
-    // But we'll show each unique schedule.
     let html = `<div class="table-wrap"><table>
         <thead><tr><th>Course</th><th>Day</th><th>Start</th><th>End</th><th>Room</th><th>Actions</th></tr></thead><tbody>`;
     data.forEach(s => {
@@ -760,7 +786,6 @@ async function loadSchedules() {
     container.innerHTML = html;
 }
 
-// Add Schedule (with conflict check)
 document.getElementById('scheduleForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const courseId = document.getElementById('scheduleCourse').value;
@@ -772,7 +797,6 @@ document.getElementById('scheduleForm').addEventListener('submit', async (e) => 
     const sectionId = await ensureSectionForCourse(courseId);
     if (!sectionId) { alert('Error creating section.'); return; }
 
-    // Conflict check: check all schedules for this section
     const { data: existing, error } = await supabase
         .from('schedules')
         .select('*')
@@ -804,7 +828,6 @@ document.getElementById('scheduleForm').addEventListener('submit', async (e) => 
     document.getElementById('scheduleForm').reset();
 });
 
-// Edit Schedule Modal
 window.openEditScheduleModal = async (scheduleId) => {
     const { data: schedule, error } = await supabase
         .from('schedules')
@@ -839,7 +862,6 @@ document.getElementById('editScheduleForm').addEventListener('submit', async (e)
     loadSchedules();
 });
 
-// Delete Schedule
 window.deleteSchedule = async function(scheduleId) {
     if (!confirm('Delete this schedule permanently?')) return;
     const { error } = await supabase
@@ -874,7 +896,7 @@ async function loadAttendanceSessions() {
         container.innerHTML = '<div class="empty-state"><p>No sessions created yet.</p></div>';
         return;
     }
-    let html = `<div class="table-wrap"><table><thead><tr><th>Course</th><th>Date</th><th>Start</th><th>End</th><th>Code</th><th>Expires</th><th>Action</th></tr></thead><tbody>`;
+    let html = `<div class="table-wrap"><table><thead><tr><th>Course</th><th>Date</th><th>Start</th><th>End</th><th>Code</th><th>Expires</th><th>Actions</th></tr></thead><tbody>`;
     data.forEach(s => {
         const course = s.sections?.courses;
         const courseLabel = course ? `${course.code} - ${course.name}` : 'Unknown';
@@ -886,14 +908,16 @@ async function loadAttendanceSessions() {
             <td>${s.end_time}</td>
             <td><strong>${s.code}</strong></td>
             <td>${expires}</td>
-            <td><button class="btn btn-danger btn-sm" onclick="deleteAttendanceSession('${s.id}')">🗑️</button></td>
+            <td>
+                <button class="btn btn-outline btn-sm" onclick="openMarkAttendanceModal('${s.id}')">✅ Mark</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteAttendanceSession('${s.id}')">🗑️</button>
+            </td>
         </tr>`;
     });
     html += '</tbody></table></div>';
     container.innerHTML = html;
 }
 
-// Add Attendance Session
 document.getElementById('attendanceForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const courseId = document.getElementById('attCourse').value;
@@ -917,10 +941,10 @@ document.getElementById('attendanceForm').addEventListener('submit', async (e) =
     document.getElementById('attCodeDisplay').textContent = `Code: ${code} (valid 15 mins)`;
     document.getElementById('attCodeDisplay').style.display = 'block';
     loadAttendanceSessions();
+    loadManualSessions();
     document.getElementById('attendanceForm').reset();
 });
 
-// Delete Attendance Session
 window.deleteAttendanceSession = async function(sessionId) {
     if (!confirm('Delete this attendance session?')) return;
     const { error } = await supabase
@@ -930,6 +954,160 @@ window.deleteAttendanceSession = async function(sessionId) {
     if (error) { alert('Error: ' + error.message); return; }
     alert('Session deleted.');
     loadAttendanceSessions();
+    loadManualSessions();
+};
+
+// ============================================================
+// MANUAL ATTENDANCE MARKING
+// ============================================================
+async function loadManualSessions() {
+    const select = document.getElementById('manualSessionSelect');
+    const { data, error } = await supabase
+        .from('attendance_sessions')
+        .select(`
+            id,
+            date,
+            start_time,
+            end_time,
+            sections (
+                courses ( code, name )
+            )
+        `)
+        .order('date', { ascending: false });
+    if (error || !data || data.length === 0) {
+        select.innerHTML = '<option value="">No sessions available</option>';
+        return;
+    }
+    const options = data.map(s => {
+        const course = s.sections?.courses;
+        const courseLabel = course ? `${course.code} - ${course.name}` : 'Unknown';
+        return { id: s.id, label: `${courseLabel} - ${s.date} ${s.start_time}-${s.end_time}` };
+    });
+    renderSelect(select, options, 'id', 'label');
+}
+
+window.openMarkAttendanceModal = async (sessionId) => {
+    // If sessionId is not provided, get it from the dropdown
+    if (!sessionId) {
+        sessionId = document.getElementById('manualSessionSelect').value;
+    }
+    if (!sessionId) { alert('Please select a session first.'); return; }
+    currentManualSessionId = sessionId;
+
+    // Fetch session details
+    const { data: session, error: sessionError } = await supabase
+        .from('attendance_sessions')
+        .select(`
+            id,
+            date,
+            start_time,
+            end_time,
+            section_id,
+            sections (
+                course_id,
+                courses ( code, name )
+            )
+        `)
+        .eq('id', sessionId)
+        .single();
+    if (sessionError) { alert('Error loading session: ' + sessionError.message); return; }
+    const course = session.sections?.courses;
+    document.getElementById('markAttendanceInfo').innerHTML = `
+        <strong>${course ? course.code + ' - ' + course.name : 'Unknown'}</strong> &nbsp;|&nbsp;
+        ${session.date} &nbsp; ${session.start_time} – ${session.end_time}
+    `;
+
+    // Fetch enrolled students for this course
+    const courseId = session.sections?.course_id;
+    if (!courseId) { alert('Course not found for this session.'); return; }
+    const { data: enrollments, error: enrollError } = await supabase
+        .from('course_enrollments')
+        .select('student_id, profiles ( id, first_name, last_name )')
+        .eq('course_id', courseId);
+    if (enrollError) { alert('Error loading students: ' + enrollError.message); return; }
+    if (!enrollments || enrollments.length === 0) {
+        document.getElementById('markAttendanceBody').innerHTML = '<tr><td colspan="3">No students enrolled.</td></tr>';
+        document.getElementById('markAttendanceModal').classList.add('active');
+        return;
+    }
+
+    // Fetch existing attendance records for this session
+    const { data: records, error: recError } = await supabase
+        .from('attendance_records')
+        .select('student_id, status')
+        .eq('session_id', sessionId);
+    if (recError) { alert('Error loading records: ' + recError.message); return; }
+    const recordMap = {};
+    records.forEach(r => { recordMap[r.student_id] = r.status; });
+
+    // Build table rows
+    let html = '';
+    enrollments.forEach(en => {
+        const student = en.profiles;
+        if (!student) return;
+        const status = recordMap[student.id] || 'present';
+        html += `<tr>
+            <td>${student.first_name} ${student.last_name}</td>
+            <td>
+                <select class="att-status-select" data-student="${student.id}">
+                    <option value="present" ${status === 'present' ? 'selected' : ''}>Present</option>
+                    <option value="late" ${status === 'late' ? 'selected' : ''}>Late</option>
+                    <option value="absent" ${status === 'absent' ? 'selected' : ''}>Absent</option>
+                </select>
+            </td>
+            <td>
+                <button class="btn btn-danger btn-sm" onclick="deleteAttendanceRecord('${sessionId}','${student.id}')">🗑️</button>
+            </td>
+        </tr>`;
+    });
+    document.getElementById('markAttendanceBody').innerHTML = html;
+    document.getElementById('markAttendanceModal').classList.add('active');
+};
+
+window.closeMarkAttendanceModal = () => {
+    document.getElementById('markAttendanceModal').classList.remove('active');
+};
+
+window.saveManualAttendance = async () => {
+    const sessionId = currentManualSessionId;
+    if (!sessionId) return;
+    const selects = document.querySelectorAll('#markAttendanceBody .att-status-select');
+    const records = [];
+    selects.forEach(sel => {
+        const studentId = sel.dataset.student;
+        const status = sel.value;
+        records.push({ student_id: studentId, status });
+    });
+    // Upsert each record
+    for (const rec of records) {
+        const { error } = await supabase
+            .from('attendance_records')
+            .upsert({
+                session_id: sessionId,
+                student_id: rec.student_id,
+                status: rec.status,
+                marked_at: new Date().toISOString()
+            }, { onConflict: 'session_id,student_id' });
+        if (error) {
+            alert('Error saving record for student: ' + error.message);
+            return;
+        }
+    }
+    alert('Attendance saved successfully!');
+    closeMarkAttendanceModal();
+    loadAttendanceSessions();
+};
+
+window.deleteAttendanceRecord = async (sessionId, studentId) => {
+    if (!confirm('Delete this attendance record?')) return;
+    const { error } = await supabase
+        .from('attendance_records')
+        .delete()
+        .eq('session_id', sessionId)
+        .eq('student_id', studentId);
+    if (error) { alert('Error: ' + error.message); return; }
+    // Refresh the modal
+    openMarkAttendanceModal(sessionId);
 };
 
 // ============================================================
@@ -971,7 +1149,6 @@ async function loadAssessmentsList() {
     container.innerHTML = html;
 }
 
-// Delete Assessment
 window.deleteAssessment = async function(assessmentId) {
     if (!confirm('Delete this assessment and all questions?')) return;
     const { error } = await supabase
@@ -1020,7 +1197,6 @@ async function loadInterventions() {
     container.innerHTML = html;
 }
 
-// Add Intervention
 document.getElementById('interventionForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const courseId = document.getElementById('intervCourse').value;
@@ -1043,7 +1219,6 @@ document.getElementById('interventionForm').addEventListener('submit', async (e)
     document.getElementById('interventionForm').reset();
 });
 
-// Delete Intervention
 window.deleteIntervention = async function(interventionId) {
     if (!confirm('Delete this intervention?')) return;
     const { error } = await supabase
@@ -1058,7 +1233,6 @@ window.deleteIntervention = async function(interventionId) {
 // ============================================================
 // PENDING APPROVALS, STATS, GRADEBOOK, WEIGHTS, COMPUTE, FINAL, ENROLL
 // ============================================================
-// (These are the same as before – I'll keep them short)
 async function loadPendingApprovals() {
     const container = document.getElementById('pendingApprovalsList');
     const { data, error } = await supabase
@@ -1121,21 +1295,177 @@ async function updateStats() {
     document.getElementById('statAssessments').textContent = totalAssessments;
 }
 
-// Gradebook, Weights, Compute, Final, Enroll – same as before
-// I'll include them as placeholders but they are fully functional in the original code.
-// To keep the answer concise, I'll include them in the final HTML.
+// ============================================================
+// ASSESSMENT BUILDER FUNCTIONS
+// ============================================================
+window.goToStep = (step) => {
+    document.querySelectorAll('.step').forEach(el => {
+        el.style.display = 'none';
+        el.classList.remove('active');
+    });
+    const target = document.querySelector(`.step[data-step="${step}"]`);
+    if (target) {
+        target.style.display = 'block';
+        target.classList.add('active');
+    }
+};
+
+function renderQuestions() {
+    const container = document.getElementById('questionList');
+    if (assessmentQuestions.length === 0) {
+        container.innerHTML = '<div class="empty-state">No questions added yet.</div>';
+        return;
+    }
+    let html = '';
+    assessmentQuestions.forEach((q, idx) => {
+        const typeLabel = {mc:'Multiple Choice', tf:'True/False', essay:'Essay', fill:'Fill in the Blank'}[q.type] || q.type;
+        html += `<div class="question-item">
+            <div class="q-text"><strong>${idx+1}.</strong> ${q.question} <span class="text-muted">(${typeLabel}, ${q.points} pts)</span></div>
+            <div class="q-actions">
+                <button class="btn btn-outline btn-sm" onclick="editQuestion(${idx})">✏️</button>
+                <button class="btn btn-danger-outline btn-sm" onclick="removeQuestion(${idx})">🗑️</button>
+            </div>
+        </div>`;
+    });
+    container.innerHTML = html;
+}
+
+window.openQuestionEditor = () => {
+    editingQuestionIndex = -1;
+    document.getElementById('modalTitle').textContent = 'Add Question';
+    document.getElementById('questionEditorForm').reset();
+    document.getElementById('qText').value = '';
+    document.getElementById('qOptions').value = '';
+    document.getElementById('qType').value = 'mc';
+    toggleOptions();
+    document.getElementById('questionModal').classList.add('active');
+};
+
+window.editQuestion = (idx) => {
+    editingQuestionIndex = idx;
+    const q = assessmentQuestions[idx];
+    document.getElementById('modalTitle').textContent = 'Edit Question';
+    document.getElementById('qText').value = q.question;
+    document.getElementById('qType').value = q.type;
+    document.getElementById('qPoints').value = q.points;
+    if (q.options && q.options.length) {
+        let opts = q.options.map((o, i) => (i === q.correct ? `*${o}` : o)).join('\n');
+        document.getElementById('qOptions').value = opts;
+    } else {
+        document.getElementById('qOptions').value = '';
+    }
+    toggleOptions();
+    document.getElementById('questionModal').classList.add('active');
+};
+
+window.removeQuestion = (idx) => {
+    if (!confirm('Remove this question?')) return;
+    assessmentQuestions.splice(idx, 1);
+    renderQuestions();
+};
+
+window.clearQuestions = () => {
+    if (!confirm('Clear all questions?')) return;
+    assessmentQuestions = [];
+    renderQuestions();
+};
+
+window.closeQuestionEditor = () => {
+    document.getElementById('questionModal').classList.remove('active');
+};
+
+function toggleOptions() {
+    const type = document.getElementById('qType').value;
+    const group = document.getElementById('optionsGroup');
+    if (type === 'essay' || type === 'fill') {
+        group.style.display = 'none';
+    } else {
+        group.style.display = 'block';
+    }
+}
+window.toggleOptions = toggleOptions;
+
+document.getElementById('questionEditorForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const question = document.getElementById('qText').value.trim();
+    const type = document.getElementById('qType').value;
+    const points = parseInt(document.getElementById('qPoints').value) || 1;
+    let options = null;
+    let correct = null;
+    if (type === 'mc' || type === 'tf') {
+        const raw = document.getElementById('qOptions').value.split('\n').filter(s => s.trim() !== '');
+        options = raw.map(s => s.replace(/^\*\s*/, '').trim());
+        const idx = raw.findIndex(s => s.trim().startsWith('*'));
+        correct = (idx !== -1) ? idx : 0;
+    }
+    const q = { question, type, options, correct, points };
+    if (editingQuestionIndex === -1) {
+        assessmentQuestions.push(q);
+    } else {
+        assessmentQuestions[editingQuestionIndex] = q;
+    }
+    renderQuestions();
+    closeQuestionEditor();
+});
+
+window.importFromBank = async () => {
+    const courseId = document.getElementById('assessCourse').value;
+    if (!courseId) { alert('Please select a course first.'); return; }
+    const { data: bank, error } = await supabase.from('question_bank').select('*').eq('course_id', courseId);
+    if (error) { alert('Error loading bank: ' + error.message); return; }
+    if (!bank || bank.length === 0) { alert('No questions in the bank for this course.'); return; }
+    const imported = bank.map(b => ({
+        question: b.question, type: b.type, options: b.options || null, correct: b.correct_answer || null, points: 1
+    }));
+    assessmentQuestions = assessmentQuestions.concat(imported);
+    renderQuestions();
+    alert(`Imported ${imported.length} questions.`);
+};
+
+window.uploadQuestions = () => {
+    document.getElementById('jsonFileInput').click();
+};
+
+window.handleFileUpload = function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            let content = e.target.result;
+            let jsonData;
+            if (file.name.endsWith('.js')) {
+                const match = content.match(/const\s+QUESTION_BANK\s*=\s*(\[[\s\S]*?\]);/);
+                if (match) jsonData = eval(match[1]);
+                else throw new Error('Could not find QUESTION_BANK array.');
+            } else {
+                jsonData = JSON.parse(content);
+            }
+            if (!Array.isArray(jsonData)) throw new Error('File must contain an array.');
+            const imported = jsonData.map(q => ({
+                question: q.question || q.text || '',
+                type: q.type || 'mc',
+                options: q.options || null,
+                correct: q.correct !== undefined ? q.correct : (q.answer !== undefined ? q.answer : null),
+                points: q.points || 1
+            })).filter(q => q.question.trim() !== '');
+            if (imported.length === 0) { alert('No valid questions found.'); return; }
+            assessmentQuestions = assessmentQuestions.concat(imported);
+            renderQuestions();
+            alert(`Imported ${imported.length} questions.`);
+        } catch (err) {
+            alert('Error parsing file: ' + err.message);
+            console.error(err);
+        }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+};
 
 // ============================================================
-// ASSESSMENT BUILDER FUNCTIONS (short version)
-// ============================================================
-// goToStep, renderQuestions, openQuestionEditor, etc. – same as earlier.
-// I'll paste them in the final HTML.
-
-// ============================================================
-// SETUP EVENT LISTENERS FOR OTHER MODULES
+// OTHER EVENT LISTENERS (Gradebook, Weights, Compute, Final, Enroll, Reports)
 // ============================================================
 function setupEventListeners() {
-    // Weights
     document.getElementById('weightsForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const courseId = document.getElementById('weightsCourse').value;
@@ -1149,7 +1479,6 @@ function setupEventListeners() {
         alert('Weights saved!');
     });
 
-    // Compute
     document.getElementById('computeForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const courseId = document.getElementById('computeCourse').value;
@@ -1186,7 +1515,6 @@ function setupEventListeners() {
         document.getElementById('computedGradesResult').innerHTML = html;
     });
 
-    // Final
     document.getElementById('finalForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const courseId = document.getElementById('finalCourse').value;
@@ -1214,7 +1542,6 @@ function setupEventListeners() {
         document.getElementById('finalResult').innerHTML = html;
     });
 
-    // Enroll
     document.getElementById('enrollForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const courseId = document.getElementById('enrollCourse').value;
@@ -1231,16 +1558,10 @@ function setupEventListeners() {
         else { alert('Student enrolled!'); updateStats(); }
     });
 
-    // Gradebook
     document.getElementById('manualCourseSelect').addEventListener('change', loadGradebook);
-
-    // Load students for intervention
     document.getElementById('intervCourse').addEventListener('change', loadStudentsForIntervention);
-
-    // Load weights inputs
     document.getElementById('weightsCourse').addEventListener('change', loadWeightsInputs);
 
-    // Reports
     document.getElementById('reportForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const courseId = document.getElementById('reportCourse').value;
@@ -1249,12 +1570,11 @@ function setupEventListeners() {
         document.getElementById('reportOutput').textContent = `${type} report (to be implemented).`;
     });
 
-    // Export CSV
     document.getElementById('exportGrades').addEventListener('click', () => alert('CSV Export – coming soon!'));
 }
 
 // ============================================================
-// ADDITIONAL HELPERS (Gradebook, Weights, Students)
+// ADDITIONAL HELPERS
 // ============================================================
 async function loadGradebook() {
     const courseId = document.getElementById('manualCourseSelect').value;
@@ -1330,12 +1650,6 @@ async function loadWeightsInputs() {
     });
     container.innerHTML = html;
 }
-
-// ============================================================
-// ASSESSMENT BUILDER FUNCTIONS (full)
-// ============================================================
-// (Include all the assessment builder functions from previous version)
-// I'll paste them in the final HTML to ensure they are present.
 
 // ============================================================
 // START
