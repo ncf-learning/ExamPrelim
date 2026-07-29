@@ -52,3 +52,26 @@ export async function checkSessionAndRedirect() {
     }
     return profile; // still pending
 }
+// Additional helper for instructor
+export async function getInstructorCourses(instructorId) {
+    const { data, error } = await supabase
+        .from('courses')
+        .select('*')
+        .eq('instructor_id', instructorId);
+    if (error) throw error;
+    return data;
+}
+
+export async function getCourseEnrollments(courseId) {
+    const { data, error } = await supabase
+        .from('course_enrollments')
+        .select('*, profiles(first_name, last_name, student_id)')
+        .eq('course_id', courseId);
+    if (error) throw error;
+    return data;
+}
+
+// ... add more as needed
+
+
+
