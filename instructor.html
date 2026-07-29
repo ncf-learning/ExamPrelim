@@ -601,15 +601,26 @@ function populateCourseSelects() {
 // INIT
 // ============================================================
 async function init() {
+    console.log('🔐 Initialising instructor dashboard...');
     const user = await getCurrentUser();
-    if (!user) { window.location.href = 'index.html'; return; }
+    if (!user) { 
+        console.error('❌ No user found, redirecting to login.');
+        window.location.href = 'index.html'; 
+        return; 
+    }
     currentUser = user;
+    console.log('✅ Logged in as:', currentUser.id);
 
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .maybeSingle();
+    if (profileError) {
+        console.error('❌ Profile error:', profileError);
+        alert('Error loading profile. Please check RLS settings.');
+        return;
+    }
     if (!profile || profile.role !== 'instructor') {
         alert('Not authorized as instructor.');
         window.location.href = 'index.html';
@@ -619,6 +630,7 @@ async function init() {
     document.getElementById('userAvatar').textContent = (profile.first_name?.[0] || 'N') + (profile.last_name?.[0] || 'C');
     document.getElementById('userName').textContent = `${profile.first_name} ${profile.last_name}`;
 
+    // Ensure each course has exactly one section (cleanup)
     await ensureSingleSectionPerCourse();
 
     await loadInstructorData();
@@ -631,20 +643,30 @@ async function init() {
     loadManualSessions();
     loadAssessmentsList();
     loadInterventions();
+
+    console.log('🏁 Dashboard initialised.');
 }
 
 // ============================================================
 // COURSES CRUD
 // ============================================================
 window.loadInstructorData = async function() {
+    console.log('🔄 loadInstructorData called. currentUser:', currentUser);
+    if (!currentUser) {
+        console.error('❌ No currentUser!');
+        return;
+    }
+    console.log('📚 Fetching courses for instructor:', currentUser.id);
     const { data: courses, error } = await supabase
         .from('courses')
         .select('*')
         .eq('instructor_id', currentUser.id);
     if (error) {
-        console.error('Error loading courses:', error);
+        console.error('❌ Error loading courses:', error);
+        alert('Error loading courses: ' + error.message);
         return;
     }
+    console.log('✅ Courses fetched:', courses);
     instructorCourses = courses || [];
 
     const container = document.getElementById('instructorCourses');
