@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirm Email – NCF Learning System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div id="message" style="text-align:center; padding:2rem;">
+            <h2>📧 Verifying your email...</h2>
+            <div id="status" style="margin-top:1rem; color:#94a3b8;">Please wait...</div>
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2"
+            }
+        }
+    </script>
+    <script type="module">
+        import { supabase } from './supabase.js';
+
+        const statusEl = document.getElementById('status');
+
+        async function handleConfirmation() {
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('token_hash');
+            const type = params.get('type');
+
+            if (!token || type !== 'email') {
+                statusEl.textContent = '❌ Invalid confirmation link.';
+                statusEl.style.color = '#ef4444';
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase.auth.verifyOtp({
+                    token_hash: token,
+                    type: 'email',
+                });
+
+                if (error) throw error;
+
+                statusEl.innerHTML = `
+                    ✅ Email confirmed successfully!<br>
+                    <a href="index.html" style="color:#3b82f6; margin-top:1rem; display:inline-block;">Continue to Login</a>
+                `;
+                statusEl.style.color = '#22c55e';
+            } catch (error) {
+                console.error('Confirmation error:', error);
+                statusEl.innerHTML = `
+                    ❌ Confirmation failed: ${error.message}<br>
+                    <a href="index.html" style="color:#3b82f6; margin-top:1rem; display:inline-block;">Go to Login</a>
+                `;
+                statusEl.style.color = '#ef4444';
+            }
+        }
+
+        handleConfirmation();
+    </script>
+</body>
+</html>
