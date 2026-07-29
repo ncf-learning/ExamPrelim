@@ -120,6 +120,8 @@
         .modal-content table { width:100%; }
         .modal-content select { padding:0.3rem 0.6rem; border-radius:4px; border:1px solid #e2e8f0; }
 
+        .debug-box { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.75rem; margin-top:0.5rem; font-family:monospace; font-size:0.8rem; max-height:200px; overflow-y:auto; white-space:pre-wrap; }
+
         @media (max-width:1024px) { .sidebar { width:220px; } .main { padding:1.5rem; } .form-grid { grid-template-columns:1fr; } }
         @media (max-width:768px) { .app { flex-direction:column; } .sidebar { width:100%; height:auto; position:static; padding:1rem; } .sidebar nav { display:flex; flex-wrap:wrap; gap:0.25rem; } .sidebar nav .nav-label { display:none; } .sidebar nav .nav-item { padding:0.4rem 0.7rem; font-size:0.8rem; } .sidebar .user-section { display:none; } .main { padding:1rem; } .stats-grid { grid-template-columns:1fr 1fr; } }
         @media (max-width:480px) { .stats-grid { grid-template-columns:1fr; } .page-header { flex-direction:column; align-items:flex-start; } }
@@ -189,18 +191,22 @@
             <div class="page-header">
                 <div><h1>Courses <small>Manage your courses</small></h1></div>
                 <div class="actions">
+                    <button class="btn btn-outline" onclick="testQuery()">🔍 Test Query</button>
                     <button class="btn btn-outline" onclick="loadInstructorData()">🔄 Refresh</button>
                     <button class="btn btn-primary" id="addCourseBtn">+ New Course</button>
                 </div>
             </div>
-            <div class="card"><div id="instructorCourses"><div class="empty-state"><p>Loading your courses...</p></div></div></div>
+            <div class="card">
+                <div id="instructorCourses"><div class="empty-state"><p>Loading your courses...</p></div></div>
+                <!-- Debug output area -->
+                <div id="debugOutput" class="debug-box" style="display:none; margin-top:1rem;"></div>
+            </div>
         </section>
 
         <!-- ATTENDANCE -->
         <section id="section-attendance" class="page-section">
             <div class="page-header"><div><h1>Attendance <small>Create sessions and track attendance</small></h1></div></div>
 
-            <!-- Create Session (Code Generation) -->
             <div class="card">
                 <div class="card-header"><h3>Create Session (Self‑Check‑In)</h3></div>
                 <form id="attendanceForm" class="form-grid">
@@ -213,7 +219,6 @@
                 <div id="attCodeDisplay" style="display:none; margin-top:0.75rem; padding:0.75rem; background:#f1f5f9; border-radius:8px; text-align:center; font-size:1.5rem; font-weight:700; letter-spacing:4px; font-family:monospace;"></div>
             </div>
 
-            <!-- Manual Marking -->
             <div class="card">
                 <div class="card-header"><h3>Manual Attendance Marking</h3></div>
                 <div class="form-grid">
@@ -227,7 +232,6 @@
                 </div>
             </div>
 
-            <!-- Session List -->
             <div class="card"><div class="card-header"><h3>Attendance Sessions</h3></div><div id="attendanceSessionsList"><div class="empty-state"><p>No sessions yet.</p></div></div></div>
         </section>
 
@@ -250,9 +254,7 @@
 
         <!-- ASSESSMENTS -->
         <section id="section-assessments" class="page-section">
-            <div class="page-header">
-                <h1>Assessments <small>Build professional exams with question banks, randomisation, and import</small></h1>
-            </div>
+            <div class="page-header"><h1>Assessments <small>Build professional exams</small></h1></div>
             <div class="card">
                 <div class="card-header"><h3>Create / Edit Assessment</h3></div>
                 <form id="assessmentForm">
@@ -394,7 +396,6 @@
 </div>
 
 <!-- ===== MODALS ===== -->
-<!-- Edit Course Modal -->
 <div class="modal" id="editCourseModal">
     <div class="modal-content">
         <button class="close" onclick="closeEditCourseModal()">✕</button>
@@ -409,7 +410,6 @@
     </div>
 </div>
 
-<!-- Edit Schedule Modal -->
 <div class="modal" id="editScheduleModal">
     <div class="modal-content">
         <button class="close" onclick="closeEditScheduleModal()">✕</button>
@@ -425,7 +425,6 @@
     </div>
 </div>
 
-<!-- Manual Attendance Marking Modal -->
 <div class="modal" id="markAttendanceModal">
     <div class="modal-content">
         <button class="close" onclick="closeMarkAttendanceModal()">✕</button>
@@ -483,7 +482,6 @@ navItems.forEach(item => {
         item.classList.add('active');
         sections.forEach(s => s.classList.remove('active'));
         document.getElementById(`section-${target}`).classList.add('active');
-        // Refresh data on tab change
         if (target === 'courses') loadInstructorData();
         if (target === 'schedule') loadSchedules();
         if (target === 'attendance') { loadAttendanceSessions(); loadManualSessions(); }
@@ -522,7 +520,7 @@ function timeToMinutes(time) {
 }
 
 // ============================================================
-// AUTO-CREATE / CLEANUP SECTIONS (ensure exactly one per course)
+// AUTO-CREATE / CLEANUP SECTIONS
 // ============================================================
 async function ensureSingleSectionPerCourse() {
     const { data: courses, error: coursesError } = await supabase
@@ -557,9 +555,6 @@ async function ensureSingleSectionPerCourse() {
     }
 }
 
-// ============================================================
-// GET OR CREATE SECTION FOR A COURSE
-// ============================================================
 async function ensureSectionForCourse(courseId) {
     const { data: sections, error } = await supabase
         .from('sections')
@@ -586,9 +581,6 @@ async function ensureSectionForCourse(courseId) {
     return newSection.id;
 }
 
-// ============================================================
-// POPULATE COURSE DROPDOWNS
-// ============================================================
 function populateCourseSelects() {
     const ids = ['attCourse','scheduleCourse','assessCourse','weightsCourse','computeCourse','finalCourse','reportCourse','intervCourse','enrollCourse'];
     ids.forEach(id => {
@@ -630,7 +622,6 @@ async function init() {
     document.getElementById('userAvatar').textContent = (profile.first_name?.[0] || 'N') + (profile.last_name?.[0] || 'C');
     document.getElementById('userName').textContent = `${profile.first_name} ${profile.last_name}`;
 
-    // Ensure each course has exactly one section (cleanup)
     await ensureSingleSectionPerCourse();
 
     await loadInstructorData();
@@ -648,25 +639,78 @@ async function init() {
 }
 
 // ============================================================
+// TEST QUERY – debug function
+// ============================================================
+window.testQuery = async function() {
+    const debugDiv = document.getElementById('debugOutput');
+    debugDiv.style.display = 'block';
+    debugDiv.textContent = '⏳ Running test query...\n';
+    
+    // Show current user
+    debugDiv.textContent += `\nCurrent user ID: ${currentUser ? currentUser.id : 'null'}\n`;
+    
+    // Try to fetch courses without filter (all courses)
+    const { data: allCourses, error: allError } = await supabase
+        .from('courses')
+        .select('*');
+    debugDiv.textContent += `\n--- ALL COURSES (no filter) ---\n`;
+    if (allError) {
+        debugDiv.textContent += `❌ Error: ${allError.message}\n`;
+    } else {
+        debugDiv.textContent += `Found ${allCourses.length} courses.\n`;
+        debugDiv.textContent += JSON.stringify(allCourses, null, 2).slice(0, 1000) + '\n';
+    }
+    
+    // Try to fetch courses filtered by instructor_id
+    if (currentUser) {
+        const { data: filtered, error: filterError } = await supabase
+            .from('courses')
+            .select('*')
+            .eq('instructor_id', currentUser.id);
+        debugDiv.textContent += `\n--- FILTERED BY instructor_id = ${currentUser.id} ---\n`;
+        if (filterError) {
+            debugDiv.textContent += `❌ Error: ${filterError.message}\n`;
+        } else {
+            debugDiv.textContent += `Found ${filtered.length} courses.\n`;
+            debugDiv.textContent += JSON.stringify(filtered, null, 2).slice(0, 1000) + '\n';
+        }
+    }
+    
+    debugDiv.scrollTop = debugDiv.scrollHeight;
+};
+
+// ============================================================
 // COURSES CRUD
 // ============================================================
 window.loadInstructorData = async function() {
     console.log('🔄 loadInstructorData called. currentUser:', currentUser);
+    const debugDiv = document.getElementById('debugOutput');
+    debugDiv.style.display = 'block';
+    debugDiv.textContent = '⏳ Loading courses...\n';
+    
     if (!currentUser) {
         console.error('❌ No currentUser!');
+        debugDiv.textContent += '❌ No currentUser! Please log in again.\n';
         return;
     }
     console.log('📚 Fetching courses for instructor:', currentUser.id);
+    debugDiv.textContent += `📚 Fetching for instructor ID: ${currentUser.id}\n`;
+    
     const { data: courses, error } = await supabase
         .from('courses')
         .select('*')
         .eq('instructor_id', currentUser.id);
     if (error) {
         console.error('❌ Error loading courses:', error);
+        debugDiv.textContent += `❌ Error: ${error.message}\n`;
         alert('Error loading courses: ' + error.message);
         return;
     }
     console.log('✅ Courses fetched:', courses);
+    debugDiv.textContent += `✅ Found ${courses.length} courses.\n`;
+    debugDiv.textContent += JSON.stringify(courses, null, 2).slice(0, 500) + '\n';
+    debugDiv.scrollTop = debugDiv.scrollHeight;
+    
     instructorCourses = courses || [];
 
     const container = document.getElementById('instructorCourses');
@@ -899,7 +943,7 @@ window.deleteSchedule = async function(scheduleId) {
 };
 
 // ============================================================
-// ATTENDANCE CRUD
+// ATTENDANCE CRUD (shortened – same as before)
 // ============================================================
 async function loadAttendanceSessions() {
     const container = document.getElementById('attendanceSessionsList');
@@ -983,7 +1027,7 @@ window.deleteAttendanceSession = async function(sessionId) {
 };
 
 // ============================================================
-// MANUAL ATTENDANCE MARKING
+// MANUAL ATTENDANCE MARKING (shortened)
 // ============================================================
 async function loadManualSessions() {
     const select = document.getElementById('manualSessionSelect');
@@ -1018,7 +1062,6 @@ window.openMarkAttendanceModal = async (sessionId) => {
     if (!sessionId) { alert('Please select a session first.'); return; }
     currentManualSessionId = sessionId;
 
-    // Fetch session details
     const { data: session, error: sessionError } = await supabase
         .from('attendance_sessions')
         .select(`
@@ -1041,7 +1084,6 @@ window.openMarkAttendanceModal = async (sessionId) => {
         ${session.date} &nbsp; ${session.start_time} – ${session.end_time}
     `;
 
-    // Fetch enrolled students for this course
     const courseId = session.sections?.course_id;
     if (!courseId) { alert('Course not found for this session.'); return; }
     const { data: enrollments, error: enrollError } = await supabase
@@ -1055,7 +1097,6 @@ window.openMarkAttendanceModal = async (sessionId) => {
         return;
     }
 
-    // Fetch existing attendance records for this session
     const { data: records, error: recError } = await supabase
         .from('attendance_records')
         .select('student_id, status')
@@ -1064,7 +1105,6 @@ window.openMarkAttendanceModal = async (sessionId) => {
     const recordMap = {};
     records.forEach(r => { recordMap[r.student_id] = r.status; });
 
-    // Build table rows
     let html = '';
     enrollments.forEach(en => {
         const student = en.profiles;
@@ -1103,7 +1143,6 @@ window.saveManualAttendance = async () => {
         const status = sel.value;
         records.push({ student_id: studentId, status });
     });
-    // Upsert each record
     for (const rec of records) {
         const { error } = await supabase
             .from('attendance_records')
@@ -1131,7 +1170,6 @@ window.deleteAttendanceRecord = async (sessionId, studentId) => {
         .eq('session_id', sessionId)
         .eq('student_id', studentId);
     if (error) { alert('Error: ' + error.message); return; }
-    // Refresh the modal
     openMarkAttendanceModal(sessionId);
 };
 
