@@ -65,6 +65,7 @@
         .form-group label { font-size:0.8rem; font-weight:500; color:#475569; }
         .form-group input, .form-group select, .form-group textarea { padding:0.6rem 0.8rem; border:1px solid #e2e8f0; border-radius:8px; font-size:0.875rem; font-family:inherit; background:#fff; width:100%; transition:0.2s; }
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,0.1); }
+        .form-group input[type="file"] { padding:0.4rem; border:2px dashed #e2e8f0; cursor:pointer; }
         .form-group input[type="checkbox"] { width:auto; }
 
         /* ===== BUTTONS ===== */
@@ -115,6 +116,9 @@
         .modal-content { background:#fff; border-radius:12px; padding:2rem; max-width:600px; width:90%; max-height:80vh; overflow-y:auto; }
         .modal-content .form-grid { grid-template-columns:1fr; }
         .modal-content .close { float:right; background:none; border:none; font-size:1.5rem; cursor:pointer; }
+
+        /* Upload preview */
+        .upload-preview { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.75rem; margin-top:0.5rem; max-height:150px; overflow-y:auto; }
 
         @media (max-width:1024px) { .sidebar { width:220px; } .main { padding:1.5rem; } .form-grid { grid-template-columns:1fr; } }
         @media (max-width:768px) { .app { flex-direction:column; } .sidebar { width:100%; height:auto; position:static; padding:1rem; } .sidebar nav { display:flex; flex-wrap:wrap; gap:0.25rem; } .sidebar nav .nav-label { display:none; } .sidebar nav .nav-item { padding:0.4rem 0.7rem; font-size:0.8rem; } .sidebar .user-section { display:none; } .main { padding:1rem; } .stats-grid { grid-template-columns:1fr 1fr; } }
@@ -226,7 +230,7 @@
         <!-- ASSESSMENTS (Advanced Builder) -->
         <section id="section-assessments" class="page-section">
             <div class="page-header">
-                <h1>Assessments <small>Build professional exams with question banks and randomisation</small></h1>
+                <h1>Assessments <small>Build professional exams with question banks, randomisation, and import</small></h1>
             </div>
             <div class="card">
                 <div class="card-header"><h3>Create / Edit Assessment</h3></div>
@@ -258,6 +262,7 @@
                         <div style="display:flex; gap:0.5rem; margin-top:0.5rem; flex-wrap:wrap;">
                             <button type="button" class="btn btn-outline" onclick="openQuestionEditor()">+ Add Question</button>
                             <button type="button" class="btn btn-outline" onclick="importFromBank()">📚 Import from Bank</button>
+                            <button type="button" class="btn btn-outline" onclick="uploadQuestions()">📤 Upload JSON</button>
                             <button type="button" class="btn btn-outline" onclick="clearQuestions()">🗑️ Clear All</button>
                         </div>
                         <div style="margin-top:1rem;">
@@ -278,6 +283,8 @@
                         <button type="button" class="btn btn-outline" onclick="goToStep(2)">← Back</button>
                     </div>
                 </form>
+                <!-- Hidden file input for JSON upload -->
+                <input type="file" id="jsonFileInput" accept=".json,.js" style="display:none" onchange="handleFileUpload(event)" />
             </div>
         </section>
 
@@ -817,6 +824,9 @@ document.getElementById('questionEditorForm').addEventListener('submit', (e) => 
     closeQuestionEditor();
 });
 
+// ============================================================
+// IMPORT FROM EXISTING QUESTION BANK (DB)
+// ============================================================
 window.importFromBank = async () => {
     const courseId = document.getElementById('assessCourse').value;
     if (!courseId) {
@@ -846,6 +856,72 @@ window.importFromBank = async () => {
     renderQuestions();
     alert(`Imported ${imported.length} questions.`);
 };
+
+// ============================================================
+// UPLOAD JSON / JS FILE (supports questions.js format)
+// ============================================================
+window.uploadQuestions = () => {
+    document.getElementById('jsonFileInput').click();
+};
+
+function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            let content = e.target.result;
+            // If it's a .js file, strip the 'const QUESTION_BANK =' part and get the array
+            let jsonData;
+            if (file.name.endsWith('.js')) {
+                // Find the array literal
+                const match = content.match(/const\s+QUESTION_BANK\s*=\s*(\[[\s\S]*?\]);/);
+                if (match) {
+                    // Use eval or Function to parse the array
+                    jsonData = eval(match[1]); // note: eval is used here for simplicity; in production, use a safer parser
+                } else {
+                    throw new Error('Could not find QUESTION_BANK array in the file.');
+                }
+            } else {
+                jsonData = JSON.parse(content);
+            }
+            
+            // Check if it's an array
+            if (!Array.isArray(jsonData)) {
+                throw new Error('Uploaded file must contain a question array.');
+            }
+            
+            // Map to our internal format
+            const imported = jsonData.map(q => ({
+                question: q.question || q.text || '',
+                type: q.type || 'mc',
+                options: q.options || null,
+                correct: q.correct !== undefined ? q.correct : (q.answer !== undefined ? q.answer : null),
+                points: q.points || 1
+            }));
+            
+            // Filter out empty questions
+            const valid = imported.filter(q => q.question.trim() !== '');
+            if (valid.length === 0) {
+                alert('No valid questions found in the file.');
+                return;
+            }
+            
+            assessmentQuestions = assessmentQuestions.concat(valid);
+            renderQuestions();
+            alert(`Successfully imported ${valid.length} questions.`);
+        } catch (err) {
+            alert('Error parsing file: ' + err.message);
+            console.error(err);
+        }
+    };
+    reader.readAsText(file);
+    // Reset the input so the same file can be uploaded again
+    event.target.value = '';
+}
+// Make the function globally accessible for the onchange attribute
+window.handleFileUpload = handleFileUpload;
 
 // ============================================================
 // SETUP EVENT LISTENERS
@@ -915,7 +991,7 @@ function setupEventListeners() {
         display.style.display = 'block';
     });
 
-    // Schedule - FIXED: Uses section_id correctly
+    // Schedule - Uses section_id correctly
     document.getElementById('scheduleForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const sectionId = document.getElementById('scheduleSection').value;
