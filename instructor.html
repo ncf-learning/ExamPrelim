@@ -5,502 +5,959 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Instructor Dashboard – NCF Learning System</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        /* Dashboard-specific styles */
-        .dashboard-layout {
+        /* ============================================================
+           RESET & BASE
+           ============================================================ */
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #f8fafc;
+            color: #0f172a;
+            min-height: 100vh;
+        }
+
+        /* ============================================================
+           LAYOUT
+           ============================================================ */
+        .app {
             display: flex;
             min-height: 100vh;
-            background: #0f172a;
         }
+
+        /* ============================================================
+           SIDEBAR
+           ============================================================ */
         .sidebar {
             width: 260px;
-            background: #1e293b;
+            background: #ffffff;
+            border-right: 1px solid #e2e8f0;
             padding: 1.5rem 1rem;
-            border-right: 1px solid #334155;
             position: sticky;
             top: 0;
             height: 100vh;
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
         }
         .sidebar .brand {
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
             padding-bottom: 1.5rem;
-            border-bottom: 1px solid #334155;
+            border-bottom: 1px solid #e2e8f0;
             margin-bottom: 1.5rem;
+        }
+        .sidebar .brand .logo {
+            width: 40px; height: 40px;
+            background: #0f172a;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        .sidebar .brand .name {
+            font-weight: 700;
+            font-size: 1.1rem;
+            line-height: 1.2;
+        }
+        .sidebar .brand .name small {
+            display: block;
+            font-weight: 400;
+            font-size: 0.7rem;
+            color: #64748b;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .sidebar nav {
+            flex: 1;
+        }
+        .sidebar nav .nav-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #94a3b8;
+            padding: 0.75rem 0.75rem 0.5rem;
+            font-weight: 600;
+        }
+        .sidebar nav .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 0.75rem;
+            border-radius: 8px;
+            color: #475569;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            margin-bottom: 1px;
+        }
+        .sidebar nav .nav-item:hover {
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+        .sidebar nav .nav-item.active {
+            background: #0f172a;
+            color: #ffffff;
+        }
+        .sidebar nav .nav-item .icon {
+            font-size: 1.1rem;
+            width: 24px;
             text-align: center;
         }
-        .sidebar .nav-item {
-            display: block;
-            padding: 0.7rem 1rem;
-            color: #94a3b8;
-            text-decoration: none;
-            border-radius: 0.5rem;
-            margin-bottom: 0.2rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .sidebar .nav-item:hover {
-            background: #0f172a;
-            color: #f1f5f9;
-        }
-        .sidebar .nav-item.active {
-            background: #3b82f6;
+        .sidebar nav .nav-item .badge {
+            margin-left: auto;
+            background: #ef4444;
             color: #fff;
-        }
-        .main-content {
-            flex: 1;
-            padding: 2rem;
-            overflow-y: auto;
-        }
-        .page-section {
-            display: none;
-        }
-        .page-section.active {
-            display: block;
-        }
-        .card {
-            background: #1e293b;
-            border-radius: 0.75rem;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            border: 1px solid #334155;
-        }
-        .card-header {
-            font-size: 1.2rem;
+            font-size: 0.6rem;
+            padding: 0.1rem 0.5rem;
+            border-radius: 10px;
             font-weight: 600;
-            color: #f1f5f9;
-            margin-bottom: 1rem;
         }
-        .table-wrap {
-            overflow-x: auto;
+
+        .sidebar .user-section {
+            border-top: 1px solid #e2e8f0;
+            padding-top: 1rem;
+            margin-top: auto;
         }
-        table {
+        .sidebar .user-section .user-card {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            background: #f8fafc;
+        }
+        .sidebar .user-section .user-card .avatar {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: #0f172a;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .sidebar .user-section .user-card .info .name {
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .sidebar .user-section .user-card .info .role {
+            font-size: 0.7rem;
+            color: #64748b;
+        }
+        .sidebar .user-section .logout-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 0.75rem;
+            border-radius: 8px;
+            color: #ef4444;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s;
+            margin-top: 0.5rem;
+            border: none;
+            background: transparent;
             width: 100%;
-            border-collapse: collapse;
-            color: #e2e8f0;
+            font-family: inherit;
         }
-        th, td {
-            padding: 0.75rem 1rem;
-            text-align: left;
-            border-bottom: 1px solid #334155;
+        .sidebar .user-section .logout-btn:hover {
+            background: #fef2f2;
         }
-        th {
-            color: #94a3b8;
+
+        /* ============================================================
+           MAIN CONTENT
+           ============================================================ */
+        .main {
+            flex: 1;
+            padding: 2rem 2.5rem;
+            overflow-y: auto;
+            min-width: 0;
+        }
+
+        /* ============================================================
+           HEADER
+           ============================================================ */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .page-header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+        .page-header h1 small {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 400;
+            color: #64748b;
+        }
+        .page-header .actions {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        /* ============================================================
+           STATS
+           ============================================================ */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            border: 1px solid #e2e8f0;
+        }
+        .stat-card .number {
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+        .stat-card .label {
+            font-size: 0.8rem;
+            color: #64748b;
             font-weight: 500;
         }
-        .btn-sm {
-            padding: 0.3rem 0.8rem;
-            font-size: 0.8rem;
-            border-radius: 0.3rem;
-            border: none;
-            cursor: pointer;
+        .stat-card .icon {
+            float: right;
+            font-size: 1.8rem;
+            opacity: 0.6;
         }
-        .btn-success { background: #22c55e; color: #fff; }
-        .btn-danger { background: #ef4444; color: #fff; }
-        .btn-warning { background: #f59e0b; color: #fff; }
-        .btn-primary { background: #3b82f6; color: #fff; }
-        .btn-secondary { background: #64748b; color: #fff; }
-        .form-row {
+
+        /* ============================================================
+           CARDS
+           ============================================================ */
+        .card {
+            background: #ffffff;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .card-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        .card-header .action {
+            font-size: 0.8rem;
+            color: #3b82f6;
+            cursor: pointer;
+            font-weight: 500;
+            background: none;
+            border: none;
+            font-family: inherit;
+        }
+        .card-header .action:hover { text-decoration: underline; }
+
+        /* ============================================================
+           TABLE
+           ============================================================ */
+        .table-wrap { overflow-x: auto; }
+        table { width:100%; border-collapse:collapse; font-size:0.875rem; }
+        table th {
+            text-align: left;
+            padding:0.6rem 0.75rem;
+            color:#64748b;
+            font-weight:600;
+            font-size:0.75rem;
+            text-transform:uppercase;
+            letter-spacing:0.5px;
+            border-bottom:2px solid #e2e8f0;
+            background:#f8fafc;
+        }
+        table td {
+            padding:0.6rem 0.75rem;
+            border-bottom:1px solid #f1f5f9;
+            color:#0f172a;
+        }
+        table tbody tr:hover { background:#f8fafc; }
+
+        /* ============================================================
+           FORMS
+           ============================================================ */
+        .form-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 1rem;
-            margin-bottom: 1rem;
         }
-        .form-row .full-width {
-            grid-column: 1 / -1;
-        }
-        .badge-pending { background: #f59e0b; color: #000; padding: 0.2rem 0.6rem; border-radius: 2rem; font-size: 0.75rem; }
-        .badge-approved { background: #22c55e; color: #000; padding: 0.2rem 0.6rem; border-radius: 2rem; font-size: 0.75rem; }
-        .badge-rejected { background: #ef4444; color: #fff; padding: 0.2rem 0.6rem; border-radius: 2rem; font-size: 0.75rem; }
-        .modal {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.6);
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .modal.active {
+        .form-grid .full { grid-column: 1 / -1; }
+
+        .form-group {
             display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
         }
-        .modal-content {
-            background: #1e293b;
-            padding: 2rem;
-            border-radius: 1rem;
-            max-width: 600px;
-            width: 100%;
-            max-height: 80vh;
-            overflow-y: auto;
+        .form-group label {
+            font-size:0.8rem;
+            font-weight:500;
+            color:#0f172a;
         }
+        .form-group .hint {
+            font-size:0.7rem;
+            color:#94a3b8;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding:0.6rem 0.8rem;
+            border:1px solid #e2e8f0;
+            border-radius:8px;
+            font-size:0.875rem;
+            font-family:inherit;
+            background:#ffffff;
+            color:#0f172a;
+            transition:border 0.2s, box-shadow 0.2s;
+            width:100%;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline:none;
+            border-color:#3b82f6;
+            box-shadow:0 0 0 3px rgba(59,130,246,0.1);
+        }
+        .form-group textarea { resize:vertical; min-height:60px; }
+
+        /* ============================================================
+           BUTTONS
+           ============================================================ */
+        .btn {
+            padding:0.6rem 1.5rem;
+            border-radius:8px;
+            font-size:0.85rem;
+            font-weight:600;
+            font-family:inherit;
+            cursor:pointer;
+            border:none;
+            transition:all 0.15s;
+            display:inline-flex;
+            align-items:center;
+            gap:0.5rem;
+        }
+        .btn-primary { background:#0f172a; color:#fff; }
+        .btn-primary:hover { background:#1e293b; }
+
+        .btn-success { background:#22c55e; color:#fff; }
+        .btn-success:hover { background:#16a34a; }
+
+        .btn-danger { background:#ef4444; color:#fff; }
+        .btn-danger:hover { background:#dc2626; }
+
+        .btn-warning { background:#f59e0b; color:#fff; }
+        .btn-warning:hover { background:#d97706; }
+
+        .btn-outline {
+            background:transparent;
+            color:#0f172a;
+            border:1px solid #e2e8f0;
+        }
+        .btn-outline:hover { background:#f1f5f9; }
+
+        .btn-sm { padding:0.25rem 0.75rem; font-size:0.75rem; }
+
+        /* ============================================================
+           BADGES
+           ============================================================ */
+        .badge {
+            display:inline-block;
+            padding:0.15rem 0.6rem;
+            border-radius:20px;
+            font-size:0.7rem;
+            font-weight:600;
+        }
+        .badge-pending { background:#fef3c7; color:#92400e; }
+        .badge-approved { background:#d1fae5; color:#065f46; }
+        .badge-rejected { background:#fee2e2; color:#991b1b; }
+        .badge-active { background:#dbeafe; color:#1e40af; }
+
+        /* ============================================================
+           EMPTY STATE
+           ============================================================ */
+        .empty-state {
+            text-align:center;
+            padding:2.5rem 1rem;
+            color:#94a3b8;
+        }
+        .empty-state .icon { font-size:2.5rem; margin-bottom:0.5rem; }
+        .empty-state p { font-size:0.9rem; }
+
+        /* ============================================================
+           PAGE SECTIONS
+           ============================================================ */
+        .page-section { display:none; }
+        .page-section.active { display:block; animation:fadeIn 0.25s ease; }
+        @keyframes fadeIn {
+            from { opacity:0; transform:translateY(6px); }
+            to { opacity:1; transform:translateY(0); }
+        }
+
+        /* ============================================================
+           MODAL
+           ============================================================ */
+        .modal-overlay {
+            display:none;
+            position:fixed;
+            inset:0;
+            background:rgba(15,23,42,0.5);
+            backdrop-filter:blur(4px);
+            justify-content:center;
+            align-items:center;
+            z-index:1000;
+            padding:1rem;
+        }
+        .modal-overlay.active { display:flex; }
+        .modal-box {
+            background:#ffffff;
+            border-radius:16px;
+            padding:2rem;
+            max-width:560px;
+            width:100%;
+            max-height:90vh;
+            overflow-y:auto;
+            box-shadow:0 20px 60px rgba(0,0,0,0.15);
+        }
+        .modal-box h3 { font-size:1.2rem; font-weight:700; margin-bottom:1rem; }
+        .modal-box .modal-actions {
+            display:flex;
+            gap:0.75rem;
+            margin-top:1.5rem;
+            justify-content:flex-end;
+        }
+
+        /* ============================================================
+           RESPONSIVE
+           ============================================================ */
+        @media (max-width:1024px) {
+            .sidebar { width:220px; }
+            .main { padding:1.5rem; }
+            .form-grid { grid-template-columns:1fr; }
+        }
+        @media (max-width:768px) {
+            .app { flex-direction:column; }
+            .sidebar {
+                width:100%;
+                height:auto;
+                position:static;
+                border-right:none;
+                border-bottom:1px solid #e2e8f0;
+                padding:1rem;
+            }
+            .sidebar nav { display:flex; flex-wrap:wrap; gap:0.25rem; }
+            .sidebar nav .nav-label { display:none; }
+            .sidebar nav .nav-item { padding:0.4rem 0.7rem; font-size:0.8rem; }
+            .sidebar .user-section { display:none; }
+            .main { padding:1rem; }
+            .stats-grid { grid-template-columns:1fr 1fr; }
+            .form-grid { grid-template-columns:1fr; }
+        }
+        @media (max-width:480px) {
+            .stats-grid { grid-template-columns:1fr; }
+            .page-header { flex-direction:column; }
+        }
+
+        /* ============================================================
+           UTILITIES
+           ============================================================ */
+        .text-muted { color:#94a3b8; }
+        .text-sm { font-size:0.8rem; }
+        .mt-1 { margin-top:0.5rem; }
+        .mt-2 { margin-top:1rem; }
+        .mb-1 { margin-bottom:0.5rem; }
+        .flex { display:flex; }
+        .flex-between { display:flex; justify-content:space-between; align-items:center; }
+        .gap-1 { gap:0.5rem; }
+        .fw-600 { font-weight:600; }
+        .w-full { width:100%; }
     </style>
 </head>
 <body>
-    <div class="dashboard-layout">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="brand">📚 NCF LTS</div>
+    <div class="app">
+
+        <!-- ============================================================
+        SIDEBAR
+        ============================================================ -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="logo">N</div>
+                <div class="name">NCF LTS <small>Learning Tracking System</small></div>
+            </div>
             <nav>
-                <div class="nav-item active" data-section="dashboard">📊 Dashboard</div>
-                <div class="nav-item" data-section="attendance">📋 Attendance</div>
-                <div class="nav-item" data-section="schedule">📅 Schedule</div>
-                <div class="nav-item" data-section="create-assessment">✏️ Create Assessment</div>
-                <div class="nav-item" data-section="grades">📈 Grades & Weights</div>
-                <div class="nav-item" data-section="compute">🧮 Compute Grades</div>
-                <div class="nav-item" data-section="final-rating">⭐ Final Rating</div>
-                <div class="nav-item" data-section="reports">📄 Reports & Memos</div>
-                <div class="nav-item" data-section="intervention">🛠️ Interventions</div>
-                <div class="nav-item" data-section="students">👥 Add Students</div>
-                <div class="nav-item" style="margin-top:2rem; border-top:1px solid #334155; padding-top:1rem; color:#ef4444;" id="logoutBtn">🚪 Logout</div>
+                <div class="nav-label">Main</div>
+                <div class="nav-item active" data-section="dashboard"><span class="icon">📊</span> Dashboard</div>
+                <div class="nav-item" data-section="courses"><span class="icon">📘</span> Courses</div>
+
+                <div class="nav-label">Management</div>
+                <div class="nav-item" data-section="attendance"><span class="icon">📋</span> Attendance</div>
+                <div class="nav-item" data-section="schedule"><span class="icon">📅</span> Schedule</div>
+                <div class="nav-item" data-section="assessments"><span class="icon">✏️</span> Assessments</div>
+
+                <div class="nav-label">Grading</div>
+                <div class="nav-item" data-section="gradebook"><span class="icon">📈</span> Gradebook</div>
+                <div class="nav-item" data-section="weights"><span class="icon">⚖️</span> Weights</div>
+                <div class="nav-item" data-section="compute"><span class="icon">🧮</span> Compute</div>
+                <div class="nav-item" data-section="final"><span class="icon">⭐</span> Final Rating</div>
+
+                <div class="nav-label">Tools</div>
+                <div class="nav-item" data-section="reports"><span class="icon">📄</span> Reports</div>
+                <div class="nav-item" data-section="interventions"><span class="icon">🛠️</span> Interventions</div>
+                <div class="nav-item" data-section="enroll"><span class="icon">👥</span> Enroll</div>
             </nav>
-        </div>
-
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Dashboard Section -->
-            <div id="section-dashboard" class="page-section active">
-                <h1 style="color:#f1f5f9; margin-bottom:1.5rem;">Instructor Dashboard</h1>
-                <div class="card">
-                    <div class="card-header">Pending Approvals</div>
-                    <div id="pendingApprovalsList"><p style="color:#94a3b8;">Loading...</p></div>
+            <div class="user-section">
+                <div class="user-card">
+                    <div class="avatar" id="userAvatar">JC</div>
+                    <div class="info">
+                        <div class="name" id="userName">Loading...</div>
+                        <div class="role">Instructor</div>
+                    </div>
                 </div>
-                <div class="card">
-                    <div class="card-header">Your Courses</div>
-                    <div id="instructorCourses"><p style="color:#94a3b8;">Loading...</p></div>
-                </div>
+                <button class="logout-btn" id="logoutBtn">🚪 Sign Out</button>
             </div>
+        </aside>
 
-            <!-- Attendance Section -->
-            <div id="section-attendance" class="page-section">
-                <h1 style="color:#f1f5f9; margin-bottom:1.5rem;">Attendance Management</h1>
+        <!-- ============================================================
+        MAIN CONTENT
+        ============================================================ -->
+        <main class="main">
+
+            <!-- ============================================================
+            DASHBOARD
+            ============================================================ -->
+            <section id="section-dashboard" class="page-section active">
+                <div class="page-header">
+                    <div>
+                        <h1>Dashboard <small>Overview of your classes</small></h1>
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-primary" onclick="switchSection('assessments')">+ New Assessment</button>
+                        <button class="btn btn-outline" onclick="switchSection('courses')">Manage Courses</button>
+                    </div>
+                </div>
+
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card">
+                        <span class="icon">📘</span>
+                        <div class="number" id="statCourses">0</div>
+                        <div class="label">Total Courses</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="icon">👨‍🎓</span>
+                        <div class="number" id="statStudents">0</div>
+                        <div class="label">Total Students</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="icon">⏳</span>
+                        <div class="number" id="statPending">0</div>
+                        <div class="label">Pending Approvals</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="icon">📋</span>
+                        <div class="number" id="statAssessments">0</div>
+                        <div class="label">Assessments</div>
+                    </div>
+                </div>
+
                 <div class="card">
-                    <div class="card-header">Create Attendance Session</div>
-                    <form id="attendanceSessionForm">
-                        <div class="form-row">
-                            <div class="full-width">
-                                <label>Section</label>
-                                <select id="attSectionSelect" required></select>
-                            </div>
-                            <div>
-                                <label>Date</label>
-                                <input type="date" id="attDate" required>
-                            </div>
-                            <div>
-                                <label>Start Time</label>
-                                <input type="time" id="attStartTime" required>
-                            </div>
-                            <div>
-                                <label>End Time</label>
-                                <input type="time" id="attEndTime" required>
-                            </div>
+                    <div class="card-header">
+                        <h3>⏳ Pending Approvals</h3>
+                    </div>
+                    <div id="pendingApprovalsList"><div class="empty-state"><p>Loading...</p></div></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><h3>🚀 Quick Actions</h3></div>
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:0.75rem;">
+                        <button class="btn btn-outline" onclick="switchSection('attendance')">📋 Take Attendance</button>
+                        <button class="btn btn-outline" onclick="switchSection('assessments')">✏️ Create Assessment</button>
+                        <button class="btn btn-outline" onclick="switchSection('gradebook')">📈 View Grades</button>
+                        <button class="btn btn-outline" onclick="switchSection('enroll')">👥 Enroll Student</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================
+            COURSES
+            ============================================================ -->
+            <section id="section-courses" class="page-section">
+                <div class="page-header">
+                    <div><h1>Courses <small>Manage your courses and sections</small></h1></div>
+                    <div class="actions">
+                        <button class="btn btn-primary" id="addCourseBtn">+ New Course</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div id="instructorCourses"><div class="empty-state"><p>Loading your courses...</p></div></div>
+                </div>
+            </section>
+
+            <!-- ============================================================
+            ATTENDANCE
+            ============================================================ -->
+            <section id="section-attendance" class="page-section">
+                <div class="page-header">
+                    <div><h1>Attendance <small>Create sessions and track attendance</small></h1></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>Create Session</h3></div>
+                    <form id="attendanceForm" class="form-grid">
+                        <div class="form-group full">
+                            <label>Section</label>
+                            <select id="attSection" required></select>
                         </div>
-                        <button type="submit" class="btn btn-primary">Generate Code</button>
-                    </form>
-                    <div id="attendanceCodeDisplay" style="margin-top:1rem; padding:0.5rem; background:#0f172a; border-radius:0.5rem; font-family:monospace; font-size:1.5rem; text-align:center; display:none;"></div>
-                </div>
-                <div class="card">
-                    <div class="card-header">Attendance Records</div>
-                    <div id="attendanceRecords"><p style="color:#94a3b8;">Select a section to view.</p></div>
-                </div>
-            </div>
-
-            <!-- Schedule Section -->
-            <div id="section-schedule" class="page-section">
-                <h1 style="color:#f1f5f9; margin-bottom:1.5rem;">Set Schedule</h1>
-                <div class="card">
-                    <form id="scheduleForm">
-                        <div class="form-row">
-                            <div class="full-width">
-                                <label>Section</label>
-                                <select id="scheduleSectionSelect" required></select>
-                            </div>
-                            <div>
-                                <label>Day</label>
-                                <select id="scheduleDay" required>
-                                    <option value="Monday">Monday</option>
-                                    <option value="Tuesday">Tuesday</option>
-                                    <option value="Wednesday">Wednesday</option>
-                                    <option value="Thursday">Thursday</option>
-                                    <option value="Friday">Friday</option>
-                                    <option value="Saturday">Saturday</option>
-                                    <option value="Sunday">Sunday</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label>Start Time</label>
-                                <input type="time" id="scheduleStart" required>
-                            </div>
-                            <div>
-                                <label>End Time</label>
-                                <input type="time" id="scheduleEnd" required>
-                            </div>
-                            <div>
-                                <label>Room</label>
-                                <input type="text" id="scheduleRoom" placeholder="Room 101">
-                            </div>
+                        <div class="form-group">
+                            <label>Date</label>
+                            <input type="date" id="attDate" required>
                         </div>
-                        <button type="submit" class="btn btn-primary">Add Schedule</button>
-                    </form>
-                </div>
-                <div class="card">
-                    <div class="card-header">Current Schedules</div>
-                    <div id="scheduleList"><p style="color:#94a3b8;">No schedules set.</p></div>
-                </div>
-            </div>
-
-            <!-- Create Assessment Section -->
-            <div id="section-create-assessment" class="page-section">
-                <h1 style="color:#f1f5f9; margin-bottom:1.5rem;">Create Assessment</h1>
-                <div class="card">
-                    <form id="assessmentForm">
-                        <div class="form-row">
-                            <div class="full-width">
-                                <label>Course</label>
-                                <select id="assessCourseSelect" required></select>
-                            </div>
-                            <div>
-                                <label>Assessment Type</label>
-                                <select id="assessTypeSelect" required>
-                                    <option value="Quiz">Quiz</option>
-                                    <option value="Exam">Exam</option>
-                                    <option value="Project">Project</option>
-                                    <option value="Recitation">Recitation</option>
-                                </select>
-                            </div>
-                            <div class="full-width">
-                                <label>Title</label>
-                                <input type="text" id="assessTitle" placeholder="e.g., Midterm Exam" required>
-                            </div>
-                            <div class="full-width">
-                                <label>Description</label>
-                                <textarea id="assessDesc" rows="2" placeholder="Instructions or description"></textarea>
-                            </div>
-                            <div>
-                                <label>Duration (minutes)</label>
-                                <input type="number" id="assessDuration" value="60" min="1">
-                            </div>
-                            <div>
-                                <label>Max Score</label>
-                                <input type="number" id="assessMaxScore" value="100" min="1">
-                            </div>
-                            <div class="full-width">
-                                <label>Date</label>
-                                <input type="datetime-local" id="assessDate" required>
-                            </div>
-                            <div class="full-width">
-                                <label>Questions (one per line, separate options with |, mark correct answer with *)</label>
-                                <textarea id="assessQuestions" rows="8" placeholder="What is 2+2?|3|4|5|*4&#10;The Earth is flat.|True|False|*False"></textarea>
-                                <span class="hint">For MC: Question|Option1|Option2|*CorrectOption. For Essay: Question|Essay (no options, just text)</span>
-                            </div>
-                            <div class="full-width">
-                                <label>AI Grading (for essay questions)</label>
-                                <select id="assessAI">
-                                    <option value="none">None</option>
-                                    <option value="openai">OpenAI (GPT)</option>
-                                    <option value="gemini">Gemini</option>
-                                </select>
-                            </div>
+                        <div class="form-group">
+                            <label>Start</label>
+                            <input type="time" id="attStart" required>
                         </div>
-                        <button type="submit" class="btn btn-primary">Create Assessment</button>
+                        <div class="form-group">
+                            <label>End</label>
+                            <input type="time" id="attEnd" required>
+                        </div>
+                        <div class="form-group full">
+                            <button type="submit" class="btn btn-primary">Generate Check‑in Code</button>
+                        </div>
+                    </form>
+                    <div id="attCodeDisplay" style="display:none; margin-top:0.75rem; padding:0.75rem; background:#f1f5f9; border-radius:8px; text-align:center; font-size:1.5rem; font-weight:700; letter-spacing:4px; font-family:monospace;"></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>Records</h3></div>
+                    <div id="attendanceRecords"><div class="empty-state"><p>Select a section to view.</p></div></div>
+                </div>
+            </section>
+
+            <!-- ============================================================
+            SCHEDULE
+            ============================================================ -->
+            <section id="section-schedule" class="page-section">
+                <div class="page-header">
+                    <div><h1>Schedule <small>Set class schedules</small></h1></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>Add Schedule</h3></div>
+                    <form id="scheduleForm" class="form-grid">
+                        <div class="form-group full">
+                            <label>Section</label>
+                            <select id="scheduleSection" required></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Day</label>
+                            <select id="scheduleDay">
+                                <option value="Monday">Monday</option>
+                                <option value="Tuesday">Tuesday</option>
+                                <option value="Wednesday">Wednesday</option>
+                                <option value="Thursday">Thursday</option>
+                                <option value="Friday">Friday</option>
+                                <option value="Saturday">Saturday</option>
+                                <option value="Sunday">Sunday</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Start</label>
+                            <input type="time" id="scheduleStart" required>
+                        </div>
+                        <div class="form-group">
+                            <label>End</label>
+                            <input type="time" id="scheduleEnd" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Room</label>
+                            <input type="text" id="scheduleRoom" placeholder="Room 101">
+                        </div>
+                        <div class="form-group full">
+                            <button type="submit" class="btn btn-primary">Add Schedule</button>
+                        </div>
                     </form>
                 </div>
-            </div>
-
-            <!-- Grades & Weights -->
-            <div id="section-grades" class="page-section">
-                <h1 style="color:#f1f5f9; margin-bottom:1.5rem;">Manage Grades & Weights</h1>
                 <div class="card">
-                    <div class="card-header">Set Weights per Assessment Type</div>
+                    <div class="card-header"><h3>Current Schedules</h3></div>
+                    <div id="scheduleList"><div class="empty-state"><p>No schedules set.</p></div></div>
+                </div>
+            </section>
+
+            <!-- ============================================================
+            ASSESSMENTS
+            ============================================================ -->
+            <section id="section-assessments" class="page-section">
+                <div class="page-header">
+                    <div><h1>Assessments <small>Create and manage exams, quizzes, projects</small></h1></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>Create New Assessment</h3></div>
+                    <form id="assessmentForm" class="form-grid">
+                        <div class="form-group full">
+                            <label>Course</label>
+                            <select id="assessCourse" required></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Type</label>
+                            <select id="assessType" required>
+                                <option value="Quiz">Quiz</option>
+                                <option value="Exam">Exam</option>
+                                <option value="Project">Project</option>
+                                <option value="Recitation">Recitation</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Duration (min)</label>
+                            <input type="number" id="assessDuration" value="60" min="1">
+                        </div>
+                        <div class="form-group full">
+                            <label>Title</label>
+                            <input type="text" id="assessTitle" placeholder="e.g., Midterm Examination" required>
+                        </div>
+                        <div class="form-group full">
+                            <label>Description</label>
+                            <textarea id="assessDesc" rows="2" placeholder="Instructions or description"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Max Score</label>
+                            <input type="number" id="assessMaxScore" value="100" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label>Date & Time</label>
+                            <input type="datetime-local" id="assessDate" required>
+                        </div>
+                        <div class="form-group full">
+                            <label>Questions</label>
+                            <textarea id="assessQuestions" rows="8" placeholder="What is 2+2?|3|4|5|*4&#10;The Earth is flat.|True|False|*False"></textarea>
+                            <span class="hint">MC: Question|Option1|Option2|*Correct. Essay: Question|Essay</span>
+                        </div>
+                        <div class="form-group full">
+                            <label>AI Grading</label>
+                            <select id="assessAI">
+                                <option value="none">None</option>
+                                <option value="openai">OpenAI (GPT)</option>
+                                <option value="gemini">Gemini</option>
+                            </select>
+                        </div>
+                        <div class="form-group full">
+                            <button type="submit" class="btn btn-primary">Create Assessment</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- ============================================================
+            GRADEBOOK
+            ============================================================ -->
+            <section id="section-gradebook" class="page-section">
+                <div class="page-header">
+                    <div><h1>Gradebook <small>View and enter grades (spreadsheet style)</small></h1></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Grades</h3>
+                        <div>
+                            <button class="btn btn-outline btn-sm" id="exportGrades">📥 Export CSV</button>
+                        </div>
+                    </div>
+                    <div id="gradebookContainer"><div class="empty-state"><p>Select a course to view grades.</p></div></div>
+                </div>
+            </section>
+
+            <!-- ============================================================
+            WEIGHTS
+            ============================================================ -->
+            <section id="section-weights" class="page-section">
+                <div class="page-header">
+                    <div><h1>Grade Weights <small>Set weight percentages per assessment type</small></h1></div>
+                </div>
+                <div class="card">
                     <form id="weightsForm">
-                        <div class="form-row">
-                            <div class="full-width">
-                                <label>Course</label>
-                                <select id="weightsCourseSelect" required></select>
-                            </div>
-                            <div id="weightsInputs"></div>
+                        <div class="form-group" style="margin-bottom:1rem;">
+                            <label>Course</label>
+                            <select id="weightsCourse" required></select>
                         </div>
-                        <button type="submit" class="btn btn-primary">Save Weights</button>
+                        <div id="weightsInputs"></div>
+                        <button type="submit" class="btn btn-primary mt-1">Save Weights</button>
                     </form>
                 </div>
-                <div class="card">
-                    <div class="card-header">Input Manual Grades</div>
-                    <form id="manualGradeForm">
-                        <div class="form-row">
-                            <div class="full-width">
-                                <label>Course</label>
-                                <select id="manualCourseSelect" required></select>
-                            </div>
-                            <div class="full-width">
-                                <label>Student</label>
-                                <select id="manualStudentSelect" required></select>
-                            </div>
-                            <div>
-                                <label>Assessment Type</label>
-                                <select id="manualTypeSelect" required></select>
-                            </div>
-                            <div>
-                                <label>Score</label>
-                                <input type="number" id="manualScore" placeholder="e.g., 85" required>
-                            </div>
-                            <div>
-                                <label>Max Score</label>
-                                <input type="number" id="manualMaxScore" value="100">
-                            </div>
-                            <div class="full-width">
-                                <label>Notes</label>
-                                <input type="text" id="manualNotes" placeholder="Optional notes">
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Save Grade</button>
-                    </form>
-                </div>
-            </div>
+            </section>
 
-            <!-- Compute Grades -->
-            <div id="section-compute" class="page-section">
-                <h1 style="color:#f1f5f9; margin-bottom:1.5rem;">Compute Period Grades</h1>
-                <div class="card">
-                    <form id="computeForm">
-                        <div class="form-row">
-                            <div class="full-width">
-                                <label>Course</label>
-                                <select id="computeCourseSelect" required></select>
-                            </div>
-                            <div>
-                                <label>Period</label>
-                                <select id="computePeriod">
-                                    <option value="prelim">Prelim</option>
-                                    <option value="midterm">Midterm</option>
-                                    <option value="semifinal">Semi-Final</option>
-                                    <option value="final">Final</option>
-                                </select>
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Compute Grades</button>
-                    </form>
-                    <div id="computedGradesResult"></div>
+            <!-- ============================================================
+            COMPUTE GRADES
+            ============================================================ -->
+            <section id="section-compute" class="page-section">
+                <div class="page-header">
+                    <div><h1>Compute Period Grades <small>Calculate grades for Prelim, Midterm, etc.</small></h1></div>
                 </div>
-            </div>
+                <div class="card">
+                    <form id="computeForm" class="form-grid">
+                        <div class="form-group full">
+                            <label>Course</label>
+                            <select id="computeCourse" required></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Period</label>
+                            <select id="computePeriod">
+                                <option value="prelim">Prelim</option>
+                                <option value="midterm">Midterm</option>
+                                <option value="semifinal">Semi‑Final</option>
+                                <option value="final">Final</option>
+                            </select>
+                        </div>
+                        <div class="form-group full">
+                            <button type="submit" class="btn btn-primary">Compute Grades</button>
+                        </div>
+                    </form>
+                    <div id="computedGradesResult" class="mt-2"></div>
+                </div>
+            </section>
 
-            <!-- Final Rating -->
-            <div id="section-final-rating" class="page-section">
-                <h1 style="color:#f1f5f9; margin-bottom:1.5rem;">Compute Final Rating</h1>
-                <div class="card">
-                    <form id="finalRatingForm">
-                        <div class="form-row">
-                            <div class="full-width">
-                                <label>Course</label>
-                                <select id="finalCourseSelect" required></select>
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Compute Final Rating</button>
-                    </form>
-                    <div id="finalRatingResult"></div>
+            <!-- ============================================================
+            FINAL RATING
+            ============================================================ -->
+            <section id="section-final" class="page-section">
+                <div class="page-header">
+                    <div><h1>Final Rating <small>Compute overall final grades</small></h1></div>
                 </div>
-            </div>
+                <div class="card">
+                    <form id="finalForm" class="form-grid">
+                        <div class="form-group full">
+                            <label>Course</label>
+                            <select id="finalCourse" required></select>
+                        </div>
+                        <div class="form-group full">
+                            <button type="submit" class="btn btn-primary">Compute Final Rating</button>
+                        </div>
+                    </form>
+                    <div id="finalResult" class="mt-2"></div>
+                </div>
+            </section>
 
-            <!-- Reports -->
-            <div id="section-reports" class="page-section">
-                <h1 style="color:#f1f5f9; margin-bottom:1.5rem;">Generate Reports & Memos</h1>
-                <div class="card">
-                    <form id="reportForm">
-                        <div class="form-row">
-                            <div class="full-width">
-                                <label>Course</label>
-                                <select id="reportCourseSelect" required></select>
-                            </div>
-                            <div>
-                                <label>Report Type</label>
-                                <select id="reportType">
-                                    <option value="absenteeism">Absenteeism</option>
-                                    <option value="failing">Failing Grades</option>
-                                    <option value="summary">Summary</option>
-                                </select>
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Generate Report</button>
-                    </form>
-                    <div id="reportOutput" style="margin-top:1rem; background:#0f172a; padding:1rem; border-radius:0.5rem; white-space:pre-wrap; font-family:monospace;"></div>
+            <!-- ============================================================
+            REPORTS
+            ============================================================ -->
+            <section id="section-reports" class="page-section">
+                <div class="page-header">
+                    <div><h1>Reports <small>Generate reports for the Dean</small></h1></div>
                 </div>
-            </div>
+                <div class="card">
+                    <form id="reportForm" class="form-grid">
+                        <div class="form-group full">
+                            <label>Course</label>
+                            <select id="reportCourse" required></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Type</label>
+                            <select id="reportType">
+                                <option value="absenteeism">Absenteeism</option>
+                                <option value="failing">Failing Grades</option>
+                                <option value="summary">Summary</option>
+                            </select>
+                        </div>
+                        <div class="form-group full">
+                            <button type="submit" class="btn btn-primary">Generate Report</button>
+                        </div>
+                    </form>
+                    <div id="reportOutput" style="margin-top:1rem; padding:1rem; background:#f8fafc; border-radius:8px; white-space:pre-wrap; font-family:monospace; font-size:0.85rem; min-height:80px;"></div>
+                </div>
+            </section>
 
-            <!-- Interventions -->
-            <div id="section-intervention" class="page-section">
-                <h1 style="color:#f1f5f9; margin-bottom:1.5rem;">Student Interventions</h1>
-                <div class="card">
-                    <form id="interventionForm">
-                        <div class="form-row">
-                            <div class="full-width">
-                                <label>Course</label>
-                                <select id="intervCourseSelect" required></select>
-                            </div>
-                            <div class="full-width">
-                                <label>Student</label>
-                                <select id="intervStudentSelect" required></select>
-                            </div>
-                            <div>
-                                <label>Type</label>
-                                <select id="intervType">
-                                    <option value="grade_adjustment">Grade Adjustment</option>
-                                    <option value="extra_credit">Extra Credit</option>
-                                    <option value="remediation">Remediation</option>
-                                    <option value="counseling">Counseling</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label>Adjustment Value (if applicable)</label>
-                                <input type="number" id="intervAdjustment" step="0.01" placeholder="e.g., +5">
-                            </div>
-                            <div class="full-width">
-                                <label>Description</label>
-                                <input type="text" id="intervDesc" placeholder="Reason for intervention">
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Apply Intervention</button>
-                    </form>
-                    <div id="interventionHistory" style="margin-top:1rem;"></div>
+            <!-- ============================================================
+            INTERVENTIONS
+            ============================================================ -->
+            <section id="section-interventions" class="page-section">
+                <div class="page-header">
+                    <div><h1>Interventions <small>Manage grade adjustments, extra credit, etc.</small></h1></div>
                 </div>
-            </div>
+                <div class="card">
+                    <form id="interventionForm" class="form-grid">
+                        <div class="form-group full">
+                            <label>Course</label>
+                            <select id="intervCourse" required></select>
+                        </div>
+                        <div class="form-group full">
+                            <label>Student</label>
+                            <select id="intervStudent" required></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Type</label>
+                            <select id="intervType">
+                                <option value="grade_adjustment">Grade Adjustment</option>
+                                <option value="extra_credit">Extra Credit</option>
+                                <option value="remediation">Remediation</option>
+                                <option value="counseling">Counseling</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Adjustment</label>
+                            <input type="number" id="intervAdjustment" step="0.01" placeholder="e.g., +5">
+                        </div>
+                        <div class="form-group full">
+                            <label>Description</label>
+                            <input type="text" id="intervDesc" placeholder="Reason for intervention">
+                        </div>
+                        <div class="form-group full">
+                            <button type="submit" class="btn btn-primary">Apply Intervention</button>
+                        </div>
+                    </form>
+                    <div id="interventionHistory" class="mt-2"></div>
+                </div>
+            </section>
 
-            <!-- Add Students -->
-            <div id="section-students" class="page-section">
-                <h1 style="color:#f1f5f9; margin-bottom:1.5rem;">Add Students to Section</h1>
+            <!-- ============================================================
+            ENROLL
+            ============================================================ -->
+            <section id="section-enroll" class="page-section">
+                <div class="page-header">
+                    <div><h1>Enroll Students <small>Add students to sections</small></h1></div>
+                </div>
                 <div class="card">
-                    <form id="addStudentForm">
-                        <div class="form-row">
-                            <div class="full-width">
-                                <label>Course</label>
-                                <select id="addCourseSelect" required></select>
-                            </div>
-                            <div class="full-width">
-                                <label>Student Email</label>
-                                <input type="email" id="addStudentEmail" placeholder="student@ncf.edu.ph" required>
-                            </div>
-                            <div>
-                                <label>Section</label>
-                                <select id="addSectionSelect" required></select>
-                            </div>
+                    <form id="enrollForm" class="form-grid">
+                        <div class="form-group full">
+                            <label>Course</label>
+                            <select id="enrollCourse" required></select>
                         </div>
-                        <button type="submit" class="btn btn-primary">Add Student</button>
+                        <div class="form-group full">
+                            <label>Student Email</label>
+                            <input type="email" id="enrollEmail" placeholder="student@ncf.edu.ph" required>
+                        </div>
+                        <div class="form-group full">
+                            <label>Section</label>
+                            <select id="enrollSection" required></select>
+                        </div>
+                        <div class="form-group full">
+                            <button type="submit" class="btn btn-primary">Enroll Student</button>
+                        </div>
                     </form>
                 </div>
-            </div>
-        </div>
+            </section>
+
+        </main>
     </div>
 
-    <!-- Modal for editing grades, etc. (reusable) -->
-    <div class="modal" id="modal">
-        <div class="modal-content">
-            <div id="modalBody"></div>
-            <button class="btn btn-secondary" onclick="closeModal()">Close</button>
-        </div>
-    </div>
-
-    <!-- ============================================================ -->
-    <!-- SCRIPTS -->
-    <!-- ============================================================ -->
+    <!-- ============================================================
+    SCRIPTS
+    ============================================================ -->
     <script type="importmap">
         {
             "imports": {
@@ -511,11 +968,10 @@
     <script type="module">
         import { supabase, getCurrentUser, signOut } from './supabase.js';
 
-        // -------- Global State --------
+        // -------- State --------
         let currentUser = null;
         let currentProfile = null;
         let instructorCourses = [];
-        let allStudents = [];
 
         // -------- DOM refs --------
         const sections = document.querySelectorAll('.page-section');
@@ -535,31 +991,42 @@
 
         document.getElementById('logoutBtn').addEventListener('click', async () => {
             await signOut();
+            window.location.href = 'index.html';
         });
 
-        // -------- Helpers --------
-        function showMessage(el, msg, isError = true) {
-            el.textContent = msg;
-            el.style.display = 'block';
-            el.style.color = isError ? '#ef4444' : '#22c55e';
-        }
+        // Expose switchSection for inline onclick
+        window.switchSection = (section) => {
+            const target = document.querySelector(`.nav-item[data-section="${section}"]`);
+            if (target) target.click();
+        };
 
+        // -------- Helpers --------
         function renderSelect(select, options, valueKey, labelKey) {
             select.innerHTML = '<option value="">Select...</option>';
+            if (!options || options.length === 0) return;
             options.forEach(opt => {
                 const op = document.createElement('option');
                 op.value = opt[valueKey];
-                op.textContent = opt[labelKey];
+                op.textContent = typeof labelKey === 'function' ? labelKey(opt) : opt[labelKey];
                 select.appendChild(op);
             });
         }
 
-        function getSectionIdByName(name, sections) {
-            const found = sections.find(s => s.name === name);
-            return found ? found.id : null;
+        function showMessage(el, msg, isError = true) {
+            el.textContent = msg;
+            el.style.display = 'block';
+            el.style.color = isError ? '#ef4444' : '#22c55e';
+            el.style.background = isError ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)';
+            el.style.padding = '0.75rem';
+            el.style.borderRadius = '0.5rem';
+            el.style.marginTop = '0.5rem';
         }
 
-        // -------- Auth & Profile --------
+        function hideMessage(el) {
+            el.style.display = 'none';
+        }
+
+        // -------- Auth & Init --------
         async function init() {
             const user = await getCurrentUser();
             if (!user) {
@@ -571,27 +1038,28 @@
                 .from('profiles')
                 .select('*')
                 .eq('id', user.id)
-                .single();
+                .maybeSingle();
             if (!profile || profile.role !== 'instructor') {
                 alert('You are not authorized as an instructor.');
                 window.location.href = 'index.html';
                 return;
             }
             currentProfile = profile;
+            // Update user info
+            document.getElementById('userAvatar').textContent = profile.first_name?.[0] + profile.last_name?.[0] || 'N';
+            document.getElementById('userName').textContent = `${profile.first_name} ${profile.last_name}`;
 
-            // Load instructor's courses
+            // Load data
             await loadInstructorData();
-
-            // Load pending approvals
             loadPendingApprovals();
-
-            // Populate all course selects
             populateCourseSelects();
-
-            // Setup event listeners
             setupEventListeners();
+
+            // Update stats
+            updateStats();
         }
 
+        // -------- Load Courses --------
         async function loadInstructorData() {
             const { data: courses } = await supabase
                 .from('courses')
@@ -599,13 +1067,24 @@
                 .eq('instructor_id', currentUser.id);
             instructorCourses = courses || [];
             const container = document.getElementById('instructorCourses');
-            if (courses.length === 0) {
-                container.innerHTML = '<p style="color:#94a3b8;">You are not assigned to any courses yet.</p>';
+            if (instructorCourses.length === 0) {
+                container.innerHTML = '<div class="empty-state"><span class="icon">📘</span><p>No courses assigned yet.</p></div>';
             } else {
-                container.innerHTML = courses.map(c => `<div>📘 ${c.code} - ${c.name}</div>`).join('');
+                let html = `<div class="table-wrap"><table><thead><tr><th>Code</th><th>Name</th><th>Description</th><th>Sections</th></tr></thead><tbody>`;
+                for (const c of instructorCourses) {
+                    const { data: sections } = await supabase
+                        .from('sections')
+                        .select('name')
+                        .eq('course_id', c.id);
+                    const sectionNames = sections?.map(s => s.name).join(', ') || 'None';
+                    html += `<tr><td><strong>${c.code}</strong></td><td>${c.name}</td><td>${c.description || '-'}</td><td>${sectionNames}</td></tr>`;
+                }
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
             }
         }
 
+        // -------- Pending Approvals --------
         async function loadPendingApprovals() {
             const container = document.getElementById('pendingApprovalsList');
             const { data, error } = await supabase
@@ -614,14 +1093,14 @@
                 .eq('role', 'pending')
                 .order('created_at', { ascending: true });
             if (error) {
-                container.innerHTML = '<p style="color:#ef4444;">Error loading pending approvals.</p>';
+                container.innerHTML = '<div class="empty-state"><p>Error loading pending approvals.</p></div>';
                 return;
             }
             if (data.length === 0) {
-                container.innerHTML = '<p style="color:#94a3b8;">No pending approvals.</p>';
+                container.innerHTML = '<div class="empty-state"><span class="icon">✅</span><p>No pending approvals.</p></div>';
                 return;
             }
-            let html = `<table><thead><tr><th>ID</th><th>Name</th><th>Section</th><th>Date</th><th>Actions</th></tr></thead><tbody>`;
+            let html = `<div class="table-wrap"><table><thead><tr><th>ID</th><th>Name</th><th>Section</th><th>Date</th><th>Actions</th></tr></thead><tbody>`;
             data.forEach(p => {
                 html += `<tr>
                     <td>${p.student_id}</td>
@@ -629,16 +1108,16 @@
                     <td>${p.section}</td>
                     <td>${new Date(p.created_at).toLocaleDateString()}</td>
                     <td>
-                        <button class="btn-sm btn-success" onclick="approveUser('${p.id}')">Approve</button>
-                        <button class="btn-sm btn-danger" onclick="rejectUser('${p.id}')">Reject</button>
+                        <button class="btn btn-success btn-sm" onclick="approveUser('${p.id}')">Approve</button>
+                        <button class="btn btn-danger btn-sm" onclick="rejectUser('${p.id}')">Reject</button>
                     </td>
                 </tr>`;
             });
-            html += '</tbody></table>';
+            html += '</tbody></table></div>';
             container.innerHTML = html;
         }
 
-        // -------- Global Functions (exposed) --------
+        // Expose approve/reject globally
         window.approveUser = async (userId) => {
             if (!confirm('Approve this user?')) return;
             const { error } = await supabase
@@ -649,12 +1128,12 @@
             else {
                 alert('User approved!');
                 loadPendingApprovals();
+                updateStats();
             }
         };
 
         window.rejectUser = async (userId) => {
-            if (!confirm('Reject this user? They will be deleted.')) return;
-            // Delete auth user (requires admin) – we'll just set role to 'rejected' or delete profile
+            if (!confirm('Reject this user?')) return;
             const { error } = await supabase
                 .from('profiles')
                 .update({ role: 'rejected' })
@@ -663,15 +1142,16 @@
             else {
                 alert('User rejected.');
                 loadPendingApprovals();
+                updateStats();
             }
         };
 
         // -------- Populate Course Selects --------
         function populateCourseSelects() {
             const selects = [
-                'attSectionSelect', 'scheduleSectionSelect', 'assessCourseSelect',
-                'weightsCourseSelect', 'manualCourseSelect', 'computeCourseSelect',
-                'finalCourseSelect', 'reportCourseSelect', 'intervCourseSelect', 'addCourseSelect'
+                'attSection', 'scheduleSection', 'assessCourse',
+                'weightsCourse', 'manualCourse', 'computeCourse',
+                'finalCourse', 'reportCourse', 'intervCourse', 'enrollCourse'
             ];
             selects.forEach(id => {
                 const el = document.getElementById(id);
@@ -681,20 +1161,51 @@
             });
         }
 
+        // -------- Update Stats --------
+        async function updateStats() {
+            // Count students across all courses
+            let totalStudents = 0;
+            for (const c of instructorCourses) {
+                const { count } = await supabase
+                    .from('course_enrollments')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('course_id', c.id);
+                totalStudents += count || 0;
+            }
+            document.getElementById('statCourses').textContent = instructorCourses.length;
+            document.getElementById('statStudents').textContent = totalStudents;
+            // Pending
+            const { count } = await supabase
+                .from('profiles')
+                .select('*', { count: 'exact', head: true })
+                .eq('role', 'pending');
+            document.getElementById('statPending').textContent = count || 0;
+            // Assessments
+            let totalAssessments = 0;
+            for (const c of instructorCourses) {
+                const { count } = await supabase
+                    .from('assessments')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('course_id', c.id);
+                totalAssessments += count || 0;
+            }
+            document.getElementById('statAssessments').textContent = totalAssessments;
+        }
+
         // -------- Setup Event Listeners --------
         function setupEventListeners() {
-            // Attendance Session
-            document.getElementById('attendanceSessionForm').addEventListener('submit', async (e) => {
+            // Attendance
+            document.getElementById('attendanceForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const sectionId = document.getElementById('attSectionSelect').value;
+                const sectionId = document.getElementById('attSection').value;
                 const date = document.getElementById('attDate').value;
-                const start = document.getElementById('attStartTime').value;
-                const end = document.getElementById('attEndTime').value;
+                const start = document.getElementById('attStart').value;
+                const end = document.getElementById('attEnd').value;
                 if (!sectionId) { alert('Select a section.'); return; }
                 const code = Math.floor(100000 + Math.random() * 900000).toString();
                 const expiresAt = new Date();
                 expiresAt.setMinutes(expiresAt.getMinutes() + 15);
-                const { data, error } = await supabase
+                const { error } = await supabase
                     .from('attendance_sessions')
                     .insert({
                         section_id: sectionId,
@@ -703,20 +1214,19 @@
                         end_time: end,
                         code,
                         expires_at: expiresAt.toISOString()
-                    })
-                    .select()
-                    .single();
+                    });
                 if (error) alert('Error: ' + error.message);
                 else {
-                    document.getElementById('attendanceCodeDisplay').style.display = 'block';
-                    document.getElementById('attendanceCodeDisplay').textContent = `Code: ${code} (valid 15 mins)`;
+                    const display = document.getElementById('attCodeDisplay');
+                    display.textContent = `Code: ${code} (valid 15 mins)`;
+                    display.style.display = 'block';
                 }
             });
 
             // Schedule
             document.getElementById('scheduleForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const sectionId = document.getElementById('scheduleSectionSelect').value;
+                const sectionId = document.getElementById('scheduleSection').value;
                 const day = document.getElementById('scheduleDay').value;
                 const start = document.getElementById('scheduleStart').value;
                 const end = document.getElementById('scheduleEnd').value;
@@ -732,15 +1242,15 @@
                 }
             });
 
-            // Create Assessment
+            // Assessment
             document.getElementById('assessmentForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const courseId = document.getElementById('assessCourseSelect').value;
-                const typeName = document.getElementById('assessTypeSelect').value;
+                const courseId = document.getElementById('assessCourse').value;
+                const typeName = document.getElementById('assessType').value;
                 const title = document.getElementById('assessTitle').value;
                 const desc = document.getElementById('assessDesc').value;
-                const duration = parseInt(document.getElementById('assessDuration').value);
-                const maxScore = parseFloat(document.getElementById('assessMaxScore').value);
+                const duration = parseInt(document.getElementById('assessDuration').value) || 60;
+                const maxScore = parseFloat(document.getElementById('assessMaxScore').value) || 100;
                 const date = document.getElementById('assessDate').value;
                 const questionsRaw = document.getElementById('assessQuestions').value;
                 const ai = document.getElementById('assessAI').value;
@@ -750,8 +1260,8 @@
                     return;
                 }
 
-                // Get or create assessment type
-                let typeId = null;
+                // Get or create type
+                let typeId;
                 const { data: existingTypes } = await supabase
                     .from('assessment_types')
                     .select('id')
@@ -760,12 +1270,12 @@
                 if (existingTypes && existingTypes.length > 0) {
                     typeId = existingTypes[0].id;
                 } else {
-                    const { data: newType, error: typeError } = await supabase
+                    const { data: newType, error } = await supabase
                         .from('assessment_types')
                         .insert({ course_id: courseId, name: typeName, weight: 0 })
                         .select()
                         .single();
-                    if (typeError) { alert('Error creating type: ' + typeError.message); return; }
+                    if (error) { alert('Error creating type: ' + error.message); return; }
                     typeId = newType.id;
                 }
 
@@ -787,37 +1297,35 @@
                 if (assessError) { alert('Error: ' + assessError.message); return; }
 
                 // Parse questions
-                const lines = questionsRaw.split('\n').filter(line => line.trim() !== '');
+                const lines = questionsRaw.split('\n').filter(l => l.trim() !== '');
                 const questions = [];
                 for (const line of lines) {
                     const parts = line.split('|');
                     if (parts.length < 2) continue;
-                    const questionText = parts[0].trim();
+                    const qText = parts[0].trim();
                     const options = parts.slice(1);
                     let type = 'mc';
-                    let correctAnswer = null;
+                    let correct = null;
                     if (options.length === 1 && options[0].toLowerCase().includes('essay')) {
                         type = 'essay';
                     } else {
-                        // Find correct answer marked with *
                         const idx = options.findIndex(o => o.trim().startsWith('*'));
                         if (idx !== -1) {
-                            correctAnswer = idx;
+                            correct = idx;
                             options[idx] = options[idx].replace('*', '').trim();
                         } else {
-                            // If no *, treat as essay
                             type = 'essay';
                         }
                     }
                     const qData = {
                         assessment_id: assess.id,
-                        question: questionText,
+                        question: qText,
                         type: type,
                         points: 1,
                     };
                     if (type === 'mc') {
                         qData.options = options;
-                        qData.correct_answer = correctAnswer;
+                        qData.correct_answer = correct;
                     } else if (type === 'truefalse') {
                         qData.options = ['True', 'False'];
                         qData.correct_answer = options[0].toLowerCase().includes('true') ? 0 : 1;
@@ -838,90 +1346,64 @@
 
                 alert(`Assessment "${title}" created with ${questions.length} questions.`);
                 document.getElementById('assessmentForm').reset();
+                updateStats();
             });
 
             // Weights
             document.getElementById('weightsForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const courseId = document.getElementById('weightsCourseSelect').value;
+                const courseId = document.getElementById('weightsCourse').value;
                 if (!courseId) { alert('Select a course.'); return; }
                 const inputs = document.querySelectorAll('#weightsInputs input');
-                const weights = {};
-                for (const inp of inputs) {
-                    weights[inp.dataset.typeId] = parseFloat(inp.value) || 0;
-                }
-                for (const [typeId, weight] of Object.entries(weights)) {
+                const updates = [];
+                inputs.forEach(inp => {
+                    const typeId = inp.dataset.typeId;
+                    const weight = parseFloat(inp.value) || 0;
+                    updates.push({ id: typeId, weight });
+                });
+                for (const u of updates) {
                     await supabase
                         .from('assessment_types')
-                        .update({ weight })
-                        .eq('id', typeId);
+                        .update({ weight: u.weight })
+                        .eq('id', u.id);
                 }
                 alert('Weights saved!');
             });
 
-            // Manual Grade
-            document.getElementById('manualGradeForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const courseId = document.getElementById('manualCourseSelect').value;
-                const studentId = document.getElementById('manualStudentSelect').value;
-                const typeId = document.getElementById('manualTypeSelect').value;
-                const score = parseFloat(document.getElementById('manualScore').value);
-                const maxScore = parseFloat(document.getElementById('manualMaxScore').value);
-                const notes = document.getElementById('manualNotes').value;
-                if (!courseId || !studentId || !typeId || isNaN(score)) {
-                    alert('Fill all required fields.');
-                    return;
-                }
-                const { error } = await supabase
-                    .from('manual_grades')
-                    .insert({
-                        student_id: studentId,
-                        course_id: courseId,
-                        assessment_type_id: typeId,
-                        score,
-                        max_score: maxScore,
-                        notes
-                    });
-                if (error) alert('Error: ' + error.message);
-                else alert('Grade saved!');
-            });
+            // Gradebook – we need to load grade data on demand
+            document.getElementById('manualCourseSelect')?.addEventListener('change', loadGradebook);
 
-            // Compute Grades
+            // Compute
             document.getElementById('computeForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const courseId = document.getElementById('computeCourseSelect').value;
+                const courseId = document.getElementById('computeCourse').value;
                 const period = document.getElementById('computePeriod').value;
                 if (!courseId) { alert('Select a course.'); return; }
-                // Fetch all students in this course
                 const { data: enrollments } = await supabase
                     .from('course_enrollments')
                     .select('student_id')
                     .eq('course_id', courseId);
                 if (!enrollments || enrollments.length === 0) {
-                    document.getElementById('computedGradesResult').innerHTML = '<p>No students enrolled.</p>';
+                    document.getElementById('computedGradesResult').innerHTML = '<div class="empty-state"><p>No students enrolled.</p></div>';
                     return;
                 }
                 const studentIds = enrollments.map(e => e.student_id);
-                // Fetch all grades for these students
                 const { data: grades } = await supabase
                     .from('grades')
                     .select('student_id, assessment_types(name, weight), score, max_score')
                     .eq('course_id', courseId)
                     .in('student_id', studentIds);
-                // Compute per student
-                let resultHtml = '<table><thead><tr><th>Student</th><th>Period Grade</th></tr></thead><tbody>';
+                let html = '<div class="table-wrap"><table><thead><tr><th>Student</th><th>Period Grade</th></tr></thead><tbody>';
                 for (const sid of studentIds) {
                     const studentGrades = grades.filter(g => g.student_id === sid);
-                    let totalWeighted = 0;
-                    let totalWeight = 0;
+                    let totalWeighted = 0, totalWeight = 0;
                     for (const g of studentGrades) {
                         const pct = (g.score / g.max_score) * 100;
-                        const weight = g.assessment_types.weight || 0;
-                        totalWeighted += pct * weight;
-                        totalWeight += weight;
+                        const w = g.assessment_types.weight || 0;
+                        totalWeighted += pct * w;
+                        totalWeight += w;
                     }
                     const periodGrade = totalWeight > 0 ? (totalWeighted / totalWeight) : 0;
-                    // Save to period_grades
                     await supabase
                         .from('period_grades')
                         .upsert({
@@ -931,41 +1413,38 @@
                             grade: periodGrade,
                             updated_at: new Date().toISOString()
                         }, { onConflict: 'student_id,course_id,period' });
-                    // Get student name
                     const { data: student } = await supabase
                         .from('profiles')
                         .select('first_name, last_name')
                         .eq('id', sid)
                         .single();
                     const name = student ? `${student.first_name} ${student.last_name}` : sid;
-                    resultHtml += `<tr><td>${name}</td><td>${periodGrade.toFixed(2)}</td></tr>`;
+                    html += `<tr><td>${name}</td><td>${periodGrade.toFixed(2)}</td></tr>`;
                 }
-                resultHtml += '</tbody></table>';
-                document.getElementById('computedGradesResult').innerHTML = resultHtml;
+                html += '</tbody></table></div>';
+                document.getElementById('computedGradesResult').innerHTML = html;
             });
 
             // Final Rating
-            document.getElementById('finalRatingForm').addEventListener('submit', async (e) => {
+            document.getElementById('finalForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const courseId = document.getElementById('finalCourseSelect').value;
+                const courseId = document.getElementById('finalCourse').value;
                 if (!courseId) { alert('Select a course.'); return; }
-                // Fetch all period grades for students in this course
                 const { data: enrollments } = await supabase
                     .from('course_enrollments')
                     .select('student_id')
                     .eq('course_id', courseId);
                 if (!enrollments || enrollments.length === 0) {
-                    document.getElementById('finalRatingResult').innerHTML = '<p>No students.</p>';
+                    document.getElementById('finalResult').innerHTML = '<div class="empty-state"><p>No students.</p></div>';
                     return;
                 }
                 const studentIds = enrollments.map(e => e.student_id);
                 const { data: periodGrades } = await supabase
                     .from('period_grades')
-                    .select('student_id, period, grade')
+                    .select('student_id, grade')
                     .eq('course_id', courseId)
                     .in('student_id', studentIds);
-                // Compute final grade = average of periods (or weighted)
-                let resultHtml = '<table><thead><tr><th>Student</th><th>Final Grade</th></tr></thead><tbody>';
+                let html = '<div class="table-wrap"><table><thead><tr><th>Student</th><th>Final Grade</th></tr></thead><tbody>';
                 for (const sid of studentIds) {
                     const grades = periodGrades.filter(g => g.student_id === sid);
                     const avg = grades.reduce((sum, g) => sum + g.grade, 0) / (grades.length || 1);
@@ -983,37 +1462,30 @@
                         .eq('id', sid)
                         .single();
                     const name = student ? `${student.first_name} ${student.last_name}` : sid;
-                    resultHtml += `<tr><td>${name}</td><td>${avg.toFixed(2)}</td></tr>`;
+                    html += `<tr><td>${name}</td><td>${avg.toFixed(2)}</td></tr>`;
                 }
-                resultHtml += '</tbody></table>';
-                document.getElementById('finalRatingResult').innerHTML = resultHtml;
+                html += '</tbody></table></div>';
+                document.getElementById('finalResult').innerHTML = html;
             });
 
             // Reports
             document.getElementById('reportForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const courseId = document.getElementById('reportCourseSelect').value;
+                const courseId = document.getElementById('reportCourse').value;
                 const type = document.getElementById('reportType').value;
                 if (!courseId) { alert('Select a course.'); return; }
                 let report = '';
                 if (type === 'absenteeism') {
-                    // Fetch attendance records
-                    const { data: sessions } = await supabase
-                        .from('attendance_sessions')
-                        .select('id, date')
-                        .eq('section_id', (await supabase.from('sections').select('id').eq('course_id', courseId).single()).data?.id);
-                    // ... compute absenteeism per student
-                    report = 'Absenteeism report (placeholder) – implement as needed.';
+                    report = 'Absenteeism report (implement as needed).';
                 } else if (type === 'failing') {
-                    // Fetch students with grade < 75
-                    const { data: grades } = await supabase
+                    const { data: failing } = await supabase
                         .from('period_grades')
                         .select('student_id, grade')
                         .eq('course_id', courseId)
                         .lt('grade', 75);
-                    report = 'Failing students:\n' + grades.map(g => g.student_id).join('\n');
+                    report = 'Failing students:\n' + (failing?.map(f => f.student_id).join('\n') || 'None');
                 } else {
-                    report = 'Summary report – implement as needed.';
+                    report = 'Summary report (implement as needed).';
                 }
                 document.getElementById('reportOutput').textContent = report;
             });
@@ -1021,8 +1493,8 @@
             // Interventions
             document.getElementById('interventionForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const courseId = document.getElementById('intervCourseSelect').value;
-                const studentId = document.getElementById('intervStudentSelect').value;
+                const courseId = document.getElementById('intervCourse').value;
+                const studentId = document.getElementById('intervStudent').value;
                 const type = document.getElementById('intervType').value;
                 const adjustment = parseFloat(document.getElementById('intervAdjustment').value) || 0;
                 const desc = document.getElementById('intervDesc').value;
@@ -1041,17 +1513,16 @@
                 else alert('Intervention recorded!');
             });
 
-            // Add Student
-            document.getElementById('addStudentForm').addEventListener('submit', async (e) => {
+            // Enroll
+            document.getElementById('enrollForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const courseId = document.getElementById('addCourseSelect').value;
-                const email = document.getElementById('addStudentEmail').value;
-                const sectionId = document.getElementById('addSectionSelect').value;
+                const courseId = document.getElementById('enrollCourse').value;
+                const email = document.getElementById('enrollEmail').value;
+                const sectionId = document.getElementById('enrollSection').value;
                 if (!courseId || !email || !sectionId) {
                     alert('Fill all fields.');
                     return;
                 }
-                // Find student by email
                 const { data: user } = await supabase
                     .from('profiles')
                     .select('id')
@@ -1061,7 +1532,6 @@
                     alert('Student not found. They must register first.');
                     return;
                 }
-                // Enroll
                 const { error } = await supabase
                     .from('course_enrollments')
                     .insert({
@@ -1070,21 +1540,83 @@
                         section_id: sectionId
                     });
                 if (error) alert('Error: ' + error.message);
-                else alert('Student added to section!');
+                else {
+                    alert('Student enrolled!');
+                    updateStats();
+                }
             });
 
-            // Load schedules for schedule section
+            // Load schedules
             loadSchedules();
 
-            // Load students for manual grade dropdown when course changes
-            document.getElementById('manualCourseSelect').addEventListener('change', loadStudentsForManualGrade);
-            document.getElementById('intervCourseSelect').addEventListener('change', loadStudentsForIntervention);
+            // Load gradebook when course changes
+            document.getElementById('manualCourseSelect')?.addEventListener('change', loadGradebook);
 
-            // Load assessment types for weights
-            document.getElementById('weightsCourseSelect').addEventListener('change', loadWeightsInputs);
+            // Load sections for enroll course change
+            document.getElementById('enrollCourse')?.addEventListener('change', loadSectionsForEnroll);
 
-            // Load sections for add student dropdown
-            document.getElementById('addCourseSelect').addEventListener('change', loadSectionsForAddStudent);
+            // Load students for intervention course change
+            document.getElementById('intervCourse')?.addEventListener('change', loadStudentsForIntervention);
+
+            // Load weights inputs
+            document.getElementById('weightsCourse')?.addEventListener('change', loadWeightsInputs);
+
+            // Add Course button
+            document.getElementById('addCourseBtn')?.addEventListener('click', () => {
+                const code = prompt('Enter course code (e.g., IT101):');
+                if (!code) return;
+                const name = prompt('Enter course name:');
+                if (!name) return;
+                const desc = prompt('Enter course description (optional):');
+                supabase
+                    .from('courses')
+                    .insert({ code, name, description: desc || '', instructor_id: currentUser.id })
+                    .then(({ error }) => {
+                        if (error) alert('Error: ' + error.message);
+                        else {
+                            alert('Course added!');
+                            loadInstructorData();
+                            populateCourseSelects();
+                            updateStats();
+                        }
+                    });
+            });
+
+            // Export grades (CSV)
+            document.getElementById('exportGrades')?.addEventListener('click', async () => {
+                const courseId = document.getElementById('manualCourseSelect')?.value;
+                if (!courseId) { alert('Select a course first.'); return; }
+                const { data: enrollments } = await supabase
+                    .from('course_enrollments')
+                    .select('student_id')
+                    .eq('course_id', courseId);
+                if (!enrollments || enrollments.length === 0) return alert('No students.');
+                const studentIds = enrollments.map(e => e.student_id);
+                const { data: grades } = await supabase
+                    .from('grades')
+                    .select('student_id, assessment_types(name), score, max_score')
+                    .eq('course_id', courseId)
+                    .in('student_id', studentIds);
+                // Build CSV
+                let csv = 'Student,Assessment,Score,Max Score\n';
+                for (const g of grades) {
+                    const { data: student } = await supabase
+                        .from('profiles')
+                        .select('first_name, last_name')
+                        .eq('id', g.student_id)
+                        .single();
+                    const name = student ? `${student.first_name} ${student.last_name}` : g.student_id;
+                    csv += `${name},${g.assessment_types.name},${g.score},${g.max_score}\n`;
+                }
+                // Download
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'grades.csv';
+                a.click();
+                URL.revokeObjectURL(url);
+            });
         }
 
         // -------- Load Schedules --------
@@ -1093,12 +1625,12 @@
             const { data, error } = await supabase
                 .from('schedules')
                 .select('*, sections(name)');
-            if (error) { container.innerHTML = '<p style="color:#ef4444;">Error loading schedules.</p>'; return; }
+            if (error) { container.innerHTML = '<div class="empty-state"><p>Error loading schedules.</p></div>'; return; }
             if (!data || data.length === 0) {
-                container.innerHTML = '<p style="color:#94a3b8;">No schedules set.</p>';
+                container.innerHTML = '<div class="empty-state"><p>No schedules set.</p></div>';
                 return;
             }
-            let html = '<table><thead><tr><th>Section</th><th>Day</th><th>Start</th><th>End</th><th>Room</th></tr></thead><tbody>';
+            let html = '<div class="table-wrap"><table><thead><tr><th>Section</th><th>Day</th><th>Start</th><th>End</th><th>Room</th></tr></thead><tbody>';
             data.forEach(s => {
                 html += `<tr>
                     <td>${s.sections?.name || 'N/A'}</td>
@@ -1108,87 +1640,14 @@
                     <td>${s.room || '-'}</td>
                 </tr>`;
             });
-            html += '</tbody></table>';
+            html += '</tbody></table></div>';
             container.innerHTML = html;
         }
 
-        // -------- Load Students for Manual Grade --------
-        async function loadStudentsForManualGrade() {
-            const courseId = document.getElementById('manualCourseSelect').value;
-            const studentSelect = document.getElementById('manualStudentSelect');
-            if (!courseId) { studentSelect.innerHTML = '<option value="">Select...</option>'; return; }
-            const { data: enrollments } = await supabase
-                .from('course_enrollments')
-                .select('student_id')
-                .eq('course_id', courseId);
-            if (!enrollments || enrollments.length === 0) {
-                studentSelect.innerHTML = '<option value="">No students enrolled</option>';
-                return;
-            }
-            const ids = enrollments.map(e => e.student_id);
-            const { data: students } = await supabase
-                .from('profiles')
-                .select('id, first_name, last_name')
-                .in('id', ids);
-            renderSelect(studentSelect, students, 'id', (s) => `${s.first_name} ${s.last_name}`);
-
-            // Also load assessment types for this course
-            const typeSelect = document.getElementById('manualTypeSelect');
-            const { data: types } = await supabase
-                .from('assessment_types')
-                .select('id, name')
-                .eq('course_id', courseId);
-            renderSelect(typeSelect, types, 'id', 'name');
-        }
-
-        async function loadStudentsForIntervention() {
-            const courseId = document.getElementById('intervCourseSelect').value;
-            const studentSelect = document.getElementById('intervStudentSelect');
-            if (!courseId) { studentSelect.innerHTML = '<option value="">Select...</option>'; return; }
-            const { data: enrollments } = await supabase
-                .from('course_enrollments')
-                .select('student_id')
-                .eq('course_id', courseId);
-            if (!enrollments || enrollments.length === 0) {
-                studentSelect.innerHTML = '<option value="">No students enrolled</option>';
-                return;
-            }
-            const ids = enrollments.map(e => e.student_id);
-            const { data: students } = await supabase
-                .from('profiles')
-                .select('id, first_name, last_name')
-                .in('id', ids);
-            renderSelect(studentSelect, students, 'id', (s) => `${s.first_name} ${s.last_name}`);
-        }
-
-        // -------- Load Weights Inputs --------
-        async function loadWeightsInputs() {
-            const courseId = document.getElementById('weightsCourseSelect').value;
-            const container = document.getElementById('weightsInputs');
-            if (!courseId) { container.innerHTML = ''; return; }
-            const { data: types } = await supabase
-                .from('assessment_types')
-                .select('id, name, weight')
-                .eq('course_id', courseId);
-            if (!types || types.length === 0) {
-                container.innerHTML = '<p style="color:#94a3b8;">No assessment types defined yet. Create an assessment first.</p>';
-                return;
-            }
-            let html = '';
-            types.forEach(t => {
-                html += `<div class="form-row">
-                    <label>${t.name}</label>
-                    <input type="number" data-type-id="${t.id}" value="${t.weight || 0}" step="0.01" min="0" max="100" style="width:100px;">
-                    <span>%</span>
-                </div>`;
-            });
-            container.innerHTML = html;
-        }
-
-        // -------- Load Sections for Add Student --------
-        async function loadSectionsForAddStudent() {
-            const courseId = document.getElementById('addCourseSelect').value;
-            const select = document.getElementById('addSectionSelect');
+        // -------- Load Sections for Enroll --------
+        async function loadSectionsForEnroll() {
+            const courseId = document.getElementById('enrollCourse').value;
+            const select = document.getElementById('enrollSection');
             if (!courseId) { select.innerHTML = '<option value="">Select...</option>'; return; }
             const { data: sections } = await supabase
                 .from('sections')
@@ -1197,15 +1656,116 @@
             renderSelect(select, sections, 'id', 'name');
         }
 
-        // -------- Modal --------
-        window.closeModal = function() {
-            document.getElementById('modal').classList.remove('active');
-        };
+        // -------- Load Students for Intervention --------
+        async function loadStudentsForIntervention() {
+            const courseId = document.getElementById('intervCourse').value;
+            const select = document.getElementById('intervStudent');
+            if (!courseId) { select.innerHTML = '<option value="">Select...</option>'; return; }
+            const { data: enrollments } = await supabase
+                .from('course_enrollments')
+                .select('student_id')
+                .eq('course_id', courseId);
+            if (!enrollments || enrollments.length === 0) {
+                select.innerHTML = '<option value="">No students enrolled</option>';
+                return;
+            }
+            const ids = enrollments.map(e => e.student_id);
+            const { data: students } = await supabase
+                .from('profiles')
+                .select('id, first_name, last_name')
+                .in('id', ids);
+            renderSelect(select, students, 'id', (s) => `${s.first_name} ${s.last_name}`);
+        }
+
+        // -------- Load Weights Inputs --------
+        async function loadWeightsInputs() {
+            const courseId = document.getElementById('weightsCourse').value;
+            const container = document.getElementById('weightsInputs');
+            if (!courseId) { container.innerHTML = ''; return; }
+            const { data: types } = await supabase
+                .from('assessment_types')
+                .select('id, name, weight')
+                .eq('course_id', courseId);
+            if (!types || types.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>No assessment types defined. Create an assessment first.</p></div>';
+                return;
+            }
+            let html = '';
+            types.forEach(t => {
+                html += `<div class="form-group" style="display:flex; align-items:center; gap:1rem; margin-bottom:0.5rem;">
+                    <label style="min-width:100px;">${t.name}</label>
+                    <input type="number" data-type-id="${t.id}" value="${t.weight || 0}" step="0.01" min="0" max="100" style="width:100px;">
+                    <span>%</span>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        // -------- Load Gradebook --------
+        async function loadGradebook() {
+            const courseId = document.getElementById('manualCourseSelect')?.value;
+            const container = document.getElementById('gradebookContainer');
+            if (!courseId) { container.innerHTML = '<div class="empty-state"><p>Select a course to view grades.</p></div>'; return; }
+
+            // Get all students
+            const { data: enrollments } = await supabase
+                .from('course_enrollments')
+                .select('student_id')
+                .eq('course_id', courseId);
+            if (!enrollments || enrollments.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>No students enrolled.</p></div>';
+                return;
+            }
+            const studentIds = enrollments.map(e => e.student_id);
+            const { data: students } = await supabase
+                .from('profiles')
+                .select('id, first_name, last_name, student_id')
+                .in('id', studentIds);
+
+            // Get all assessment types for this course
+            const { data: types } = await supabase
+                .from('assessment_types')
+                .select('id, name')
+                .eq('course_id', courseId);
+
+            // Get all grades for these students
+            const { data: grades } = await supabase
+                .from('grades')
+                .select('student_id, assessment_type_id, score, max_score')
+                .eq('course_id', courseId)
+                .in('student_id', studentIds);
+
+            // Build table
+            let html = '<div class="table-wrap"><table><thead><tr><th>Student</th>';
+            types.forEach(t => {
+                html += `<th>${t.name}</th>`;
+            });
+            html += `<th>Average</th></tr></thead><tbody>`;
+
+            for (const s of students) {
+                html += `<tr><td><strong>${s.first_name} ${s.last_name}</strong><br><span class="text-sm text-muted">${s.student_id}</span></td>`;
+                let total = 0, count = 0;
+                for (const t of types) {
+                    const g = grades.find(g => g.student_id === s.id && g.assessment_type_id === t.id);
+                    if (g) {
+                        const pct = (g.score / g.max_score) * 100;
+                        total += pct;
+                        count++;
+                        html += `<td>${pct.toFixed(1)}%</td>`;
+                    } else {
+                        html += `<td class="text-muted">—</td>`;
+                    }
+                }
+                const avg = count > 0 ? (total / count).toFixed(1) : '—';
+                html += `<td><strong>${avg}%</strong></td></tr>`;
+            }
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        }
 
         // -------- Init --------
         init();
-
-        console.log('✅ Instructor Portal loaded.');
+        console.log('✅ Professional Instructor Dashboard loaded.');
     </script>
 </body>
 </html>
