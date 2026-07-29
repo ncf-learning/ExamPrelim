@@ -412,23 +412,33 @@
      SCRIPTS
      ============================================================ -->
 <script type="importmap">
-{ "imports": { "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2" } }
+{
+    "imports": {
+        "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2"
+    }
+}
 </script>
 <script type="module">
 import { supabase, getCurrentUser, signOut } from './supabase.js';
 
-// -------------------- STATE --------------------
+// ============================================================
+// STATE
+// ============================================================
 let currentUser = null;
 let currentProfile = null;
 let instructorCourses = [];
 let assessmentQuestions = [];
 let editingQuestionIndex = -1;
 
-// -------------------- DOM refs --------------------
+// ============================================================
+// DOM REFS
+// ============================================================
 const sections = document.querySelectorAll('.page-section');
 const navItems = document.querySelectorAll('.nav-item');
 
-// -------------------- NAVIGATION --------------------
+// ============================================================
+// NAVIGATION
+// ============================================================
 navItems.forEach(item => {
     item.addEventListener('click', () => {
         if (item.id === 'logoutBtn') return;
@@ -450,7 +460,9 @@ window.switchSection = (section) => {
     if (target) target.click();
 };
 
-// -------------------- HELPERS --------------------
+// ============================================================
+// HELPERS
+// ============================================================
 function renderSelect(select, options, valueKey, labelKey) {
     select.innerHTML = '<option value="">Select...</option>';
     if (!options || options.length === 0) return;
@@ -462,38 +474,49 @@ function renderSelect(select, options, valueKey, labelKey) {
     });
 }
 
-// -------------------- LOAD SECTIONS FOR SELECT --------------------
+// ============================================================
+// LOAD SECTIONS FOR ANY SELECT
+// ============================================================
 async function loadSectionsForSelect(selectId) {
     const select = document.getElementById(selectId);
     if (!select) return;
+    
     if (instructorCourses.length === 0) {
         select.innerHTML = '<option value="">No courses found</option>';
         return;
     }
+    
     const courseIds = instructorCourses.map(c => c.id);
     const { data: sections, error } = await supabase
         .from('sections')
         .select('id, name, course_id')
         .in('course_id', courseIds);
+        
     if (error) {
         console.error('Error loading sections:', error);
         select.innerHTML = '<option value="">Error loading</option>';
         return;
     }
+    
     if (!sections || sections.length === 0) {
         select.innerHTML = '<option value="">No sections available</option>';
         return;
     }
-    // Map course codes for display
+    
     const courseMap = {};
     instructorCourses.forEach(c => courseMap[c.id] = c.code);
     renderSelect(select, sections, 'id', s => `${s.name} (${courseMap[s.course_id] || 'Unknown'})`);
 }
 
-// -------------------- INIT --------------------
+// ============================================================
+// INIT
+// ============================================================
 async function init() {
     const user = await getCurrentUser();
-    if (!user) { window.location.href = 'index.html'; return; }
+    if (!user) {
+        window.location.href = 'index.html';
+        return;
+    }
     currentUser = user;
 
     const { data: profile } = await supabase
@@ -501,14 +524,18 @@ async function init() {
         .select('*')
         .eq('id', user.id)
         .maybeSingle();
+        
     if (!profile || profile.role !== 'instructor') {
         alert('Not authorized as instructor.');
         window.location.href = 'index.html';
         return;
     }
+    
     currentProfile = profile;
-    document.getElementById('userAvatar').textContent = (profile.first_name?.[0] || 'N') + (profile.last_name?.[0] || 'C');
-    document.getElementById('userName').textContent = `${profile.first_name} ${profile.last_name}`;
+    document.getElementById('userAvatar').textContent = 
+        (profile.first_name?.[0] || 'N') + (profile.last_name?.[0] || 'C');
+    document.getElementById('userName').textContent = 
+        `${profile.first_name} ${profile.last_name}`;
 
     await loadInstructorData();
     await loadPendingApprovals();
@@ -516,29 +543,39 @@ async function init() {
     setupEventListeners();
     updateStats();
 
-    // Load sections for attendance and schedule selects after courses loaded
+    // Load sections for attendance and schedule selects
     await loadSectionsForSelect('attSection');
     await loadSectionsForSelect('scheduleSection');
 }
 
-// -------------------- LOAD COURSES --------------------
+// ============================================================
+// LOAD COURSES
+// ============================================================
 async function loadInstructorData() {
     const { data: courses, error } = await supabase
         .from('courses')
         .select('*')
         .eq('instructor_id', currentUser.id);
-    if (error) { console.error('Error loading courses:', error); return; }
+        
+    if (error) {
+        console.error('Error loading courses:', error);
+        return;
+    }
+    
     instructorCourses = courses || [];
-    console.log('📚 Courses loaded:', instructorCourses.length);
 
     const container = document.getElementById('instructorCourses');
     if (instructorCourses.length === 0) {
         container.innerHTML = '<div class="empty-state"><span class="icon">📘</span><p>No courses assigned yet.</p></div>';
         return;
     }
+    
     let html = '<div class="table-wrap"><table><thead><tr><th>Code</th><th>Name</th><th>Description</th><th>Sections</th></tr></thead><tbody>';
     for (const c of instructorCourses) {
-        const { data: secs } = await supabase.from('sections').select('name').eq('course_id', c.id);
+        const { data: secs } = await supabase
+            .from('sections')
+            .select('name')
+            .eq('course_id', c.id);
         const secNames = secs?.map(s => s.name).join(', ') || 'None';
         html += `<tr><td><strong>${c.code}</strong></td><td>${c.name}</td><td>${c.description || '-'}</td><td>${secNames}</td></tr>`;
     }
@@ -546,10 +583,14 @@ async function loadInstructorData() {
     container.innerHTML = html;
 
     const gradebookSelect = document.getElementById('manualCourseSelect');
-    if (gradebookSelect) renderSelect(gradebookSelect, instructorCourses, 'id', c => `${c.code} - ${c.name}`);
+    if (gradebookSelect) {
+        renderSelect(gradebookSelect, instructorCourses, 'id', c => `${c.code} - ${c.name}`);
+    }
 }
 
-// -------------------- PENDING APPROVALS --------------------
+// ============================================================
+// PENDING APPROVALS
+// ============================================================
 async function loadPendingApprovals() {
     const container = document.getElementById('pendingApprovalsList');
     const { data, error } = await supabase
@@ -557,10 +598,12 @@ async function loadPendingApprovals() {
         .select('id, student_id, first_name, last_name, section, created_at')
         .eq('role', 'pending')
         .order('created_at', { ascending: true });
+        
     if (error || data.length === 0) {
         container.innerHTML = '<div class="empty-state"><span class="icon">✅</span><p>No pending approvals.</p></div>';
         return;
     }
+    
     let html = '<div class="table-wrap"><table><thead><tr><th>ID</th><th>Name</th><th>Section</th><th>Date</th><th>Actions</th></tr></thead><tbody>';
     data.forEach(p => {
         html += `<tr>
@@ -577,50 +620,88 @@ async function loadPendingApprovals() {
     html += '</tbody></table></div>';
     container.innerHTML = html;
 }
+
 window.approveUser = async (userId) => {
     if (!confirm('Approve this user?')) return;
-    const { error } = await supabase.from('profiles').update({ role: 'student' }).eq('id', userId);
-    if (error) alert('Error: ' + error.message);
-    else { alert('Approved!'); loadPendingApprovals(); updateStats(); }
-};
-window.rejectUser = async (userId) => {
-    if (!confirm('Reject this user?')) return;
-    const { error } = await supabase.from('profiles').update({ role: 'rejected' }).eq('id', userId);
-    if (error) alert('Error: ' + error.message);
-    else { alert('Rejected.'); loadPendingApprovals(); updateStats(); }
+    const { error } = await supabase
+        .from('profiles')
+        .update({ role: 'student' })
+        .eq('id', userId);
+    if (error) {
+        alert('Error: ' + error.message);
+    } else {
+        alert('Approved!');
+        loadPendingApprovals();
+        updateStats();
+    }
 };
 
-// -------------------- POPULATE COURSE SELECTS --------------------
+window.rejectUser = async (userId) => {
+    if (!confirm('Reject this user?')) return;
+    const { error } = await supabase
+        .from('profiles')
+        .update({ role: 'rejected' })
+        .eq('id', userId);
+    if (error) {
+        alert('Error: ' + error.message);
+    } else {
+        alert('Rejected.');
+        loadPendingApprovals();
+        updateStats();
+    }
+};
+
+// ============================================================
+// POPULATE COURSE SELECTS
+// ============================================================
 function populateCourseSelects() {
-    const ids = ['assessCourse','weightsCourse','computeCourse','finalCourse','reportCourse','intervCourse','enrollCourse'];
+    const ids = [
+        'assessCourse', 'weightsCourse', 'computeCourse',
+        'finalCourse', 'reportCourse', 'intervCourse', 'enrollCourse'
+    ];
     ids.forEach(id => {
         const el = document.getElementById(id);
-        if (el) renderSelect(el, instructorCourses, 'id', c => `${c.code} - ${c.name}`);
+        if (el) {
+            renderSelect(el, instructorCourses, 'id', c => `${c.code} - ${c.name}`);
+        }
     });
 }
 
-// -------------------- UPDATE STATS --------------------
+// ============================================================
+// UPDATE STATS
+// ============================================================
 async function updateStats() {
     let totalStudents = 0;
     for (const c of instructorCourses) {
-        const { count } = await supabase.from('course_enrollments').select('*', { count:'exact', head:true }).eq('course_id', c.id);
+        const { count } = await supabase
+            .from('course_enrollments')
+            .select('*', { count: 'exact', head: true })
+            .eq('course_id', c.id);
         totalStudents += count || 0;
     }
     document.getElementById('statCourses').textContent = instructorCourses.length;
     document.getElementById('statStudents').textContent = totalStudents;
 
-    const { count: pending } = await supabase.from('profiles').select('*', { count:'exact', head:true }).eq('role', 'pending');
+    const { count: pending } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'pending');
     document.getElementById('statPending').textContent = pending || 0;
 
     let totalAssessments = 0;
     for (const c of instructorCourses) {
-        const { count } = await supabase.from('assessments').select('*', { count:'exact', head:true }).eq('course_id', c.id);
+        const { count } = await supabase
+            .from('assessments')
+            .select('*', { count: 'exact', head: true })
+            .eq('course_id', c.id);
         totalAssessments += count || 0;
     }
     document.getElementById('statAssessments').textContent = totalAssessments;
 }
 
-// -------------------- ASSESSMENT BUILDER FUNCTIONS --------------------
+// ============================================================
+// ASSESSMENT BUILDER FUNCTIONS
+// ============================================================
 window.goToStep = (step) => {
     document.querySelectorAll('.step').forEach(el => {
         el.style.display = 'none';
@@ -641,7 +722,12 @@ function renderQuestions() {
     }
     let html = '';
     assessmentQuestions.forEach((q, idx) => {
-        const typeLabel = {mc:'Multiple Choice', tf:'True/False', essay:'Essay', fill:'Fill in the Blank'}[q.type] || q.type;
+        const typeLabel = {
+            mc: 'Multiple Choice',
+            tf: 'True/False',
+            essay: 'Essay',
+            fill: 'Fill in the Blank'
+        }[q.type] || q.type;
         html += `<div class="question-item">
             <div class="q-text"><strong>${idx+1}.</strong> ${q.question} <span class="text-muted">(${typeLabel}, ${q.points} pts)</span></div>
             <div class="q-actions">
@@ -733,12 +819,18 @@ document.getElementById('questionEditorForm').addEventListener('submit', (e) => 
 
 window.importFromBank = async () => {
     const courseId = document.getElementById('assessCourse').value;
-    if (!courseId) { alert('Please select a course first.'); return; }
+    if (!courseId) {
+        alert('Please select a course first.');
+        return;
+    }
     const { data: bank, error } = await supabase
         .from('question_bank')
         .select('*')
         .eq('course_id', courseId);
-    if (error) { alert('Error loading bank: ' + error.message); return; }
+    if (error) {
+        alert('Error loading bank: ' + error.message);
+        return;
+    }
     if (!bank || bank.length === 0) {
         alert('No questions in the bank for this course.');
         return;
@@ -755,7 +847,9 @@ window.importFromBank = async () => {
     alert(`Imported ${imported.length} questions.`);
 };
 
-// -------------------- SETUP EVENT LISTENERS --------------------
+// ============================================================
+// SETUP EVENT LISTENERS
+// ============================================================
 function setupEventListeners() {
     // Add Course
     document.getElementById('addCourseBtn').addEventListener('click', async () => {
@@ -765,19 +859,22 @@ function setupEventListeners() {
         if (!name) return;
         const desc = prompt('Enter description (optional):');
 
-        const { data, error } = await supabase.from('courses').insert({
+        const { error } = await supabase.from('courses').insert({
             code: code.trim(),
             name: name.trim(),
             description: desc?.trim() || '',
             instructor_id: currentUser.id
-        }).select();
+        });
 
-        if (error) { alert('Error: ' + error.message); console.error(error); return; }
+        if (error) {
+            alert('Error: ' + error.message);
+            console.error(error);
+            return;
+        }
         alert('Course added!');
         await loadInstructorData();
         populateCourseSelects();
         updateStats();
-        // Reload sections for attendance and schedule
         await loadSectionsForSelect('attSection');
         await loadSectionsForSelect('scheduleSection');
     });
@@ -789,19 +886,36 @@ function setupEventListeners() {
         const date = document.getElementById('attDate').value;
         const start = document.getElementById('attStart').value;
         const end = document.getElementById('attEnd').value;
-        if (!sectionId) { alert('Select a section.'); return; }
+        
+        if (!sectionId) {
+            alert('Select a section.');
+            return;
+        }
+        
         const code = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiresAt = new Date(); expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+        const expiresAt = new Date();
+        expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+        
         const { error } = await supabase.from('attendance_sessions').insert({
-            section_id: sectionId, date, start_time: start, end_time: end, code, expires_at: expiresAt.toISOString()
+            section_id: sectionId,
+            date,
+            start_time: start,
+            end_time: end,
+            code,
+            expires_at: expiresAt.toISOString()
         });
-        if (error) { alert('Error: ' + error.message); return; }
+        
+        if (error) {
+            alert('Error: ' + error.message);
+            return;
+        }
+        
         const display = document.getElementById('attCodeDisplay');
         display.textContent = `Code: ${code} (valid 15 mins)`;
         display.style.display = 'block';
     });
 
-    // Schedule (FIXED: uses section_id correctly)
+    // Schedule - FIXED: Uses section_id correctly
     document.getElementById('scheduleForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const sectionId = document.getElementById('scheduleSection').value;
@@ -809,7 +923,12 @@ function setupEventListeners() {
         const start = document.getElementById('scheduleStart').value;
         const end = document.getElementById('scheduleEnd').value;
         const room = document.getElementById('scheduleRoom').value;
-        if (!sectionId) { alert('Select a section.'); return; }
+        
+        if (!sectionId) {
+            alert('Select a section.');
+            return;
+        }
+        
         const { error } = await supabase.from('schedules').insert({
             section_id: sectionId,
             day_of_week: day,
@@ -817,6 +936,7 @@ function setupEventListeners() {
             end_time: end,
             room: room || null
         });
+        
         if (error) {
             alert('Error: ' + error.message);
             console.error(error);
@@ -826,7 +946,7 @@ function setupEventListeners() {
         loadSchedules();
     });
 
-    // Assessment (new advanced version)
+    // Assessment
     document.getElementById('assessmentForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const courseId = document.getElementById('assessCourse').value;
@@ -843,37 +963,66 @@ function setupEventListeners() {
         const showAnswers = document.getElementById('assessShowAnswers').checked;
         const passing = parseInt(document.getElementById('assessPassing').value) || 60;
 
-        if (!courseId || !title) { alert('Course and Title are required.'); return; }
-        if (assessmentQuestions.length === 0) { alert('Please add at least one question.'); return; }
+        if (!courseId || !title) {
+            alert('Course and Title are required.');
+            return;
+        }
+        if (assessmentQuestions.length === 0) {
+            alert('Please add at least one question.');
+            return;
+        }
 
+        // Create or get assessment type
         let typeId;
-        const { data: existing } = await supabase.from('assessment_types').select('id').eq('course_id', courseId).eq('name', typeName);
+        const { data: existing } = await supabase
+            .from('assessment_types')
+            .select('id')
+            .eq('course_id', courseId)
+            .eq('name', typeName);
+            
         if (existing && existing.length > 0) {
             typeId = existing[0].id;
         } else {
-            const { data: newType, error } = await supabase.from('assessment_types').insert({ course_id: courseId, name: typeName, weight: 0 }).select().single();
-            if (error) { alert('Error creating type: ' + error.message); return; }
+            const { data: newType, error } = await supabase
+                .from('assessment_types')
+                .insert({ course_id: courseId, name: typeName, weight: 0 })
+                .select()
+                .single();
+            if (error) {
+                alert('Error creating type: ' + error.message);
+                return;
+            }
             typeId = newType.id;
         }
 
-        const { data: assess, error: assessError } = await supabase.from('assessments').insert({
-            course_id: courseId,
-            assessment_type_id: typeId,
-            title,
-            description: desc,
-            max_score: maxScore,
-            duration_minutes: duration,
-            date: date,
-            is_published: true,
-            randomize_questions: randomize,
-            questions_to_show: questionsToShow,
-            shuffle_options: shuffleOptions,
-            show_answers: showAnswers,
-            passing_score: passing,
-            ai_grading: ai
-        }).select().single();
-        if (assessError) { alert('Error creating assessment: ' + assessError.message); return; }
+        // Insert assessment
+        const { data: assess, error: assessError } = await supabase
+            .from('assessments')
+            .insert({
+                course_id: courseId,
+                assessment_type_id: typeId,
+                title,
+                description: desc,
+                max_score: maxScore,
+                duration_minutes: duration,
+                date: date,
+                is_published: true,
+                randomize_questions: randomize,
+                questions_to_show: questionsToShow,
+                shuffle_options: shuffleOptions,
+                show_answers: showAnswers,
+                passing_score: passing,
+                ai_grading: ai
+            })
+            .select()
+            .single();
+            
+        if (assessError) {
+            alert('Error creating assessment: ' + assessError.message);
+            return;
+        }
 
+        // Insert questions
         const qData = assessmentQuestions.map(q => ({
             assessment_id: assess.id,
             question: q.question,
@@ -882,8 +1031,15 @@ function setupEventListeners() {
             options: q.options || null,
             correct_answer: q.correct !== undefined && q.correct !== null ? q.correct : null
         }));
-        const { error: qError } = await supabase.from('assessment_questions').insert(qData);
-        if (qError) { alert('Error saving questions: ' + qError.message); return; }
+        
+        const { error: qError } = await supabase
+            .from('assessment_questions')
+            .insert(qData);
+            
+        if (qError) {
+            alert('Error saving questions: ' + qError.message);
+            return;
+        }
 
         alert(`Assessment "${title}" created with ${assessmentQuestions.length} questions.`);
         document.getElementById('assessmentForm').reset();
@@ -897,12 +1053,18 @@ function setupEventListeners() {
     document.getElementById('weightsForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const courseId = document.getElementById('weightsCourse').value;
-        if (!courseId) { alert('Select a course.'); return; }
+        if (!courseId) {
+            alert('Select a course.');
+            return;
+        }
         const inputs = document.querySelectorAll('#weightsInputs input');
         for (const inp of inputs) {
             const typeId = inp.dataset.typeId;
             const weight = parseFloat(inp.value) || 0;
-            await supabase.from('assessment_types').update({ weight }).eq('id', typeId);
+            await supabase
+                .from('assessment_types')
+                .update({ weight })
+                .eq('id', typeId);
         }
         alert('Weights saved!');
     });
@@ -912,12 +1074,23 @@ function setupEventListeners() {
         e.preventDefault();
         const courseId = document.getElementById('computeCourse').value;
         const period = document.getElementById('computePeriod').value;
-        if (!courseId) { alert('Select a course.'); return; }
-        const { data: enrollments } = await supabase.from('course_enrollments').select('student_id').eq('course_id', courseId);
-        if (!enrollments || enrollments.length === 0) {
-            document.getElementById('computedGradesResult').innerHTML = '<div class="empty-state"><p>No students.</p></div>';
+        
+        if (!courseId) {
+            alert('Select a course.');
             return;
         }
+        
+        const { data: enrollments } = await supabase
+            .from('course_enrollments')
+            .select('student_id')
+            .eq('course_id', courseId);
+            
+        if (!enrollments || enrollments.length === 0) {
+            document.getElementById('computedGradesResult').innerHTML = 
+                '<div class="empty-state"><p>No students.</p></div>';
+            return;
+        }
+        
         const studentIds = enrollments.map(e => e.student_id);
         const { data: grades } = await supabase
             .from('grades')
@@ -937,10 +1110,18 @@ function setupEventListeners() {
             }
             const periodGrade = totalWeight > 0 ? (totalWeighted / totalWeight) : 0;
             await supabase.from('period_grades').upsert({
-                student_id: sid, course_id: courseId, period: period, grade: periodGrade,
+                student_id: sid,
+                course_id: courseId,
+                period: period,
+                grade: periodGrade,
                 updated_at: new Date().toISOString()
             }, { onConflict: 'student_id,course_id,period' });
-            const { data: student } = await supabase.from('profiles').select('first_name, last_name').eq('id', sid).single();
+            
+            const { data: student } = await supabase
+                .from('profiles')
+                .select('first_name, last_name')
+                .eq('id', sid)
+                .single();
             const name = student ? `${student.first_name} ${student.last_name}` : sid;
             html += `<tr><td>${name}</td><td>${periodGrade.toFixed(2)}</td></tr>`;
         }
@@ -952,23 +1133,45 @@ function setupEventListeners() {
     document.getElementById('finalForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const courseId = document.getElementById('finalCourse').value;
-        if (!courseId) { alert('Select a course.'); return; }
-        const { data: enrollments } = await supabase.from('course_enrollments').select('student_id').eq('course_id', courseId);
-        if (!enrollments || enrollments.length === 0) {
-            document.getElementById('finalResult').innerHTML = '<div class="empty-state"><p>No students.</p></div>';
+        if (!courseId) {
+            alert('Select a course.');
             return;
         }
+        
+        const { data: enrollments } = await supabase
+            .from('course_enrollments')
+            .select('student_id')
+            .eq('course_id', courseId);
+            
+        if (!enrollments || enrollments.length === 0) {
+            document.getElementById('finalResult').innerHTML = 
+                '<div class="empty-state"><p>No students.</p></div>';
+            return;
+        }
+        
         const studentIds = enrollments.map(e => e.student_id);
-        const { data: periodGrades } = await supabase.from('period_grades').select('student_id, grade').eq('course_id', courseId).in('student_id', studentIds);
+        const { data: periodGrades } = await supabase
+            .from('period_grades')
+            .select('student_id, grade')
+            .eq('course_id', courseId)
+            .in('student_id', studentIds);
+            
         let html = '<div class="table-wrap"><table><thead><tr><th>Student</th><th>Final Grade</th></tr></thead><tbody>';
         for (const sid of studentIds) {
             const grades = periodGrades.filter(g => g.student_id === sid);
             const avg = grades.reduce((sum, g) => sum + g.grade, 0) / (grades.length || 1);
             await supabase.from('final_ratings').upsert({
-                student_id: sid, course_id: courseId, final_grade: avg,
+                student_id: sid,
+                course_id: courseId,
+                final_grade: avg,
                 updated_at: new Date().toISOString()
             }, { onConflict: 'student_id,course_id' });
-            const { data: student } = await supabase.from('profiles').select('first_name, last_name').eq('id', sid).single();
+            
+            const { data: student } = await supabase
+                .from('profiles')
+                .select('first_name, last_name')
+                .eq('id', sid)
+                .single();
             const name = student ? `${student.first_name} ${student.last_name}` : sid;
             html += `<tr><td>${name}</td><td>${avg.toFixed(2)}</td></tr>`;
         }
@@ -981,10 +1184,13 @@ function setupEventListeners() {
         e.preventDefault();
         const courseId = document.getElementById('reportCourse').value;
         const type = document.getElementById('reportType').value;
-        if (!courseId) { alert('Select a course.'); return; }
+        if (!courseId) {
+            alert('Select a course.');
+            return;
+        }
         let report = type === 'absenteeism' ? 'Absenteeism report (to be implemented).' :
-                      type === 'failing' ? 'Failing students (to be implemented).' :
-                      'Summary report (to be implemented).';
+                     type === 'failing' ? 'Failing students (to be implemented).' :
+                     'Summary report (to be implemented).';
         document.getElementById('reportOutput').textContent = report;
     });
 
@@ -996,13 +1202,26 @@ function setupEventListeners() {
         const type = document.getElementById('intervType').value;
         const adjustment = parseFloat(document.getElementById('intervAdjustment').value) || 0;
         const desc = document.getElementById('intervDesc').value;
-        if (!courseId || !studentId) { alert('Select course and student.'); return; }
+        
+        if (!courseId || !studentId) {
+            alert('Select course and student.');
+            return;
+        }
+        
         const { error } = await supabase.from('interventions').insert({
-            student_id: studentId, course_id: courseId, type, adjustment_value: adjustment,
-            description: desc, instructor_id: currentUser.id
+            student_id: studentId,
+            course_id: courseId,
+            type,
+            adjustment_value: adjustment,
+            description: desc,
+            instructor_id: currentUser.id
         });
-        if (error) alert('Error: ' + error.message);
-        else alert('Intervention recorded!');
+        
+        if (error) {
+            alert('Error: ' + error.message);
+        } else {
+            alert('Intervention recorded!');
+        }
     });
 
     // Enroll
@@ -1011,14 +1230,35 @@ function setupEventListeners() {
         const courseId = document.getElementById('enrollCourse').value;
         const email = document.getElementById('enrollEmail').value;
         const sectionId = document.getElementById('enrollSection').value;
-        if (!courseId || !email || !sectionId) { alert('All fields required.'); return; }
-        const { data: user } = await supabase.from('profiles').select('id').eq('email', email).maybeSingle();
-        if (!user) { alert('Student not found.'); return; }
+        
+        if (!courseId || !email || !sectionId) {
+            alert('All fields required.');
+            return;
+        }
+        
+        const { data: user } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('email', email)
+            .maybeSingle();
+            
+        if (!user) {
+            alert('Student not found.');
+            return;
+        }
+        
         const { error } = await supabase.from('course_enrollments').insert({
-            course_id: courseId, student_id: user.id, section_id: sectionId
+            course_id: courseId,
+            student_id: user.id,
+            section_id: sectionId
         });
-        if (error) alert('Error: ' + error.message);
-        else { alert('Student enrolled!'); updateStats(); }
+        
+        if (error) {
+            alert('Error: ' + error.message);
+        } else {
+            alert('Student enrolled!');
+            updateStats();
+        }
     });
 
     // Load schedules
@@ -1039,19 +1279,28 @@ function setupEventListeners() {
     // Export CSV (placeholder)
     document.getElementById('exportGrades').addEventListener('click', async () => {
         const courseId = document.getElementById('manualCourseSelect').value;
-        if (!courseId) { alert('Select a course first.'); return; }
+        if (!courseId) {
+            alert('Select a course first.');
+            return;
+        }
         alert('CSV Export – coming soon!');
     });
 }
 
-// -------------------- LOAD SCHEDULES --------------------
+// ============================================================
+// LOAD SCHEDULES
+// ============================================================
 async function loadSchedules() {
     const container = document.getElementById('scheduleList');
-    const { data, error } = await supabase.from('schedules').select('*, sections(name)');
+    const { data, error } = await supabase
+        .from('schedules')
+        .select('*, sections(name)');
+        
     if (error || !data || data.length === 0) {
         container.innerHTML = '<div class="empty-state"><p>No schedules set.</p></div>';
         return;
     }
+    
     let html = '<div class="table-wrap"><table><thead><tr><th>Section</th><th>Day</th><th>Start</th><th>End</th><th>Room</th></tr></thead><tbody>';
     data.forEach(s => {
         html += `<tr><td>${s.sections?.name || 'N/A'}</td><td>${s.day_of_week}</td><td>${s.start_time}</td><td>${s.end_time}</td><td>${s.room || '-'}</td></tr>`;
@@ -1060,40 +1309,75 @@ async function loadSchedules() {
     container.innerHTML = html;
 }
 
-// -------------------- LOAD SECTIONS FOR ENROLL --------------------
+// ============================================================
+// LOAD SECTIONS FOR ENROLL
+// ============================================================
 async function loadSectionsForEnroll() {
     const courseId = document.getElementById('enrollCourse').value;
     const select = document.getElementById('enrollSection');
-    if (!courseId) { select.innerHTML = '<option value="">Select...</option>'; return; }
-    const { data: sections } = await supabase.from('sections').select('id, name').eq('course_id', courseId);
+    if (!courseId) {
+        select.innerHTML = '<option value="">Select...</option>';
+        return;
+    }
+    const { data: sections } = await supabase
+        .from('sections')
+        .select('id, name')
+        .eq('course_id', courseId);
     renderSelect(select, sections, 'id', 'name');
 }
 
-// -------------------- LOAD STUDENTS FOR INTERVENTION --------------------
+// ============================================================
+// LOAD STUDENTS FOR INTERVENTION
+// ============================================================
 async function loadStudentsForIntervention() {
     const courseId = document.getElementById('intervCourse').value;
     const select = document.getElementById('intervStudent');
-    if (!courseId) { select.innerHTML = '<option value="">Select...</option>'; return; }
-    const { data: enrollments } = await supabase.from('course_enrollments').select('student_id').eq('course_id', courseId);
+    
+    if (!courseId) {
+        select.innerHTML = '<option value="">Select...</option>';
+        return;
+    }
+    
+    const { data: enrollments } = await supabase
+        .from('course_enrollments')
+        .select('student_id')
+        .eq('course_id', courseId);
+        
     if (!enrollments || enrollments.length === 0) {
         select.innerHTML = '<option value="">No students</option>';
         return;
     }
+    
     const ids = enrollments.map(e => e.student_id);
-    const { data: students } = await supabase.from('profiles').select('id, first_name, last_name').in('id', ids);
+    const { data: students } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .in('id', ids);
     renderSelect(select, students, 'id', s => `${s.first_name} ${s.last_name}`);
 }
 
-// -------------------- LOAD WEIGHTS INPUTS --------------------
+// ============================================================
+// LOAD WEIGHTS INPUTS
+// ============================================================
 async function loadWeightsInputs() {
     const courseId = document.getElementById('weightsCourse').value;
     const container = document.getElementById('weightsInputs');
-    if (!courseId) { container.innerHTML = ''; return; }
-    const { data: types } = await supabase.from('assessment_types').select('id, name, weight').eq('course_id', courseId);
+    
+    if (!courseId) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    const { data: types } = await supabase
+        .from('assessment_types')
+        .select('id, name, weight')
+        .eq('course_id', courseId);
+        
     if (!types || types.length === 0) {
         container.innerHTML = '<div class="empty-state"><p>No assessment types. Create an assessment first.</p></div>';
         return;
     }
+    
     let html = '';
     types.forEach(t => {
         html += `<div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.5rem;">
@@ -1105,25 +1389,42 @@ async function loadWeightsInputs() {
     container.innerHTML = html;
 }
 
-// -------------------- LOAD GRADEBOOK --------------------
+// ============================================================
+// LOAD GRADEBOOK
+// ============================================================
 async function loadGradebook() {
     const courseId = document.getElementById('manualCourseSelect').value;
     const container = document.getElementById('gradebookContainer');
+    
     if (!courseId) {
         container.innerHTML = '<div class="empty-state"><p>Select a course to view grades.</p></div>';
         return;
     }
 
-    const { data: enrollments } = await supabase.from('course_enrollments').select('student_id').eq('course_id', courseId);
+    const { data: enrollments } = await supabase
+        .from('course_enrollments')
+        .select('student_id')
+        .eq('course_id', courseId);
+        
     if (!enrollments || enrollments.length === 0) {
         container.innerHTML = '<div class="empty-state"><p>No students enrolled.</p></div>';
         return;
     }
+    
     const studentIds = enrollments.map(e => e.student_id);
-    const { data: students } = await supabase.from('profiles').select('id, first_name, last_name, student_id').in('id', studentIds);
-    const { data: types } = await supabase.from('assessment_types').select('id, name').eq('course_id', courseId);
-    const { data: grades } = await supabase.from('grades').select('student_id, assessment_type_id, score, max_score')
-        .eq('course_id', courseId).in('student_id', studentIds);
+    const { data: students } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, student_id')
+        .in('id', studentIds);
+    const { data: types } = await supabase
+        .from('assessment_types')
+        .select('id, name')
+        .eq('course_id', courseId);
+    const { data: grades } = await supabase
+        .from('grades')
+        .select('student_id, assessment_type_id, score, max_score')
+        .eq('course_id', courseId)
+        .in('student_id', studentIds);
 
     if (!students || students.length === 0) {
         container.innerHTML = '<div class="empty-state"><p>No student data.</p></div>';
@@ -1141,7 +1442,8 @@ async function loadGradebook() {
             const g = grades.find(g => g.student_id === s.id && g.assessment_type_id === t.id);
             if (g) {
                 const pct = (g.score / g.max_score) * 100;
-                total += pct; count++;
+                total += pct;
+                count++;
                 html += `<td>${pct.toFixed(1)}%</td>`;
             } else {
                 html += `<td class="text-muted">—</td>`;
@@ -1154,7 +1456,9 @@ async function loadGradebook() {
     container.innerHTML = html;
 }
 
-// -------------------- START --------------------
+// ============================================================
+// START APPLICATION
+// ============================================================
 init();
 </script>
 </body>
