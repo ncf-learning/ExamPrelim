@@ -1091,6 +1091,73 @@ window.handleFileUpload = function(event) {
 // 12. ASSESSMENT PUBLISH (FIXED – column names corrected)
 // ------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', function() {
+    // ---- FIX: Question Editor Form Submit Handler ----
+    const questionForm = document.getElementById('questionEditorForm');
+    if (questionForm) {
+        questionForm.addEventListener('submit', function(e) {
+            e.preventDefault(); // Stop page reload
+
+            const text = document.getElementById('qText').value.trim();
+            const type = document.getElementById('qType').value;
+            const points = parseInt(document.getElementById('qPoints').value) || 1;
+            const optionsRaw = document.getElementById('qOptions').value;
+
+            if (!text) {
+                alert('Please enter a question.');
+                return;
+            }
+
+            // Parse options for mc/tf
+            let options = null;
+            let correct = null;
+            if (type === 'mc' || type === 'tf') {
+                const lines = optionsRaw.split('\n').map(s => s.trim()).filter(s => s !== '');
+                if (lines.length === 0) {
+                    alert('Please enter at least one option.');
+                    return;
+                }
+                options = [];
+                let foundCorrect = false;
+                for (let line of lines) {
+                    if (line.startsWith('*')) {
+                        options.push(line.slice(1).trim());
+                        if (!foundCorrect) {
+                            correct = options.length - 1;
+                            foundCorrect = true;
+                        }
+                    } else {
+                        options.push(line);
+                    }
+                }
+                // If no correct answer marked, treat first as correct
+                if (!foundCorrect && options.length > 0) {
+                    correct = 0;
+                }
+            }
+
+            const questionData = {
+                question: text,
+                type: type,
+                points: points,
+                options: options,
+                correct: correct
+            };
+
+            if (editingQuestionIndex >= 0) {
+                assessmentQuestions[editingQuestionIndex] = questionData;
+                editingQuestionIndex = -1;
+            } else {
+                assessmentQuestions.push(questionData);
+            }
+
+            renderQuestions();
+            closeQuestionEditor();
+        });
+    } else {
+        console.error('❌ questionEditorForm not found!');
+    }
+
+    // ---- Publish button handler ----
     const publishBtn = document.getElementById('publishAssessmentBtn');
     if (!publishBtn) {
         console.error('❌ Publish button not found!');
@@ -1164,10 +1231,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         title: title,
                         description: desc,
                         max_score: maxScore,
-                        duration_minute: duration,         // corrected column name
+                        duration_minute: duration,
                         date: date,
                         is_published: true,
-                        randomize_ques: randomize,        // corrected column name
+                        randomize_ques: randomize,
                         questions_to_show: questionsToShow,
                         shuffle_options: shuffleOptions,
                         show_answers: showAnswers,
