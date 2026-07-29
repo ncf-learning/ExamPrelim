@@ -1,694 +1,282 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Instructor Dashboard – NCF Learning System</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        /* ===== RESET & BASE ===== */
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:'Inter',sans-serif; background:#f1f5f9; color:#0f172a; }
-        .app { display:flex; min-height:100vh; }
-
-        /* ===== SIDEBAR ===== */
-        .sidebar {
-            width:260px; background:#0f172a; padding:1.5rem 1rem;
-            position:sticky; top:0; height:100vh; overflow-y:auto;
-            display:flex; flex-direction:column; flex-shrink:0;
+        :root {
+            --navy:#0f172a; --blue:#2563eb; --blue-soft:#dbeafe; --bg:#f1f5f9;
+            --card:#ffffff; --line:#e2e8f0; --muted:#64748b; --text:#0f172a;
+            --green:#16a34a; --red:#dc2626; --amber:#d97706;
         }
-        .sidebar .brand { display:flex; align-items:center; gap:0.75rem; padding-bottom:1.5rem; border-bottom:1px solid rgba(255,255,255,0.08); margin-bottom:1.5rem; }
-        .sidebar .brand .logo { width:40px; height:40px; background:#3b82f6; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; }
-        .sidebar .brand .name { font-weight:700; font-size:1.1rem; color:#fff; }
-        .sidebar .brand .name small { display:block; font-weight:400; font-size:0.65rem; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px; }
-        .sidebar nav .nav-label { font-size:0.6rem; text-transform:uppercase; letter-spacing:0.8px; color:#64748b; padding:0.75rem 0.75rem 0.4rem; font-weight:600; }
-        .sidebar nav .nav-item { display:flex; align-items:center; gap:0.75rem; padding:0.55rem 0.75rem; border-radius:8px; color:#94a3b8; font-size:0.85rem; font-weight:500; cursor:pointer; transition:0.2s; }
-        .sidebar nav .nav-item:hover { background:rgba(255,255,255,0.06); color:#fff; }
-        .sidebar nav .nav-item.active { background:rgba(59,130,246,0.15); color:#60a5fa; }
-        .sidebar nav .nav-item .icon { font-size:1.1rem; width:24px; text-align:center; }
-        .sidebar .user-section { border-top:1px solid rgba(255,255,255,0.08); padding-top:1rem; margin-top:auto; }
-        .sidebar .user-section .user-card { display:flex; align-items:center; gap:0.75rem; padding:0.5rem 0.75rem; border-radius:8px; background:rgba(255,255,255,0.04); }
-        .sidebar .user-section .user-card .avatar { width:36px; height:36px; border-radius:50%; background:#3b82f6; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:600; }
-        .sidebar .user-section .user-card .info .name { font-size:0.85rem; font-weight:600; color:#fff; }
-        .sidebar .user-section .user-card .info .role { font-size:0.7rem; color:#94a3b8; }
-        .sidebar .user-section .logout-btn { display:flex; align-items:center; gap:0.5rem; padding:0.6rem 0.75rem; border-radius:8px; color:#f87171; font-size:0.85rem; font-weight:500; cursor:pointer; border:none; background:transparent; width:100%; font-family:inherit; transition:0.2s; }
-        .sidebar .user-section .logout-btn:hover { background:rgba(239,68,68,0.1); }
-
-        /* ===== MAIN ===== */
-        .main { flex:1; padding:2rem 2.5rem; overflow-y:auto; background:#f1f5f9; }
-        .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem; flex-wrap:wrap; gap:1rem; }
-        .page-header h1 { font-size:1.6rem; font-weight:700; }
-        .page-header h1 small { font-size:0.85rem; font-weight:400; color:#94a3b8; display:block; }
-        .page-header .actions { display:flex; gap:0.75rem; align-items:center; }
-
-        /* ===== STATS ===== */
-        .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1rem; margin-bottom:2rem; }
-        .stat-card { background:#fff; border-radius:12px; padding:1.25rem 1.5rem; border:1px solid #e2e8f0; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
-        .stat-card .number { font-size:1.8rem; font-weight:700; }
-        .stat-card .label { font-size:0.8rem; color:#94a3b8; font-weight:500; }
-        .stat-card .icon { float:right; font-size:1.6rem; opacity:0.4; }
-
-        /* ===== CARDS & TABLES ===== */
-        .card { background:#fff; border-radius:12px; border:1px solid #e2e8f0; padding:1.5rem; margin-bottom:1.5rem; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
-        .card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
-        .card-header h3 { font-size:1rem; font-weight:600; }
-        .table-wrap { overflow-x:auto; }
-        table { width:100%; border-collapse:collapse; font-size:0.875rem; }
-        table th { text-align:left; padding:0.6rem 0.75rem; color:#475569; font-weight:600; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.5px; border-bottom:2px solid #e2e8f0; background:#f1f5f9; }
-        table td { padding:0.6rem 0.75rem; border-bottom:1px solid #f1f5f9; }
-        table tbody tr:hover { background:#f1f5f9; }
-
-        /* ===== FORMS ===== */
-        .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
-        .form-grid .full { grid-column:1/-1; }
-        .form-group { display:flex; flex-direction:column; gap:0.25rem; }
-        .form-group label { font-size:0.8rem; font-weight:500; color:#475569; }
-        .form-group input, .form-group select, .form-group textarea { padding:0.6rem 0.8rem; border:1px solid #e2e8f0; border-radius:8px; font-size:0.875rem; font-family:inherit; background:#fff; width:100%; transition:0.2s; }
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,0.1); }
-        .form-group input[type="file"] { padding:0.4rem; border:2px dashed #e2e8f0; cursor:pointer; }
-        .form-group input[type="checkbox"] { width:auto; }
-        .form-group select[multiple] { min-height:100px; }
-
-        /* ===== BUTTONS ===== */
-        .btn { padding:0.55rem 1.25rem; border-radius:8px; font-size:0.85rem; font-weight:600; font-family:inherit; cursor:pointer; border:none; transition:0.2s; display:inline-flex; align-items:center; gap:0.5rem; }
-        .btn-primary { background:#3b82f6; color:#fff; }
-        .btn-primary:hover { background:#2563eb; }
-        .btn-success { background:#22c55e; color:#fff; }
-        .btn-success:hover { background:#16a34a; }
-        .btn-danger { background:#ef4444; color:#fff; }
-        .btn-danger:hover { background:#dc2626; }
-        .btn-outline { background:transparent; color:#475569; border:1px solid #e2e8f0; }
-        .btn-outline:hover { background:#f1f5f9; }
-        .btn-sm { padding:0.2rem 0.7rem; font-size:0.75rem; }
-        .btn-danger-outline { background:transparent; color:#ef4444; border:1px solid #ef4444; }
-        .btn-danger-outline:hover { background:#fee2e2; }
-
-        .badge { display:inline-block; padding:0.15rem 0.6rem; border-radius:20px; font-size:0.7rem; font-weight:600; }
-        .badge-pending { background:#fef3c7; color:#92400e; }
-        .badge-approved { background:#d1fae5; color:#065f46; }
-        .badge-rejected { background:#fee2e2; color:#991b1b; }
-
-        .empty-state { text-align:center; padding:2.5rem 1rem; color:#94a3b8; }
-        .empty-state .icon { font-size:2.5rem; margin-bottom:0.5rem; }
-
-        /* ===== PAGE SECTIONS ===== */
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { font-family:Inter,system-ui,sans-serif; color:var(--text); background:var(--bg); }
+        button,input,select,textarea { font:inherit; }
+        button { cursor:pointer; }
+        .app { min-height:100vh; display:flex; }
+        .sidebar { width:260px; height:100vh; position:sticky; top:0; display:flex; flex-direction:column; padding:1.25rem 1rem; background:var(--navy); overflow-y:auto; flex-shrink:0; }
+        .brand { display:flex; align-items:center; gap:.75rem; padding:.25rem .5rem 1.25rem; border-bottom:1px solid rgba(255,255,255,.09); margin-bottom:1rem; }
+        .brand-logo { width:42px; height:42px; border-radius:10px; display:grid; place-items:center; color:#fff; background:var(--blue); font-weight:800; }
+        .brand-name { color:#fff; font-weight:800; }
+        .brand-name small { display:block; color:#94a3b8; font-size:.62rem; font-weight:500; text-transform:uppercase; letter-spacing:.06em; margin-top:.15rem; }
+        .nav-label { color:#64748b; text-transform:uppercase; letter-spacing:.08em; font-size:.58rem; font-weight:700; padding:.8rem .75rem .35rem; }
+        .nav-item { width:100%; border:0; background:transparent; color:#94a3b8; display:flex; align-items:center; gap:.7rem; padding:.62rem .75rem; border-radius:8px; text-align:left; font-size:.84rem; font-weight:600; }
+        .nav-item:hover { color:#fff; background:rgba(255,255,255,.06); }
+        .nav-item.active { color:#60a5fa; background:rgba(59,130,246,.16); }
+        .nav-icon { width:22px; text-align:center; }
+        .user-section { margin-top:auto; padding-top:1rem; border-top:1px solid rgba(255,255,255,.09); }
+        .user-card { display:flex; align-items:center; gap:.7rem; padding:.65rem; border-radius:9px; background:rgba(255,255,255,.05); margin-bottom:.5rem; }
+        .avatar { width:38px; height:38px; border-radius:50%; display:grid; place-items:center; background:var(--blue); color:#fff; font-weight:700; flex-shrink:0; }
+        .user-name { color:#fff; font-size:.82rem; font-weight:700; }
+        .user-role { color:#94a3b8; font-size:.68rem; margin-top:.1rem; }
+        .logout-btn { width:100%; border:0; background:transparent; color:#f87171; padding:.65rem .75rem; border-radius:8px; text-align:left; font-weight:600; }
+        .logout-btn:hover { background:rgba(239,68,68,.12); }
+        .main { flex:1; min-width:0; padding:2rem 2.4rem; }
         .page-section { display:none; }
-        .page-section.active { display:block; animation:fadeIn 0.25s ease; }
-        @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
-
-        .text-muted { color:#94a3b8; }
-        .text-sm { font-size:0.8rem; }
-        .mt-1 { margin-top:0.5rem; }
-        .mt-2 { margin-top:1rem; }
-        .flex { display:flex; }
-        .gap-2 { gap:1rem; }
-        .fw-600 { font-weight:600; }
-
-        /* ===== ASSESSMENT BUILDER STEPS ===== */
-        .step { padding:1rem 0; }
-        .step h4 { margin-bottom:1rem; font-size:1.1rem; }
-
-        .question-item { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.75rem; margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center; }
-        .question-item .q-text { flex:1; margin-right:1rem; font-size:0.9rem; }
-        .question-item .q-actions { display:flex; gap:0.5rem; }
-
-        /* ===== MODALS ===== */
-        .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); display:none; align-items:center; justify-content:center; z-index:1000; }
+        .page-section.active { display:block; animation:fade .2s ease; }
+        @keyframes fade { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
+        .page-header { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; margin-bottom:1.5rem; }
+        .page-header h1 { font-size:1.55rem; }
+        .page-header small { display:block; margin-top:.2rem; color:#94a3b8; font-size:.8rem; font-weight:400; }
+        .actions,.inline-actions { display:flex; gap:.55rem; align-items:center; flex-wrap:wrap; }
+        .stats-grid { display:grid; grid-template-columns:repeat(4,minmax(160px,1fr)); gap:1rem; margin-bottom:1.5rem; }
+        .stat-card,.card { background:var(--card); border:1px solid var(--line); border-radius:12px; box-shadow:0 1px 3px rgba(15,23,42,.06); }
+        .stat-card { padding:1.15rem 1.3rem; }
+        .stat-card .icon { float:right; font-size:1.45rem; opacity:.45; }
+        .stat-card .number { font-size:1.7rem; font-weight:800; }
+        .stat-card .label { margin-top:.18rem; color:#94a3b8; font-size:.76rem; font-weight:600; }
+        .card { padding:1.35rem; margin-bottom:1.25rem; }
+        .card-header { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; margin-bottom:1rem; }
+        .card-header h3 { font-size:.98rem; }
+        .form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; }
+        .form-grid .full { grid-column:1/-1; }
+        .form-group { display:flex; flex-direction:column; gap:.3rem; }
+        .form-group label { color:#475569; font-size:.77rem; font-weight:650; }
+        input,select,textarea { width:100%; padding:.62rem .78rem; border:1px solid var(--line); border-radius:8px; color:var(--text); background:#fff; font-size:.84rem; }
+        input:focus,select:focus,textarea:focus { outline:0; border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.12); }
+        input[type="checkbox"] { width:auto; accent-color:var(--blue); }
+        .checkbox-row { display:flex; align-items:center; gap:.55rem; min-height:38px; }
+        .btn { border:0; border-radius:8px; padding:.58rem 1rem; display:inline-flex; align-items:center; justify-content:center; gap:.4rem; font-size:.8rem; font-weight:700; transition:.15s; }
+        .btn-primary { color:#fff; background:var(--blue); }
+        .btn-primary:hover { background:#1d4ed8; }
+        .btn-success { color:#fff; background:var(--green); }
+        .btn-success:hover { background:#15803d; }
+        .btn-danger { color:#fff; background:var(--red); }
+        .btn-danger:hover { background:#b91c1c; }
+        .btn-outline { color:#475569; background:#fff; border:1px solid var(--line); }
+        .btn-outline:hover { background:#f8fafc; }
+        .btn-sm { padding:.3rem .65rem; font-size:.72rem; }
+        .table-wrap { overflow-x:auto; }
+        table { width:100%; border-collapse:collapse; font-size:.81rem; }
+        th { padding:.65rem .7rem; text-align:left; background:#f8fafc; color:#475569; border-bottom:2px solid var(--line); font-size:.66rem; text-transform:uppercase; letter-spacing:.04em; white-space:nowrap; }
+        td { padding:.65rem .7rem; border-bottom:1px solid #f1f5f9; vertical-align:middle; }
+        tbody tr:hover { background:#f8fafc; }
+        .badge { display:inline-block; border-radius:999px; padding:.18rem .55rem; font-size:.66rem; font-weight:700; }
+        .badge-green { background:#dcfce7; color:#166534; }
+        .badge-red { background:#fee2e2; color:#991b1b; }
+        .badge-amber { background:#fef3c7; color:#92400e; }
+        .badge-blue { background:#dbeafe; color:#1e40af; }
+        .empty-state { text-align:center; padding:2.2rem 1rem; color:#94a3b8; }
+        .empty-state .icon { display:block; font-size:2rem; margin-bottom:.5rem; }
+        .muted { color:#94a3b8; }
+        .small { font-size:.76rem; }
+        .code-display { display:none; margin-top:1rem; padding:1rem; border-radius:10px; background:#eff6ff; color:#1e3a8a; text-align:center; font-size:1.5rem; font-family:ui-monospace,monospace; font-weight:800; letter-spacing:.14em; }
+        .step { display:none; }
+        .step.active { display:block; }
+        .step h4 { margin-bottom:1rem; }
+        .question-item { display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; padding:.85rem; margin-bottom:.55rem; border:1px solid var(--line); border-radius:9px; background:#f8fafc; }
+        .question-title { font-size:.84rem; font-weight:650; }
+        .question-meta { margin-top:.25rem; color:#64748b; font-size:.7rem; }
+        .grade-input { min-width:76px; padding:.38rem .45rem; }
+        .report-box { min-height:90px; padding:1rem; background:#f8fafc; border:1px solid var(--line); border-radius:8px; overflow:auto; }
+        .modal { position:fixed; inset:0; z-index:1000; display:none; align-items:center; justify-content:center; padding:1rem; background:rgba(15,23,42,.52); }
         .modal.active { display:flex; }
-        .modal-content { background:#fff; border-radius:12px; padding:2rem; max-width:800px; width:95%; max-height:80vh; overflow-y:auto; }
-        .modal-content .form-grid { grid-template-columns:1fr; }
-        .modal-content .close { float:right; background:none; border:none; font-size:1.5rem; cursor:pointer; }
-        .modal-content table { width:100%; }
-        .modal-content select { padding:0.3rem 0.6rem; border-radius:4px; border:1px solid #e2e8f0; }
-
-        /* ===== DEBUG PANEL ===== */
-        .debug-box {
-            background:#1e293b;
-            color:#e2e8f0;
-            font-family:monospace;
-            font-size:0.8rem;
-            padding:0.75rem;
-            border-radius:8px;
-            margin-top:1rem;
-            max-height:300px;
-            overflow-y:auto;
-            white-space:pre-wrap;
-            word-break:break-all;
-        }
-        .debug-box .debug-info { color:#38bdf8; }
-        .debug-box .debug-error { color:#f87171; }
-        .debug-box .debug-success { color:#4ade80; }
-
-        @media (max-width:1024px) { .sidebar { width:220px; } .main { padding:1.5rem; } .form-grid { grid-template-columns:1fr; } }
-        @media (max-width:768px) { .app { flex-direction:column; } .sidebar { width:100%; height:auto; position:static; padding:1rem; } .sidebar nav { display:flex; flex-wrap:wrap; gap:0.25rem; } .sidebar nav .nav-label { display:none; } .sidebar nav .nav-item { padding:0.4rem 0.7rem; font-size:0.8rem; } .sidebar .user-section { display:none; } .main { padding:1rem; } .stats-grid { grid-template-columns:1fr 1fr; } }
-        @media (max-width:480px) { .stats-grid { grid-template-columns:1fr; } .page-header { flex-direction:column; align-items:flex-start; } }
+        .modal-content { width:min(650px,96vw); max-height:90vh; overflow:auto; background:#fff; border-radius:14px; padding:1.4rem; box-shadow:0 20px 50px rgba(15,23,42,.25); }
+        .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
+        .modal-close { width:34px; height:34px; border:0; border-radius:8px; background:#f1f5f9; }
+        .bank-item { display:flex; gap:.7rem; align-items:flex-start; padding:.75rem; border:1px solid var(--line); border-radius:8px; margin-bottom:.55rem; }
+        .toast { position:fixed; right:1.2rem; bottom:1.2rem; z-index:2000; max-width:360px; padding:.85rem 1rem; border-radius:10px; color:#fff; box-shadow:0 12px 30px rgba(15,23,42,.22); display:none; font-size:.82rem; }
+        .toast.show { display:block; animation:toastIn .2s ease; }
+        .toast.success { background:#15803d; }
+        .toast.error { background:#b91c1c; }
+        .toast.info { background:#1d4ed8; }
+        @keyframes toastIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+        @media (max-width:1050px) { .stats-grid { grid-template-columns:repeat(2,1fr); } .sidebar { width:225px; } .main { padding:1.5rem; } }
+        @media (max-width:760px) { .app { display:block; } .sidebar { width:100%; height:auto; position:static; } .sidebar nav { display:flex; flex-wrap:wrap; gap:.2rem; } .nav-label,.user-section { display:none; } .nav-item { width:auto; } .main { padding:1rem; } .form-grid { grid-template-columns:1fr; } }
+        @media (max-width:480px) { .stats-grid { grid-template-columns:1fr; } }
     </style>
 </head>
 <body>
-
 <div class="app">
-
-    <!-- SIDEBAR (unchanged) -->
     <aside class="sidebar">
-        <div class="brand">
-            <div class="logo">N</div>
-            <div class="name">NCF LTS <small>Learning Tracking System</small></div>
-        </div>
-        <nav>
+        <div class="brand"><div class="brand-logo">N</div><div class="brand-name">NCF LTS<small>Learning Tracking System</small></div></div>
+        <nav id="mainNav">
             <div class="nav-label">Main</div>
-            <div class="nav-item active" data-section="dashboard"><span class="icon">📊</span> Dashboard</div>
-            <div class="nav-item" data-section="courses"><span class="icon">📘</span> Courses</div>
+            <button class="nav-item active" data-section="dashboard"><span class="nav-icon">📊</span>Dashboard</button>
+            <button class="nav-item" data-section="courses"><span class="nav-icon">📘</span>Courses</button>
             <div class="nav-label">Management</div>
-            <div class="nav-item" data-section="attendance"><span class="icon">📋</span> Attendance</div>
-            <div class="nav-item" data-section="schedule"><span class="icon">📅</span> Schedule</div>
-            <div class="nav-item" data-section="assessments"><span class="icon">✏️</span> Assessments</div>
+            <button class="nav-item" data-section="attendance"><span class="nav-icon">📋</span>Attendance</button>
+            <button class="nav-item" data-section="schedule"><span class="nav-icon">📅</span>Schedule</button>
+            <button class="nav-item" data-section="assessments"><span class="nav-icon">✏️</span>Assessments</button>
             <div class="nav-label">Grading</div>
-            <div class="nav-item" data-section="gradebook"><span class="icon">📈</span> Gradebook</div>
-            <div class="nav-item" data-section="weights"><span class="icon">⚖️</span> Weights</div>
-            <div class="nav-item" data-section="compute"><span class="icon">🧮</span> Compute</div>
-            <div class="nav-item" data-section="final"><span class="icon">⭐</span> Final Rating</div>
+            <button class="nav-item" data-section="gradebook"><span class="nav-icon">📈</span>Gradebook</button>
+            <button class="nav-item" data-section="weights"><span class="nav-icon">⚖️</span>Weights</button>
+            <button class="nav-item" data-section="compute"><span class="nav-icon">🧮</span>Compute</button>
+            <button class="nav-item" data-section="final"><span class="nav-icon">⭐</span>Final Rating</button>
             <div class="nav-label">Tools</div>
-            <div class="nav-item" data-section="reports"><span class="icon">📄</span> Reports</div>
-            <div class="nav-item" data-section="interventions"><span class="icon">🛠️</span> Interventions</div>
-            <div class="nav-item" data-section="enroll"><span class="icon">👥</span> Enroll</div>
+            <button class="nav-item" data-section="reports"><span class="nav-icon">📄</span>Reports</button>
+            <button class="nav-item" data-section="interventions"><span class="nav-icon">🛠️</span>Interventions</button>
+            <button class="nav-item" data-section="enroll"><span class="nav-icon">👥</span>Enroll</button>
         </nav>
         <div class="user-section">
-            <div class="user-card">
-                <div class="avatar" id="userAvatar">JC</div>
-                <div class="info">
-                    <div class="name" id="userName">Loading...</div>
-                    <div class="role">Instructor</div>
-                </div>
-            </div>
+            <div class="user-card"><div class="avatar" id="userAvatar">NC</div><div><div class="user-name" id="userName">Loading…</div><div class="user-role">Instructor</div></div></div>
             <button class="logout-btn" id="logoutBtn">🚪 Sign Out</button>
         </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
     <main class="main">
-
-        <!-- DASHBOARD -->
         <section id="section-dashboard" class="page-section active">
-            <div class="page-header">
-                <div><h1>Dashboard <small>Overview of your classes</small></h1></div>
-                <div class="actions"><button class="btn btn-primary" onclick="switchSection('assessments')">+ New Assessment</button></div>
+            <div class="page-header"><div><h1>Dashboard<small>Overview of your assigned classes</small></h1></div><button class="btn btn-primary" data-switch="assessments">+ New Assessment</button></div>
+            <div class="stats-grid">
+                <div class="stat-card"><span class="icon">📘</span><div class="number" id="statCourses">0</div><div class="label">Courses</div></div>
+                <div class="stat-card"><span class="icon">👨‍🎓</span><div class="number" id="statStudents">0</div><div class="label">Unique Students</div></div>
+                <div class="stat-card"><span class="icon">✏️</span><div class="number" id="statAssessments">0</div><div class="label">Assessments</div></div>
+                <div class="stat-card"><span class="icon">📋</span><div class="number" id="statSessions">0</div><div class="label">Sessions Today</div></div>
             </div>
-            <div class="stats-grid" id="statsGrid">
-                <div class="stat-card"><span class="icon">📘</span><div class="number" id="statCourses">0</div><div class="label">Total Courses</div></div>
-                <div class="stat-card"><span class="icon">👨‍🎓</span><div class="number" id="statStudents">0</div><div class="label">Total Students</div></div>
-                <div class="stat-card"><span class="icon">⏳</span><div class="number" id="statPending">0</div><div class="label">Pending Approvals</div></div>
-                <div class="stat-card"><span class="icon">📋</span><div class="number" id="statAssessments">0</div><div class="label">Assessments</div></div>
-            </div>
-            <div class="card"><div class="card-header"><h3>⏳ Pending Approvals</h3></div><div id="pendingApprovalsList"><div class="empty-state"><p>Loading...</p></div></div></div>
-            <div class="card"><div class="card-header"><h3>🚀 Quick Actions</h3></div><div class="flex gap-2" style="flex-wrap:wrap;"><button class="btn btn-outline" onclick="switchSection('attendance')">📋 Take Attendance</button><button class="btn btn-outline" onclick="switchSection('assessments')">✏️ Create Assessment</button><button class="btn btn-outline" onclick="switchSection('gradebook')">📈 View Grades</button><button class="btn btn-outline" onclick="switchSection('enroll')">👥 Enroll Student</button></div></div>
+            <div class="card"><div class="card-header"><h3>Recent Enrollments</h3></div><div id="recentEnrollments"><div class="empty-state">Loading…</div></div></div>
+            <div class="card"><div class="card-header"><h3>Quick Actions</h3></div><div class="inline-actions"><button class="btn btn-outline" data-switch="attendance">📋 Take Attendance</button><button class="btn btn-outline" data-switch="assessments">✏️ Create Assessment</button><button class="btn btn-outline" data-switch="gradebook">📈 Open Gradebook</button><button class="btn btn-outline" data-switch="enroll">👥 Enroll Student</button></div></div>
         </section>
 
-        <!-- COURSES -->
         <section id="section-courses" class="page-section">
-            <div class="page-header">
-                <div><h1>Courses <small>Manage your courses</small></h1></div>
-                <div class="actions">
-                    <button class="btn btn-outline" onclick="testQuery()" style="background:#f59e0b;color:#fff;">🔍 Test Query</button>
-                    <button class="btn btn-primary" id="addCourseBtn">+ New Course</button>
-                </div>
-            </div>
-            <div class="card">
-                <div id="instructorCourses"><div class="empty-state"><p>Loading your courses...</p></div></div>
-                <!-- Debug panel -->
-                <div id="debugPanel" class="debug-box">⏳ Initialising...</div>
-            </div>
+            <div class="page-header"><div><h1>Courses<small>Create and manage your course offerings</small></h1></div><button class="btn btn-primary" id="addCourseBtn">+ New Course</button></div>
+            <div class="card"><div id="instructorCourses"><div class="empty-state">Loading courses…</div></div></div>
         </section>
 
-        <!-- Other sections (Attendance, Schedule, Assessments, etc.) – we keep them but they are secondary -->
+        <section id="section-attendance" class="page-section">
+            <div class="page-header"><div><h1>Attendance<small>Generate a time-limited attendance code</small></h1></div></div>
+            <div class="card"><div class="card-header"><h3>Create Attendance Session</h3></div>
+                <form id="attendanceForm" class="form-grid">
+                    <div class="form-group full"><label for="attCourse">Course</label><select id="attCourse" required></select></div>
+                    <div class="form-group"><label for="attDate">Date</label><input type="date" id="attDate" required></div>
+                    <div class="form-group"><label for="attStart">Start Time</label><input type="time" id="attStart" required></div>
+                    <div class="form-group"><label for="attEnd">End Time</label><input type="time" id="attEnd" required></div>
+                    <div class="form-group full"><button class="btn btn-primary" type="submit">Generate Code</button></div>
+                </form>
+                <div class="code-display" id="attCodeDisplay"></div>
+            </div>
+            <div class="card"><div class="card-header"><h3>Attendance Sessions</h3></div><div id="attendanceSessionsList"><div class="empty-state">No sessions.</div></div></div>
+        </section>
 
-        <!-- For brevity, I'll include minimal placeholders for other sections, but they will be functional in the actual file -->
-        <!-- In the final file, I will include all the necessary HTML for other sections, but to keep this answer focused, I'll include them fully. -->
+        <section id="section-schedule" class="page-section">
+            <div class="page-header"><div><h1>Schedule<small>Maintain class meeting times and rooms</small></h1></div></div>
+            <div class="card"><div class="card-header"><h3>Add Schedule</h3></div>
+                <form id="scheduleForm" class="form-grid">
+                    <div class="form-group full"><label for="scheduleCourse">Course</label><select id="scheduleCourse" required></select></div>
+                    <div class="form-group"><label for="scheduleDay">Day</label><select id="scheduleDay"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select></div>
+                    <div class="form-group"><label for="scheduleStart">Start</label><input type="time" id="scheduleStart" required></div>
+                    <div class="form-group"><label for="scheduleEnd">End</label><input type="time" id="scheduleEnd" required></div>
+                    <div class="form-group"><label for="scheduleRoom">Room</label><input type="text" id="scheduleRoom" placeholder="Room 101"></div>
+                    <div class="form-group full"><button class="btn btn-primary" type="submit">Add Schedule</button></div>
+                </form>
+            </div>
+            <div class="card"><div class="card-header"><h3>Current Schedules</h3></div><div id="scheduleList"><div class="empty-state">No schedules.</div></div></div>
+        </section>
 
+        <section id="section-assessments" class="page-section">
+            <div class="page-header"><div><h1>Assessments<small>Create exams, quizzes, projects, and question banks</small></h1></div><button class="btn btn-outline" id="resetAssessmentBtn">New Blank Assessment</button></div>
+            <div class="card">
+                <form id="assessmentForm">
+                    <div class="step active" data-step="1">
+                        <h4>1. Assessment Details</h4>
+                        <div class="form-grid">
+                            <div class="form-group full"><label for="assessCourse">Course</label><select id="assessCourse" required></select></div>
+                            <div class="form-group"><label for="assessType">Type</label><select id="assessType"><option>Quiz</option><option>Exam</option><option>Project</option><option>Activity</option></select></div>
+                            <div class="form-group"><label for="assessPeriod">Period</label><select id="assessPeriod"><option value="prelim">Prelim</option><option value="midterm">Midterm</option><option value="semifinal">Semi-Final</option><option value="final">Final</option></select></div>
+                            <div class="form-group full"><label for="assessTitle">Title</label><input type="text" id="assessTitle" required placeholder="Midterm Examination"></div>
+                            <div class="form-group full"><label for="assessDesc">Description</label><textarea id="assessDesc" rows="2"></textarea></div>
+                            <div class="form-group"><label for="assessMaxScore">Maximum Score</label><input type="number" id="assessMaxScore" min="1" value="100"></div>
+                            <div class="form-group"><label for="assessDuration">Duration in Minutes</label><input type="number" id="assessDuration" min="1" value="60"></div>
+                            <div class="form-group"><label for="assessDate">Date and Time</label><input type="datetime-local" id="assessDate" required></div>
+                            <div class="form-group"><label for="assessShow">Questions to Show</label><input type="number" id="assessShow" min="1" placeholder="Blank means all"></div>
+                            <div class="form-group"><label>Randomize Questions</label><div class="checkbox-row"><input type="checkbox" id="assessRandomize"><span class="small muted">Different order per student</span></div></div>
+                            <div class="form-group"><label for="assessAI">AI Grading Provider</label><select id="assessAI"><option value="none">None</option><option value="openai">OpenAI</option><option value="gemini">Gemini</option></select></div>
+                        </div>
+                        <div class="inline-actions" style="margin-top:1rem"><button class="btn btn-primary" type="button" data-next-step="2">Next: Questions →</button></div>
+                    </div>
+                    <div class="step" data-step="2">
+                        <h4>2. Question Bank</h4>
+                        <div id="questionList"><div class="empty-state">No questions added.</div></div>
+                        <div class="inline-actions"><button type="button" class="btn btn-outline" id="addQuestionBtn">+ Add Question</button><button type="button" class="btn btn-outline" id="importBankBtn">📚 Import from Bank</button><button type="button" class="btn btn-outline" id="uploadQuestionsBtn">📤 Upload JSON</button><button type="button" class="btn btn-outline" id="clearQuestionsBtn">🗑 Clear All</button></div>
+                        <div class="inline-actions" style="margin-top:1rem"><button class="btn btn-outline" type="button" data-next-step="1">← Back</button><button class="btn btn-primary" type="button" data-next-step="3">Next: Settings →</button></div>
+                    </div>
+                    <div class="step" data-step="3">
+                        <h4>3. Publishing Settings</h4>
+                        <div class="form-grid">
+                            <div class="form-group"><label>Shuffle Options</label><div class="checkbox-row"><input type="checkbox" id="assessShuffleOptions"><span class="small muted">Shuffle multiple-choice options</span></div></div>
+                            <div class="form-group"><label>Show Correct Answers</label><div class="checkbox-row"><input type="checkbox" id="assessShowAnswers"><span class="small muted">After student submission</span></div></div>
+                            <div class="form-group"><label for="assessPassing">Passing Score (%)</label><input type="number" id="assessPassing" min="0" max="100" value="60"></div>
+                            <div class="form-group"><label>Publish Immediately</label><div class="checkbox-row"><input type="checkbox" id="assessPublished" checked><span class="small muted">Students can see it</span></div></div>
+                        </div>
+                        <div class="inline-actions" style="margin-top:1rem"><button class="btn btn-outline" type="button" data-next-step="2">← Back</button><button class="btn btn-success" type="submit" id="saveAssessmentBtn">🚀 Publish Assessment</button></div>
+                    </div>
+                </form>
+                <input type="file" id="jsonFileInput" accept="application/json,.json" hidden>
+            </div>
+            <div class="card"><div class="card-header"><h3>Existing Assessments</h3></div><div id="assessmentsList"><div class="empty-state">No assessments.</div></div></div>
+        </section>
+
+        <section id="section-gradebook" class="page-section">
+            <div class="page-header"><div><h1>Gradebook<small>Enter scores by assessment and student</small></h1></div><div class="actions"><button class="btn btn-outline" id="exportGradesBtn">📥 Export CSV</button><button class="btn btn-primary" id="saveGradebookBtn">Save Grades</button></div></div>
+            <div class="card"><div class="form-group" style="margin-bottom:1rem"><label for="manualCourseSelect">Course</label><select id="manualCourseSelect"></select></div><div id="gradebookContainer"><div class="empty-state">Select a course.</div></div></div>
+        </section>
+
+        <section id="section-weights" class="page-section">
+            <div class="page-header"><div><h1>Grade Weights<small>Weights must total 100%</small></h1></div></div>
+            <div class="card"><form id="weightsForm"><div class="form-group" style="margin-bottom:1rem"><label for="weightsCourse">Course</label><select id="weightsCourse" required></select></div><div id="weightsInputs"><div class="empty-state">Select a course.</div></div><button class="btn btn-primary" type="submit" style="margin-top:1rem">Save Weights</button></form></div>
+        </section>
+
+        <section id="section-compute" class="page-section">
+            <div class="page-header"><div><h1>Compute Period Grades<small>Uses assessment-type weights and entered scores</small></h1></div></div>
+            <div class="card"><form id="computeForm" class="form-grid"><div class="form-group full"><label for="computeCourse">Course</label><select id="computeCourse" required></select></div><div class="form-group"><label for="computePeriod">Period</label><select id="computePeriod"><option value="prelim">Prelim</option><option value="midterm">Midterm</option><option value="semifinal">Semi-Final</option><option value="final">Final</option></select></div><div class="form-group full"><button class="btn btn-primary" type="submit">Compute and Save</button></div></form><div id="computedGradesResult" style="margin-top:1rem"></div></div>
+        </section>
+
+        <section id="section-final" class="page-section">
+            <div class="page-header"><div><h1>Final Rating<small>Average of available period grades</small></h1></div></div>
+            <div class="card"><form id="finalForm" class="form-grid"><div class="form-group full"><label for="finalCourse">Course</label><select id="finalCourse" required></select></div><div class="form-group full"><button class="btn btn-primary" type="submit">Compute Final Ratings</button></div></form><div id="finalResult" style="margin-top:1rem"></div></div>
+        </section>
+
+        <section id="section-reports" class="page-section">
+            <div class="page-header"><div><h1>Reports<small>Attendance, failing grades, and course summaries</small></h1></div></div>
+            <div class="card"><form id="reportForm" class="form-grid"><div class="form-group full"><label for="reportCourse">Course</label><select id="reportCourse" required></select></div><div class="form-group"><label for="reportType">Report Type</label><select id="reportType"><option value="absenteeism">Absenteeism</option><option value="failing">Failing Grades</option><option value="summary">Course Summary</option></select></div><div class="form-group full"><button class="btn btn-primary" type="submit">Generate Report</button></div></form><div id="reportOutput" class="report-box" style="margin-top:1rem"><span class="muted small">Report output will appear here.</span></div></div>
+        </section>
+
+        <section id="section-interventions" class="page-section">
+            <div class="page-header"><div><h1>Interventions<small>Document remediation, counseling, and adjustments</small></h1></div></div>
+            <div class="card"><form id="interventionForm" class="form-grid"><div class="form-group full"><label for="intervCourse">Course</label><select id="intervCourse" required></select></div><div class="form-group full"><label for="intervStudent">Student</label><select id="intervStudent" required></select></div><div class="form-group"><label for="intervType">Type</label><select id="intervType"><option value="grade_adjustment">Grade Adjustment</option><option value="extra_credit">Extra Credit</option><option value="remediation">Remediation</option><option value="counseling">Counseling</option></select></div><div class="form-group"><label for="intervAdjustment">Adjustment Value</label><input type="number" id="intervAdjustment" step="0.01" placeholder="5"></div><div class="form-group full"><label for="intervDesc">Description</label><input type="text" id="intervDesc" required placeholder="Reason and action taken"></div><div class="form-group full"><button class="btn btn-primary" type="submit">Record Intervention</button></div></form></div>
+            <div class="card"><div class="card-header"><h3>Intervention History</h3></div><div id="interventionHistory"><div class="empty-state">No interventions.</div></div></div>
+        </section>
+
+        <section id="section-enroll" class="page-section">
+            <div class="page-header"><div><h1>Enroll Students<small>Student profile email must already exist</small></h1></div></div>
+            <div class="card"><form id="enrollForm" class="form-grid"><div class="form-group full"><label for="enrollCourse">Course</label><select id="enrollCourse" required></select></div><div class="form-group full"><label for="enrollEmail">Student Email</label><input type="email" id="enrollEmail" required placeholder="student@ncf.edu.ph"></div><div class="form-group full"><button class="btn btn-primary" type="submit">Enroll Student</button></div></form></div>
+            <div class="card"><div class="card-header"><h3>Enrolled Students</h3></div><div class="form-group" style="margin-bottom:1rem"><label for="enrollmentCourseView">Course</label><select id="enrollmentCourseView"></select></div><div id="enrollmentList"><div class="empty-state">Select a course.</div></div></div>
+        </section>
     </main>
 </div>
 
-<!-- ===== MODALS (same as before) ===== -->
-<div class="modal" id="editCourseModal">
-    <div class="modal-content">
-        <button class="close" onclick="closeEditCourseModal()">✕</button>
-        <h3>Edit Course</h3>
-        <form id="editCourseForm" class="form-grid">
-            <input type="hidden" id="editCourseId" />
-            <div class="form-group full"><label>Course Code</label><input type="text" id="editCourseCode" required /></div>
-            <div class="form-group full"><label>Course Name</label><input type="text" id="editCourseName" required /></div>
-            <div class="form-group full"><label>Description</label><textarea id="editCourseDesc" rows="2"></textarea></div>
-            <div class="form-group full"><button type="submit" class="btn btn-primary">Update Course</button></div>
-        </form>
-    </div>
-</div>
+<div class="modal" id="courseModal"><div class="modal-content"><div class="modal-header"><h3 id="courseModalTitle">New Course</h3><button class="modal-close" data-close-modal="courseModal">✕</button></div><form id="courseForm" class="form-grid"><input type="hidden" id="courseId"><div class="form-group full"><label for="courseCode">Course Code</label><input id="courseCode" required></div><div class="form-group full"><label for="courseName">Course Name</label><input id="courseName" required></div><div class="form-group full"><label for="courseDesc">Description</label><textarea id="courseDesc" rows="3"></textarea></div><div class="form-group full"><button class="btn btn-primary" type="submit">Save Course</button></div></form></div></div>
 
-<div class="modal" id="editScheduleModal">
-    <div class="modal-content">
-        <button class="close" onclick="closeEditScheduleModal()">✕</button>
-        <h3>Edit Schedule</h3>
-        <form id="editScheduleForm" class="form-grid">
-            <input type="hidden" id="editScheduleId" />
-            <div class="form-group full"><label>Day</label><select id="editScheduleDay"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select></div>
-            <div class="form-group"><label>Start</label><input type="time" id="editScheduleStart" required /></div>
-            <div class="form-group"><label>End</label><input type="time" id="editScheduleEnd" required /></div>
-            <div class="form-group full"><label>Room</label><input type="text" id="editScheduleRoom" placeholder="Room 101" /></div>
-            <div class="form-group full"><button type="submit" class="btn btn-primary">Update Schedule</button></div>
-        </form>
-    </div>
-</div>
+<div class="modal" id="scheduleModal"><div class="modal-content"><div class="modal-header"><h3>Edit Schedule</h3><button class="modal-close" data-close-modal="scheduleModal">✕</button></div><form id="editScheduleForm" class="form-grid"><input type="hidden" id="editScheduleId"><input type="hidden" id="editScheduleSectionId"><div class="form-group full"><label for="editScheduleDay">Day</label><select id="editScheduleDay"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select></div><div class="form-group"><label for="editScheduleStart">Start</label><input type="time" id="editScheduleStart" required></div><div class="form-group"><label for="editScheduleEnd">End</label><input type="time" id="editScheduleEnd" required></div><div class="form-group full"><label for="editScheduleRoom">Room</label><input id="editScheduleRoom"></div><div class="form-group full"><button class="btn btn-primary" type="submit">Update Schedule</button></div></form></div></div>
 
-<div class="modal" id="markAttendanceModal">
-    <div class="modal-content">
-        <button class="close" onclick="closeMarkAttendanceModal()">✕</button>
-        <h3>Mark Attendance</h3>
-        <div id="markAttendanceInfo"></div>
-        <div id="markAttendanceTableWrap" style="margin-top:1rem;">
-            <div class="table-wrap">
-                <table>
-                    <thead><tr><th>Student</th><th>Current Status</th><th>Update Status</th><th>Action</th></tr></thead>
-                    <tbody id="markAttendanceBody"></tbody>
-                </table>
-            </div>
-        </div>
-        <div style="margin-top:1rem; display:flex; gap:0.5rem; justify-content:flex-end;">
-            <button class="btn btn-success" onclick="saveManualAttendance()">💾 Save All</button>
-            <button class="btn btn-outline" onclick="closeMarkAttendanceModal()">Cancel</button>
-        </div>
-    </div>
-</div>
+<div class="modal" id="questionModal"><div class="modal-content"><div class="modal-header"><h3 id="questionModalTitle">Add Question</h3><button class="modal-close" data-close-modal="questionModal">✕</button></div><form id="questionForm" class="form-grid"><input type="hidden" id="questionIndex" value="-1"><div class="form-group"><label for="questionType">Question Type</label><select id="questionType"><option value="mc">Multiple Choice</option><option value="true_false">True or False</option><option value="short_answer">Short Answer</option><option value="essay">Essay</option></select></div><div class="form-group"><label for="questionPoints">Points</label><input type="number" id="questionPoints" min="0.1" step="0.1" value="1"></div><div class="form-group full"><label for="questionText">Question</label><textarea id="questionText" rows="3" required></textarea></div><div id="questionOptionsArea" class="full"><div class="form-grid"><div class="form-group full"><label>Options</label><input id="questionOption0" placeholder="Option A"><input id="questionOption1" placeholder="Option B"><input id="questionOption2" placeholder="Option C"><input id="questionOption3" placeholder="Option D"></div><div class="form-group full"><label for="questionCorrectIndex">Correct Option</label><select id="questionCorrectIndex"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select></div></div></div><div id="questionTextAnswerArea" class="form-group full" style="display:none"><label for="questionTextAnswer">Expected Answer</label><input id="questionTextAnswer" placeholder="Optional for essay questions"></div><div class="form-group full"><label for="questionExplanation">Explanation</label><textarea id="questionExplanation" rows="2"></textarea></div><div class="form-group full"><div class="checkbox-row"><input type="checkbox" id="saveToBank" checked><label for="saveToBank">Also save this question to the course question bank</label></div></div><div class="form-group full"><button class="btn btn-primary" type="submit">Save Question</button></div></form></div></div>
 
-<!-- ============================================================
-     SCRIPTS – IMPORTS SUPABASE.JS
-     ============================================================ -->
-<script type="importmap">
-{
-    "imports": {
-        "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2"
-    }
-}
-</script>
-<script type="module">
-import { supabase, getCurrentUser, signOut } from './supabase.js';
+<div class="modal" id="bankModal"><div class="modal-content"><div class="modal-header"><h3>Import from Question Bank</h3><button class="modal-close" data-close-modal="bankModal">✕</button></div><div id="bankQuestionList"><div class="empty-state">Loading…</div></div><button class="btn btn-primary" id="confirmBankImportBtn" type="button">Import Selected</button></div></div>
 
-// ============================================================
-// STATE
-// ============================================================
-let currentUser = null;
-let currentProfile = null;
-let instructorCourses = [];
-let assessmentQuestions = [];
-let editingQuestionIndex = -1;
-let currentManualSessionId = null;
-
-// ============================================================
-// DEBUG LOGGER
-// ============================================================
-const debugPanel = document.getElementById('debugPanel');
-
-function debugLog(message, type = 'info') {
-    const color = type === 'error' ? 'debug-error' : type === 'success' ? 'debug-success' : 'debug-info';
-    const prefix = type === 'error' ? '❌ ' : type === 'success' ? '✅ ' : 'ℹ️ ';
-    debugPanel.innerHTML += `<div class="${color}">${prefix}${message}</div>`;
-    debugPanel.scrollTop = debugPanel.scrollHeight;
-    console.log(`[DEBUG] ${message}`);
-}
-
-// ============================================================
-// DOM REFS & NAVIGATION
-// ============================================================
-const sections = document.querySelectorAll('.page-section');
-const navItems = document.querySelectorAll('.nav-item');
-
-navItems.forEach(item => {
-    item.addEventListener('click', async () => {
-        if (item.id === 'logoutBtn') return;
-        const target = item.dataset.section;
-        navItems.forEach(n => n.classList.remove('active'));
-        item.classList.add('active');
-        sections.forEach(s => s.classList.remove('active'));
-        document.getElementById(`section-${target}`).classList.add('active');
-        if (target === 'courses') await loadInstructorData();
-        if (target === 'schedule') await loadSchedules();
-        if (target === 'attendance') { await loadAttendanceSessions(); await loadManualSessions(); }
-        if (target === 'assessments') await loadAssessmentsList();
-        if (target === 'interventions') await loadInterventions();
-    });
-});
-
-document.getElementById('logoutBtn').addEventListener('click', async () => {
-    await signOut();
-});
-
-window.switchSection = (section) => {
-    const target = document.querySelector(`.nav-item[data-section="${section}"]`);
-    if (target) target.click();
-};
-
-// ============================================================
-// HELPERS
-// ============================================================
-function renderSelect(select, options, valueKey, labelKey) {
-    select.innerHTML = '<option value="">Select...</option>';
-    if (!options || options.length === 0) return;
-    options.forEach(opt => {
-        const op = document.createElement('option');
-        op.value = opt[valueKey];
-        op.textContent = typeof labelKey === 'function' ? labelKey(opt) : opt[labelKey];
-        select.appendChild(op);
-    });
-}
-
-function timeToMinutes(time) {
-    if (!time) return 0;
-    const [h, m] = time.split(':').map(Number);
-    return (h || 0) * 60 + (m || 0);
-}
-
-// ============================================================
-// AUTH
-// ============================================================
-async function checkAuth() {
-    const user = await getCurrentUser();
-    if (!user) {
-        debugLog('No user found, redirecting to login.', 'error');
-        window.location.href = 'index.html';
-        return null;
-    }
-    currentUser = user;
-    debugLog(`Authenticated as: ${user.id}`, 'success');
-    return user;
-}
-
-async function loadProfile(userId) {
-    const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-    if (error) {
-        debugLog(`Error loading profile: ${error.message}`, 'error');
-        return null;
-    }
-    return data;
-}
-
-// ============================================================
-// INIT
-// ============================================================
-async function init() {
-    debugLog('Initialising dashboard...', 'info');
-    const user = await checkAuth();
-    if (!user) return;
-
-    const profile = await loadProfile(user.id);
-    if (!profile) {
-        alert('Profile not found. Please contact support.');
-        return;
-    }
-    if (profile.role !== 'instructor') {
-        alert('Not authorized as instructor.');
-        await signOut();
-        window.location.href = 'index.html';
-        return;
-    }
-    currentProfile = profile;
-    document.getElementById('userAvatar').textContent = (profile.first_name?.[0] || 'N') + (profile.last_name?.[0] || 'C');
-    document.getElementById('userName').textContent = `${profile.first_name} ${profile.last_name}`;
-
-    debugLog(`Profile loaded: ${profile.first_name} ${profile.last_name} (${profile.role})`, 'success');
-
-    // Ensure sections exist
-    await ensureSingleSectionPerCourse();
-
-    // Load all data
-    await loadInstructorData();
-    await loadPendingApprovals();
-    await populateCourseSelects();
-    await updateStats();
-    await loadSchedules();
-    await loadAttendanceSessions();
-    await loadManualSessions();
-    await loadAssessmentsList();
-    await loadInterventions();
-
-    debugLog('Dashboard ready.', 'success');
-}
-
-// ============================================================
-// TEST QUERY – FETCH ALL COURSES
-// ============================================================
-window.testQuery = async function() {
-    debugLog('Running test query: fetching ALL courses (no filter)...', 'info');
-    const { data, error } = await supabase
-        .from('courses')
-        .select('*');
-    if (error) {
-        debugLog(`Test query failed: ${error.message}`, 'error');
-        return;
-    }
-    debugLog(`Test query found ${data.length} courses total.`, 'success');
-    if (data.length > 0) {
-        debugLog(`Sample: ${JSON.stringify(data.slice(0, 3), null, 2)}`, 'info');
-    } else {
-        debugLog('No courses exist in the database.', 'error');
-    }
-    // Also display them in the courses table (override)
-    if (data.length > 0) {
-        instructorCourses = data;
-        renderCourseTable(data);
-        debugLog('Displayed all courses (temporary override).', 'info');
-    }
-};
-
-// ============================================================
-// COURSES
-// ============================================================
-async function ensureSingleSectionPerCourse() {
-    const { data: courses, error } = await supabase
-        .from('courses')
-        .select('id, code');
-    if (error) {
-        debugLog(`Error fetching courses for sections: ${error.message}`, 'error');
-        return;
-    }
-    for (const course of courses) {
-        const { data: sections, error } = await supabase
-            .from('sections')
-            .select('id')
-            .eq('course_id', course.id);
-        if (error) {
-            debugLog(`Error fetching sections for ${course.code}: ${error.message}`, 'error');
-            continue;
-        }
-        if (sections && sections.length > 1) {
-            const keepId = sections[0].id;
-            const deleteIds = sections.slice(1).map(s => s.id);
-            for (const id of deleteIds) {
-                await supabase.from('sections').delete().eq('id', id);
-            }
-            debugLog(`Cleaned up extra sections for ${course.code}.`, 'info');
-        } else if (!sections || sections.length === 0) {
-            const sectionName = course.code + ' Section';
-            await supabase.from('sections').insert({
-                course_id: course.id,
-                name: sectionName
-            });
-            debugLog(`Created default section for ${course.code}.`, 'info');
-        }
-    }
-}
-
-async function ensureSectionForCourse(courseId) {
-    const { data: sections, error } = await supabase
-        .from('sections')
-        .select('id')
-        .eq('course_id', courseId);
-    if (error) {
-        debugLog(`Error checking sections: ${error.message}`, 'error');
-        return null;
-    }
-    if (sections && sections.length > 0) {
-        return sections[0].id;
-    }
-    const course = instructorCourses.find(c => c.id === courseId);
-    const sectionName = course ? course.code + ' Section' : 'Default Section';
-    const { data: newSection, error: insertError } = await supabase
-        .from('sections')
-        .insert({ course_id: courseId, name: sectionName })
-        .select()
-        .single();
-    if (insertError) {
-        debugLog(`Error creating section: ${insertError.message}`, 'error');
-        return null;
-    }
-    debugLog(`Created new section for course ${courseId}.`, 'info');
-    return newSection.id;
-}
-
-function renderCourseTable(courses) {
-    const container = document.getElementById('instructorCourses');
-    if (!courses || courses.length === 0) {
-        container.innerHTML = `<div class="empty-state"><span class="icon">📘</span><p>No courses to display.</p></div>`;
-        return;
-    }
-    let html = '<div class="table-wrap"><table><thead><tr><th>Code</th><th>Name</th><th>Description</th><th>Actions</th></tr></thead><tbody>';
-    for (const c of courses) {
-        html += `<tr>
-            <td><strong>${c.code}</strong></td>
-            <td>${c.name}</td>
-            <td>${c.description || '-'}</td>
-            <td>
-                <button class="btn btn-outline btn-sm" onclick="openEditCourseModal('${c.id}')">✏️</button>
-                <button class="btn btn-danger btn-sm" onclick="deleteCourse('${c.id}')">🗑️</button>
-            </td>
-        </tr>`;
-    }
-    html += '</tbody></table></div>';
-    container.innerHTML = html;
-}
-
-async function loadInstructorData() {
-    if (!currentUser) {
-        debugLog('No current user, skipping course load.', 'error');
-        return;
-    }
-    debugLog(`Loading courses for instructor: ${currentUser.id}`, 'info');
-    const { data, error } = await supabase
-        .from('courses')
-        .select('*')
-        .eq('instructor_id', currentUser.id);
-    if (error) {
-        debugLog(`Error loading courses: ${error.message}`, 'error');
-        return;
-    }
-    debugLog(`Found ${data.length} courses assigned to you.`, 'success');
-    if (data.length === 0) {
-        debugLog('No courses assigned to you. Falling back to show all courses (debug).', 'info');
-        // Fallback: fetch all courses
-        const { data: all, error: allErr } = await supabase
-            .from('courses')
-            .select('*');
-        if (allErr) {
-            debugLog(`Fallback error: ${allErr.message}`, 'error');
-            instructorCourses = [];
-            renderCourseTable([]);
-            return;
-        }
-        debugLog(`Fallback: showing all ${all.length} courses.`, 'info');
-        instructorCourses = all;
-        renderCourseTable(all);
-        // Also notify user via debug panel
-        debugLog(`⚠️ You are seeing ALL courses because none are assigned to you.`, 'error');
-        return;
-    }
-    instructorCourses = data;
-    renderCourseTable(data);
-}
-
-// Add Course
-document.getElementById('addCourseBtn').addEventListener('click', async () => {
-    const code = prompt('Enter course code:');
-    if (!code) return;
-    const name = prompt('Enter course name:');
-    if (!name) return;
-    const desc = prompt('Enter description (optional):');
-    const { error } = await supabase.from('courses').insert({
-        code: code.trim(),
-        name: name.trim(),
-        description: desc?.trim() || '',
-        instructor_id: currentUser.id
-    });
-    if (error) {
-        alert('Error: ' + error.message);
-        debugLog(`Error adding course: ${error.message}`, 'error');
-        return;
-    }
-    alert('Course added!');
-    debugLog(`Added course: ${code}`, 'success');
-    await loadInstructorData();
-    await populateCourseSelects();
-    await updateStats();
-});
-
-// Edit Course Modal
-window.openEditCourseModal = async (courseId) => {
-    const { data: course, error } = await supabase
-        .from('courses')
-        .select('*')
-        .eq('id', courseId)
-        .single();
-    if (error) {
-        alert('Error loading course: ' + error.message);
-        debugLog(`Error loading course for edit: ${error.message}`, 'error');
-        return;
-    }
-    document.getElementById('editCourseId').value = course.id;
-    document.getElementById('editCourseCode').value = course.code;
-    document.getElementById('editCourseName').value = course.name;
-    document.getElementById('editCourseDesc').value = course.description || '';
-    document.getElementById('editCourseModal').classList.add('active');
-};
-window.closeEditCourseModal = () => {
-    document.getElementById('editCourseModal').classList.remove('active');
-};
-document.getElementById('editCourseForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const id = document.getElementById('editCourseId').value;
-    const code = document.getElementById('editCourseCode').value.trim();
-    const name = document.getElementById('editCourseName').value.trim();
-    const desc = document.getElementById('editCourseDesc').value.trim();
-    const { error } = await supabase
-        .from('courses')
-        .update({ code, name, description: desc })
-        .eq('id', id);
-    if (error) {
-        alert('Error: ' + error.message);
-        debugLog(`Error updating course: ${error.message}`, 'error');
-        return;
-    }
-    alert('Course updated.');
-    debugLog(`Updated course: ${code}`, 'success');
-    closeEditCourseModal();
-    await loadInstructorData();
-    await populateCourseSelects();
-    await updateStats();
-});
-
-window.deleteCourse = async function(courseId) {
-    if (!confirm('Delete this course and all associated data? This cannot be undone.')) return;
-    const { error } = await supabase
-        .from('courses')
-        .delete()
-        .eq('id', courseId);
-    if (error) {
-        alert('Error deleting: ' + error.message);
-        debugLog(`Error deleting course: ${error.message}`, 'error');
-        return;
-    }
-    alert('Course deleted.');
-    debugLog(`Deleted course ${courseId}`, 'success');
-    await loadInstructorData();
-    await populateCourseSelects();
-    await updateStats();
-    await loadSchedules();
-    await loadAttendanceSessions();
-    await loadManualSessions();
-    await loadAssessmentsList();
-};
-
-// ============================================================
-// (Other functions: schedules, attendance, assessments, etc.)
-// I'm including them but they are unchanged from previous version.
-// To keep the answer concise, I'll include placeholders.
-// In the actual final file, all functions are present.
-// ============================================================
-
-// ... (insert all other functions – I'll provide them in the complete file)
-
-// ============================================================
-// START
-// ============================================================
-init();
-</script>
+<div id="toast" class="toast"></div>
+<script type="module" src="./instructor-dashboard.js"></script>
 </body>
 </html>
