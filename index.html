@@ -56,7 +56,6 @@
     <script type="module">
         import { createClient } from '@supabase/supabase-js';
 
-        // Supabase config (your actual keys)
         const supabaseUrl = 'https://ynpednaybirzfcenmwhd.supabase.co';
         const supabaseAnonKey = 'sb_publishable_hDkrKWcFuZim7MypNeK0VQ_L_FciXAs';
         const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -92,18 +91,11 @@
             }
 
             try {
-                console.log('Attempting login for:', email);
-
                 // 1. Sign in
                 const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-                if (error) {
-                    console.error('Auth error:', error);
-                    throw error;
-                }
+                if (error) throw error;
 
-                console.log('Login successful, user:', data.user);
-
-                // 2. Get profile by user ID
+                // 2. Get profile – now the fixed RLS policies will allow this
                 const { data: profile, error: profileError } = await supabase
                     .from('profiles')
                     .select('*')
@@ -111,74 +103,35 @@
                     .maybeSingle();
 
                 if (profileError) {
-                    console.error('Profile fetch error:', profileError);
-                    showMessage('Error loading profile. Please contact support.');
+                    console.error('Profile error:', profileError);
+                    showMessage('Error loading profile: ' + profileError.message);
                     return;
                 }
 
-                console.log('Profile fetched:', profile);
-
-                // 3. If no profile, create one automatically
                 if (!profile) {
-                    console.log('No profile found, creating one...');
-                    // Generate a temporary student ID
-                    const tempId = 'TEMP-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-                    const { data: newProfile, error: insertError } = await supabase
-                        .from('profiles')
-                        .insert({
-                            id: data.user.id,
-                            student_id: tempId,
-                            first_name: 'User',
-                            last_name: 'Pending',
-                            section: 'N/A',
-                            role: 'pending'
-                        })
-                        .select()
-                        .single();
-
-                    if (insertError) {
-                        console.error('Profile creation error:', insertError);
-                        showMessage('Error creating profile. Please contact support.');
-                        return;
-                    }
-
-                    console.log('New profile created:', newProfile);
-                    // Sign out and ask user to wait for approval
-                    await supabase.auth.signOut();
-                    showMessage('✅ Profile created! Please wait for instructor approval.', false);
+                    showMessage('No profile found. Please contact support.');
                     return;
                 }
 
-                // 4. Store session info
+                // 3. Store session
                 sessionStorage.setItem('userEmail', email);
                 sessionStorage.setItem('userId', data.user.id);
                 sessionStorage.setItem('userRole', profile.role);
-                sessionStorage.setItem('userName', profile.first_name + ' ' + profile.last_name);
+                sessionStorage.setItem('userName', `${profile.first_name} ${profile.last_name}`);
 
-                // 5. Redirect based on role
+                // 4. Redirect
                 if (profile.role === 'instructor') {
                     window.location.href = 'instructor.html';
                 } else if (profile.role === 'student') {
-                    sessionStorage.setItem('studentEmail', email);
-                    sessionStorage.setItem('studentFirstName', profile.first_name);
-                    sessionStorage.setItem('studentLastName', profile.last_name);
-                    sessionStorage.setItem('studentId', profile.student_id);
-                    sessionStorage.setItem('studentSection', profile.section);
                     window.location.href = 'dashboard.html';
-                } else if (profile.role === 'pending') {
-                    showMessage('⏳ Your account is pending approval. Please wait.', false);
-                    await supabase.auth.signOut();
                 } else {
-                    showMessage('Unknown role. Please contact support.');
+                    showMessage('⏳ Account pending approval.', false);
+                    await supabase.auth.signOut();
                 }
 
             } catch (error) {
                 console.error('Login error:', error);
-                let msg = error.message || 'Login failed. Please try again.';
-                if (msg.includes('Invalid login credentials')) {
-                    msg = 'Invalid email or password. Please try again.';
-                }
-                showMessage('❌ ' + msg);
+                showMessage(error.message || 'Login failed. Please try again.');
             }
         });
     </script>
