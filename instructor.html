@@ -1051,6 +1051,7 @@ window.deleteAttendanceSession = async function(sessionId) {
 
 // ------------------------------------------------------------
 // 11. ASSESSMENTS – DRAFT MANAGEMENT (AUTO-CREATE)
+// Using exact column names from schema: duration_minute, randomize_ques, shuffle_options, show_answers, passing_score, ai_grading
 // ------------------------------------------------------------
 
 // Create a new assessment: reset form, clear draft ID, switch to section
@@ -1085,7 +1086,7 @@ async function ensureDraftExists() {
     const title = document.getElementById('assessTitle').value.trim() || 'Untitled Draft';
     const desc = document.getElementById('assessDesc').value.trim();
     const type = document.getElementById('assessType').value;
-    // Duration is NOT stored in database to avoid column error
+    const duration = parseInt(document.getElementById('assessDuration').value) || 60;
     const maxScore = parseFloat(document.getElementById('assessMaxScore').value) || 100;
     const date = document.getElementById('assessDate').value || null;
     const questionsToShow = parseInt(document.getElementById('assessShow').value) || null;
@@ -1121,7 +1122,7 @@ async function ensureDraftExists() {
         }
     }
 
-    // Create the draft - NO duration field
+    // Create the draft - using exact column names from schema
     const { data: draft, error } = await supabase
         .from('assessments')
         .insert({
@@ -1129,6 +1130,7 @@ async function ensureDraftExists() {
             description: desc,
             assessment_type_id: typeId,
             max_score: maxScore,
+            duration_minute: duration,
             date: date,
             randomize_ques: randomize,
             questions_to_show: questionsToShow,
@@ -1356,10 +1358,11 @@ window.saveDraft = async function() {
         const draftId = await ensureDraftExists();
         if (!draftId) return;
     }
-    // Update with current form data - NO duration
+    // Update with current form data
     const title = document.getElementById('assessTitle').value.trim() || 'Untitled Draft';
     const desc = document.getElementById('assessDesc').value.trim();
     const type = document.getElementById('assessType').value;
+    const duration = parseInt(document.getElementById('assessDuration').value) || 60;
     const maxScore = parseFloat(document.getElementById('assessMaxScore').value) || 100;
     const date = document.getElementById('assessDate').value || null;
     const questionsToShow = parseInt(document.getElementById('assessShow').value) || null;
@@ -1400,6 +1403,7 @@ window.saveDraft = async function() {
             description: desc,
             assessment_type_id: typeId,
             max_score: maxScore,
+            duration_minute: duration,
             date: date,
             randomize_ques: randomize,
             questions_to_show: questionsToShow,
@@ -1457,7 +1461,7 @@ async function loadDraftAssessments() {
     try {
         const { data: drafts, error } = await supabase
             .from('assessments')
-            .select('id, title, course_id, created_at')
+            .select('id, title, course_id, created_at, duration_minute')
             .eq('is_published', false)
             .in('course_id', instructorCourses.map(c => c.id))
             .order('created_at', { ascending: false });
@@ -1507,8 +1511,8 @@ window.loadDraft = async function(draftId) {
             .single();
         if (type) document.getElementById('assessType').value = type.name;
     }
-    // Duration is not stored, default to 60
-    document.getElementById('assessDuration').value = 60;
+    // Read duration_minute from DB
+    document.getElementById('assessDuration').value = draft.duration_minute || 60;
     document.getElementById('assessMaxScore').value = draft.max_score || 100;
     document.getElementById('assessDate').value = draft.date || '';
     document.getElementById('assessShow').value = draft.questions_to_show || '';
