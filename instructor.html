@@ -289,12 +289,12 @@
 
         <!-- ===== WEIGHTS ===== -->
         <section id="section-weights" class="page-section">
-            <div class="page-header"><div><h1>Grade Weights</h1></div></div>
+            <div class="page-header"><div><h1>Grade Weights <small>Configure percentage weights per assessment category</small></h1></div></div>
             <div class="card">
                 <form id="weightsForm">
-                    <div class="form-group" style="margin-bottom:1rem;"><label>Course</label><select id="weightsCourse" required></select></div>
-                    <div id="weightsInputs"></div>
-                    <button type="submit" class="btn btn-primary mt-1">Save Weights</button>
+                    <div class="form-group" style="margin-bottom:1.25rem;"><label>Select Course</label><select id="weightsCourse" required></select></div>
+                    <div id="weightsInputs"><div class="empty-state"><p>Select a course to manage weights.</p></div></div>
+                    <button type="submit" class="btn btn-primary mt-2">💾 Save Weights</button>
                 </form>
             </div>
         </section>
@@ -713,7 +713,6 @@ async function loadInstructorData() {
     if (gradebookSelect) renderSelect(gradebookSelect, instructorCourses, 'id', c => `${c.code} - ${c.name}`);
 }
 
-// Course CRUD Operations
 window.addCourse = async function() {
     const code = prompt("Enter Course Code (e.g., IT 101):");
     if (!code) return;
@@ -2010,7 +2009,7 @@ async function loadGradebook() {
 }
 
 // ------------------------------------------------------------
-// 18. WEIGHTS
+// 18. WEIGHTS (Updated with live percentage editor & auto-seed)
 // ------------------------------------------------------------
 async function loadWeightsInputs() {
     const courseId = document.getElementById('weightsCourse').value;
@@ -2019,39 +2018,97 @@ async function loadWeightsInputs() {
         container.innerHTML = '<div class="empty-state"><p>Select a course to manage weights.</p></div>';
         return;
     }
+    container.innerHTML = '<div class="empty-state"><p>Loading percentage weights...</p></div>';
     try {
-        const { data: types, error } = await supabase
+        let { data: types, error } = await supabase
             .from('assessment_types')
             .select('id, name, weight')
-            .eq('course_id', courseId);
+            .eq('course_id', courseId)
+            .order('name', { ascending: true });
         if (error) throw error;
+
+        // If no categories exist yet for this course, seed standard default types automatically
         if (!types || types.length === 0) {
-            container.innerHTML = '<div class="empty-state"><p>No assessment types yet.</p></div>';
-            return;
+            const defaultTypes = [
+                { course_id: courseId, name: 'Quiz', weight: 15 },
+                { course_id: courseId, name: 'Project', weight: 25 },
+                { course_id: courseId, name: 'Attendance', weight: 10 },
+                { course_id: courseId, name: 'Exam', weight: 50 }
+            ];
+            const { data: createdTypes, error: seedError } = await supabase
+                .from('assessment_types')
+                .insert(defaultTypes)
+                .select('id, name, weight');
+            if (seedError) throw seedError;
+            types = createdTypes || [];
         }
-        let html = '';
+
+        let html = '<div style="margin-bottom: 1rem; padding: 0.75rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem;"><strong>Note:</strong> Adjust the percentage weights below. The total sum of all categories should ideally equal 100%.</div>';
+        let totalWeight = 0;
         for (const t of types) {
-            html += `<div class="form-group" style="margin-bottom:0.5rem;">
-                <label>${t.name}</label>
-                <input type="number" step="0.01" min="0" max="100" value="${t.weight || 0}" data-type-id="${t.id}" class="weight-input" />
+            const w = parseFloat(t.weight) || 0;
+            totalWeight += w;
+            html += `<div class="form-group" style="margin-bottom:0.75rem;">
+                <label style="display:flex; justify-content:space-between; font-weight:600;">
+                    <span>${t.name}</span>
+                    <span class="text-muted">${w}%</span>
+                </label>
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <input type="number" step="0.01" min="0" max="100" value="${w}" data-type-id="${t.id}" class="weight-input" style="flex:1;" />
+                    <span style="font-weight:600; color:#475569;">%</span>
+                </div>
             </div>`;
         }
+        html += `<div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #e2e8f0; display:flex; justify-content:space-between; font-weight:700;">
+            <span>Total Weight:</span>
+            <span id="weightsTotalDisplay" style="color: ${totalWeight === 100 ? '#16a34a' : '#d97706'};">${totalWeight}%</span>
+        </div>`;
         container.innerHTML = html;
+
+        // Attach live total recalculation as the instructor edits
+        container.querySelectorAll('.weight-input').forEach(input => {
+            input.addEventListener('input', () => {
+                let sum = 0;
+                container.querySelectorAll('.weight-input').forEach(inp => {
+                    sum += parseFloat(inp.value) || 0;
+                });
+                const totalEl = document.getElementById('weightsTotalDisplay');
+                if (totalEl) {
+                    totalEl.textContent = `${sum}%`;
+                    totalEl.style.color = sum === 100 ? '#16a34a' : '#d97706';
+                }
+            });
+        });
     } catch (err) {
         console.error('loadWeightsInputs error:', err);
-        container.innerHTML = '<div class="empty-state"><p>Error loading weights.</p></div>';
+        container.innerHTML = '<div class="empty-state"><p>Error loading weights: ' + err.message + '</p></div>';
     }
 }
+
+// Ensure selecting a course immediately triggers the weight percentage editor
+document.getElementById('weightsCourse')?.addEventListener('change', () => {
+    loadWeightsInputs();
+});
 
 document.getElementById('weightsForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const inputs = document.querySelectorAll('#weightsInputs .weight-input');
-    for (const inp of inputs) {
-        const typeId = inp.dataset.typeId;
-        const weight = parseFloat(inp.value) || 0;
-        await supabase.from('assessment_types').update({ weight }).eq('id', typeId);
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+    try {
+        for (const inp of inputs) {
+            const typeId = inp.dataset.typeId;
+            const weight = parseFloat(inp.value) || 0;
+            const { error } = await supabase.from('assessment_types').update({ weight }).eq('id', typeId);
+            if (error) throw error;
+        }
+        alert('Weights saved successfully!');
+        await loadWeightsInputs();
+    } catch (err) {
+        alert('Error saving weights: ' + err.message);
+    } finally {
+        if (submitBtn) submitBtn.disabled = false;
     }
-    alert('Weights saved!');
 });
 
 // ------------------------------------------------------------
@@ -2125,7 +2182,7 @@ async function loadStudentsForIntervention() {
 }
 
 // ------------------------------------------------------------
-// 20. COMPUTE PERIOD GRADE (with fixed grading scheme and lock)
+// 20. COMPUTE PERIOD GRADE
 // ------------------------------------------------------------
 document.getElementById('computeForm').addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -2275,7 +2332,7 @@ document.getElementById('computeForm').addEventListener('submit', async function
 });
 
 // ------------------------------------------------------------
-// 21. FINAL GRADE (average of four periods)
+// 21. FINAL GRADE
 // ------------------------------------------------------------
 document.getElementById('finalForm').addEventListener('submit', async function(e) {
     e.preventDefault();
