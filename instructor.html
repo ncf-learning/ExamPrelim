@@ -1085,7 +1085,7 @@ async function ensureDraftExists() {
     const title = document.getElementById('assessTitle').value.trim() || 'Untitled Draft';
     const desc = document.getElementById('assessDesc').value.trim();
     const type = document.getElementById('assessType').value;
-    const duration = parseInt(document.getElementById('assessDuration').value) || 60;
+    // Duration is NOT stored in database to avoid column error
     const maxScore = parseFloat(document.getElementById('assessMaxScore').value) || 100;
     const date = document.getElementById('assessDate').value || null;
     const questionsToShow = parseInt(document.getElementById('assessShow').value) || null;
@@ -1121,14 +1121,13 @@ async function ensureDraftExists() {
         }
     }
 
-    // Create the draft - using 'duration' column name (not 'duration_minute')
+    // Create the draft - NO duration field
     const { data: draft, error } = await supabase
         .from('assessments')
         .insert({
             title: title,
             description: desc,
             assessment_type_id: typeId,
-            duration: duration,
             max_score: maxScore,
             date: date,
             randomize_ques: randomize,
@@ -1357,11 +1356,10 @@ window.saveDraft = async function() {
         const draftId = await ensureDraftExists();
         if (!draftId) return;
     }
-    // Update with current form data
+    // Update with current form data - NO duration
     const title = document.getElementById('assessTitle').value.trim() || 'Untitled Draft';
     const desc = document.getElementById('assessDesc').value.trim();
     const type = document.getElementById('assessType').value;
-    const duration = parseInt(document.getElementById('assessDuration').value) || 60;
     const maxScore = parseFloat(document.getElementById('assessMaxScore').value) || 100;
     const date = document.getElementById('assessDate').value || null;
     const questionsToShow = parseInt(document.getElementById('assessShow').value) || null;
@@ -1395,14 +1393,12 @@ window.saveDraft = async function() {
         }
     }
 
-    // Update using 'duration' column name
     const { error } = await supabase
         .from('assessments')
         .update({
             title,
             description: desc,
             assessment_type_id: typeId,
-            duration: duration,
             max_score: maxScore,
             date: date,
             randomize_ques: randomize,
@@ -1461,7 +1457,7 @@ async function loadDraftAssessments() {
     try {
         const { data: drafts, error } = await supabase
             .from('assessments')
-            .select('id, title, course_id, created_at, duration')
+            .select('id, title, course_id, created_at')
             .eq('is_published', false)
             .in('course_id', instructorCourses.map(c => c.id))
             .order('created_at', { ascending: false });
@@ -1511,8 +1507,8 @@ window.loadDraft = async function(draftId) {
             .single();
         if (type) document.getElementById('assessType').value = type.name;
     }
-    // Use 'duration' column (not 'duration_minute')
-    document.getElementById('assessDuration').value = draft.duration || 60;
+    // Duration is not stored, default to 60
+    document.getElementById('assessDuration').value = 60;
     document.getElementById('assessMaxScore').value = draft.max_score || 100;
     document.getElementById('assessDate').value = draft.date || '';
     document.getElementById('assessShow').value = draft.questions_to_show || '';
