@@ -103,7 +103,6 @@
         @media (max-width:480px) { .stats-grid { grid-template-columns:1fr; } .page-header { flex-direction:column; align-items:flex-start; } }
         .qr-code img { max-width:100px; height:auto; border:1px solid #e2e8f0; border-radius:4px; }
 
-        /* Print formatting for Formal Letters */
         @media print {
             body * { visibility: hidden; }
             #printLetterArea, #printLetterArea * { visibility: visible; }
@@ -156,15 +155,25 @@
         <!-- ===== DASHBOARD ===== -->
         <section id="section-dashboard" class="page-section active">
             <div class="page-header">
-                <div><h1>Dashboard <small>Overview of your classes</small></h1></div>
+                <div><h1>Dashboard <small>Overview of your classes & cheating contests</small></h1></div>
                 <div class="actions"><button class="btn btn-primary" onclick="createNewAssessment()">+ New Assessment</button></div>
             </div>
             <div class="stats-grid">
                 <div class="stat-card"><span class="icon">📘</span><div class="number" id="statCourses">0</div><div class="label">Total Courses</div></div>
                 <div class="stat-card"><span class="icon">👨‍🎓</span><div class="number" id="statStudents">0</div><div class="label">Total Students</div></div>
-                <div class="stat-card"><span class="icon">⏳</span><div class="number" id="statPending">0</div><div class="label">Pending Approvals</div></div>
+                <div class="stat-card"><span class="icon">🚨</span><div class="number" id="statContests">0</div><div class="label">Pending Contests</div></div>
                 <div class="stat-card"><span class="icon">📋</span><div class="number" id="statAssessments">0</div><div class="label">Assessments</div></div>
             </div>
+
+            <!-- CHEATING CONTESTS REVIEW CARD -->
+            <div class="card" style="border-left: 4px solid #ef4444;">
+                <div class="card-header">
+                    <h3>🚨 Pending Assessment Cheating Contests</h3>
+                    <button class="btn btn-outline btn-sm" onclick="loadCheatingContests()">🔄 Refresh</button>
+                </div>
+                <div id="cheatingContestsList"><div class="empty-state"><p>Loading contests...</p></div></div>
+            </div>
+
             <div class="card"><div class="card-header"><h3>⏳ Pending Approvals</h3></div><div id="pendingApprovalsList"><div class="empty-state"><p>Loading...</p></div></div></div>
             <div class="card"><div class="card-header"><h3>🚀 Quick Actions</h3></div><div class="flex gap-2" style="flex-wrap:wrap;"><button class="btn btn-outline" onclick="switchSection('attendance')">📋 Take Attendance</button><button class="btn btn-outline" onclick="createNewAssessment()">✏️ Create Assessment</button><button class="btn btn-outline" onclick="switchSection('gradebook')">📈 View Grades</button><button class="btn btn-outline" onclick="switchSection('enroll')">👥 Enroll Student</button></div></div>
         </section>
@@ -190,7 +199,6 @@
                 <div id="attCodeDisplay" style="display:none; margin-top:0.75rem; padding:0.75rem; background:#f1f5f9; border-radius:8px; text-align:center; font-size:1.5rem; font-weight:700; letter-spacing:4px; font-family:monospace;"></div>
             </div>
             
-            <!-- EXCUSE LETTERS APPROVAL CARD -->
             <div class="card">
                 <div class="card-header"><h3>📩 Submitted Excuse Letters for Approval</h3><button class="btn btn-outline btn-sm" onclick="loadExcuseLetters()">🔄 Refresh</button></div>
                 <div id="excuseLettersList"><div class="empty-state"><p>Loading excuse letters...</p></div></div>
@@ -317,18 +325,33 @@
 
         <!-- ===== COMPUTE ===== -->
         <section id="section-compute" class="page-section">
-            <div class="page-header"><div><h1>Compute Period Grades <small>Averages quizzes, recitations, activities, attendance, and major exams</small></h1></div></div>
+            <div class="page-header">
+                <div>
+                    <h1>Compute Period Grades <small>Calculates weighted period grades & controls active period progression</small></h1>
+                </div>
+            </div>
             <div class="card">
-                <div class="card-header"><h3>Period Grade Computation</h3></div>
+                <div class="card-header">
+                    <h3>Period Grade Computation & Active Period Locking</h3>
+                    <span id="currentCourseActivePeriodBadge" class="badge badge-info">Select a course to view active period</span>
+                </div>
                 <form id="computeForm" class="form-grid">
                     <div class="form-group full"><label>Course</label><select id="computeCourse" required></select></div>
-                    <div class="form-group"><label>Period</label><select id="computePeriod"><option value="prelim">Prelim</option><option value="midterm">Midterm</option><option value="semifinal">Semi‑Final</option><option value="final">Final</option></select></div>
+                    <div class="form-group"><label>Period to Compute</label>
+                        <select id="computePeriod">
+                            <option value="prelim">Prelim</option>
+                            <option value="midterm">Midterm</option>
+                            <option value="semifinal">Semi‑Final</option>
+                            <option value="final">Final</option>
+                        </select>
+                    </div>
                     <div class="form-group full">
-                        <label style="display:flex; align-items:center; gap:0.5rem;">
-                            <input type="checkbox" id="lockPeriod" /> Lock period after computation (prevents further changes)
+                        <label style="display:flex; align-items:center; gap:0.5rem; font-weight:600; color:#0f172a;">
+                            <input type="checkbox" id="lockPeriod" /> 
+                            Lock period after computation (Will lock student grades & advance the Active Period shown on student dashboards)
                         </label>
                     </div>
-                    <div class="form-group full"><button type="submit" class="btn btn-primary">Compute</button></div>
+                    <div class="form-group full"><button type="submit" class="btn btn-primary">Compute & Update Status</button></div>
                 </form>
                 <div id="computedGradesResult" class="mt-2"></div>
             </div>
@@ -346,7 +369,7 @@
             </div>
         </section>
 
-        <!-- ===== REPORTS (Addressed as Formal Letter to Dr. Anna Loretta C. Romulo) ===== -->
+        <!-- ===== REPORTS ===== -->
         <section id="section-reports" class="page-section">
             <div class="page-header"><div><h1>Formal Academic Reports <small>Addressed to Dr. Anna Loretta C. Romulo, Dean CCS</small></h1></div></div>
             <div class="card">
@@ -382,7 +405,7 @@
             </div>
         </section>
 
-        <!-- ===== INTERVENTIONS (Students Dropdown Loading Fixed) ===== -->
+        <!-- ===== INTERVENTIONS ===== -->
         <section id="section-interventions" class="page-section">
             <div class="page-header"><div><h1>Interventions</h1></div></div>
             <div class="card">
@@ -398,7 +421,7 @@
             </div>
         </section>
 
-        <!-- ===== ENROLL (Group Enrollment with Default Password 111111) ===== -->
+        <!-- ===== ENROLL ===== -->
         <section id="section-enroll" class="page-section">
             <div class="page-header"><div><h1>Enroll Students <small>Group Enrollment Supported (Default Password: 111111)</small></h1></div></div>
             <div class="card">
@@ -480,7 +503,6 @@
     </div>
 </div>
 
-<!-- ================= EDIT ASSESSMENT MODAL ================= -->
 <div class="modal" id="editAssessmentModal">
     <div class="modal-content">
         <button class="close" onclick="closeEditAssessmentModal()">✕</button>
@@ -511,142 +533,6 @@
 </div>
 
 <script type="module">
-/* ============================================================================
-   SQL DATABASE SCHEMA & DATABASE MIGRATION SCRIPT (SUPABASE / POSTGRESQL)
-   ============================================================================
-   -- 1. COURSES & SECTIONS
-   CREATE TABLE IF NOT EXISTS public.courses (
-       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-       code TEXT NOT NULL,
-       name TEXT NOT NULL,
-       description TEXT,
-       instructor_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
-       created_at TIMESTAMPTZ DEFAULT now()
-   );
-
-   CREATE TABLE IF NOT EXISTS public.sections (
-       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-       course_id UUID REFERENCES public.courses(id) ON DELETE CASCADE,
-       name TEXT NOT NULL,
-       created_at TIMESTAMPTZ DEFAULT now()
-   );
-
-   -- 2. EXCUSE LETTERS TABLE (Uploaded Table Support)
-   CREATE TABLE IF NOT EXISTS public.excuse_letters (
-       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-       student_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-       course_id UUID REFERENCES public.courses(id) ON DELETE CASCADE,
-       attendance_session_id UUID REFERENCES public.attendance_sessions(id) ON DELETE CASCADE,
-       file_url TEXT,
-       upload_date TIMESTAMPTZ DEFAULT now(),
-       status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
-       admin_notes TEXT,
-       created_at TIMESTAMPTZ DEFAULT now()
-   );
-
-   -- 3. ASSESSMENT TYPES
-   CREATE TABLE IF NOT EXISTS public.assessment_types (
-       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-       course_id UUID REFERENCES public.courses(id) ON DELETE CASCADE,
-       name TEXT NOT NULL,
-       weight NUMERIC DEFAULT 0,
-       created_at TIMESTAMPTZ DEFAULT now()
-   );
-
-   -- 4. ASSESSMENTS (Updated with TIME-FRAME columns: start_date, end_date)
-   CREATE TABLE IF NOT EXISTS public.assessments (
-       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-       course_id UUID REFERENCES public.courses(id) ON DELETE CASCADE,
-       assessment_type_id UUID REFERENCES public.assessment_types(id) ON DELETE SET NULL,
-       title TEXT NOT NULL,
-       description TEXT,
-       max_score NUMERIC DEFAULT 100,
-       duration_minute INTEGER DEFAULT 60,
-       date TIMESTAMPTZ,
-       start_date TIMESTAMPTZ,
-       end_date TIMESTAMPTZ,
-       randomize_ques BOOLEAN DEFAULT false,
-       questions_to_show INTEGER,
-       shuffle_options BOOLEAN DEFAULT false,
-       show_answers BOOLEAN DEFAULT false,
-       passing_score INTEGER DEFAULT 60,
-       ai_grading TEXT DEFAULT 'none',
-       period TEXT DEFAULT 'prelim' CHECK (period IN ('prelim', 'midterm', 'semifinal', 'final')),
-       is_published BOOLEAN DEFAULT false,
-       created_at TIMESTAMPTZ DEFAULT now()
-   );
-
-   -- Safely add start_date / end_date if migrating an existing table:
-   DO $$ 
-   BEGIN
-       IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'assessments' AND column_name = 'start_date') THEN
-           ALTER TABLE public.assessments ADD COLUMN start_date TIMESTAMPTZ;
-       END IF;
-       IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'assessments' AND column_name = 'end_date') THEN
-           ALTER TABLE public.assessments ADD COLUMN end_date TIMESTAMPTZ;
-       END IF;
-   END $$;
-
-   -- 5. ATTENDANCE RECORDS TABLE
-   CREATE TABLE IF NOT EXISTS public.attendance_records (
-       id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-       session_id UUID,
-       student_id UUID,
-       status TEXT,
-       time_in TIMESTAMPTZ,
-       time_out TIMESTAMPTZ,
-       created_at TIMESTAMPTZ DEFAULT now(),
-       marked_at TIMESTAMPTZ,
-       excuse_letter_id UUID REFERENCES public.excuse_letters(id) ON DELETE SET NULL
-   );
-
-   -- 6. GRADES TABLE
-   CREATE TABLE IF NOT EXISTS public.grades (
-       id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-       student_id UUID,
-       course_id UUID,
-       assessment_type_id UUID,
-       score NUMERIC,
-       max_score NUMERIC,
-       percentage NUMERIC,
-       period TEXT,
-       date TIMESTAMPTZ DEFAULT now()
-   );
-
-   -- 7. INTERVENTIONS TABLE
-   CREATE TABLE IF NOT EXISTS public.interventions (
-       id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-       student_id UUID,
-       course_id UUID,
-       type TEXT,
-       description TEXT,
-       adjustment_value NUMERIC,
-       created_at TIMESTAMPTZ DEFAULT now(),
-       instructor_id UUID
-   );
-
-   -- 8. COMPUTED PERIOD/FINAL GRADES
-   CREATE TABLE IF NOT EXISTS public.period_grades (
-       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-       student_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-       course_id UUID REFERENCES public.courses(id) ON DELETE CASCADE,
-       period TEXT NOT NULL CHECK (period IN ('prelim', 'midterm', 'semifinal', 'final')),
-       grade NUMERIC DEFAULT 0,
-       locked BOOLEAN DEFAULT false,
-       updated_at TIMESTAMPTZ DEFAULT now(),
-       UNIQUE(student_id, course_id, period)
-   );
-
-   CREATE TABLE IF NOT EXISTS public.final_ratings (
-       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-       student_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-       course_id UUID REFERENCES public.courses(id) ON DELETE CASCADE,
-       final_grade NUMERIC DEFAULT 0,
-       updated_at TIMESTAMPTZ DEFAULT now(),
-       UNIQUE(student_id, course_id)
-   );
-   ============================================================================ */
-
 import { supabase, getCurrentUser, getCurrentProfile, signOut } from './supabase.js';
 
 let currentUser = null;
@@ -714,6 +600,9 @@ function setupNavigation() {
                 targetEl.classList.add('active');
             }
 
+            if (targetSection === 'dashboard' && typeof loadCheatingContests === 'function') {
+                loadCheatingContests();
+            }
             if (targetSection === 'gradebook' && typeof loadGradebook === 'function') {
                 loadGradebook();
             }
@@ -734,19 +623,6 @@ window.switchSection = function(section) {
     const target = document.querySelector(`.nav-item[data-section="${section}"]`);
     if (target) target.click();
 };
-
-function getNextDateForDay(dayOfWeek) {
-    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-    const targetIndex = days.indexOf(dayOfWeek);
-    if (targetIndex === -1) return null;
-    const now = new Date();
-    const currentDay = now.getDay();
-    let diff = targetIndex - currentDay;
-    if (diff < 0) diff += 7;
-    const nextDate = new Date(now);
-    nextDate.setDate(now.getDate() + diff);
-    return nextDate.toISOString().split('T')[0];
-}
 
 function getQRCodeUrl(data) {
     return `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(data)}`;
@@ -797,6 +673,7 @@ async function init() {
         await ensureSingleSectionPerCourse();
         await loadInstructorData();
         await loadPendingApprovals();
+        await loadCheatingContests();
         await populateCourseSelects();
         await updateStats();
         await loadSchedules();
@@ -859,9 +736,18 @@ async function loadInstructorData() {
         container.innerHTML = '<div class="empty-state"><span class="icon">📘</span><p>No courses assigned yet. Click "+ New Course" to get started.</p></div>';
         return;
     }
-    let html = '<div class="table-wrap"><table><thead><tr><th>Code</th><th>Name</th><th>Description</th><th>Actions</th></tr></thead><tbody>';
+    let html = '<div class="table-wrap"><table><thead><tr><th>Code</th><th>Name</th><th>Active Period</th><th>Description</th><th>Actions</th></tr></thead><tbody>';
     for (const c of instructorCourses) {
-        html += `<tr><td><strong>${c.code}</strong></td><td>${c.name}</td><td>${c.description || '-'}</td><td><button class="btn btn-outline btn-sm" onclick="openEditCourseModal('${c.id}')">✏️</button><button class="btn btn-danger btn-sm" onclick="deleteCourse('${c.id}')">🗑️</button></td></tr>`;
+        html += `<tr>
+            <td><strong>${c.code}</strong></td>
+            <td>${c.name}</td>
+            <td><span class="badge badge-info" style="text-transform:uppercase;">${c.active_period || 'PRELIM'}</span></td>
+            <td>${c.description || '-'}</td>
+            <td>
+                <button class="btn btn-outline btn-sm" onclick="openEditCourseModal('${c.id}')">✏️</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteCourse('${c.id}')">🗑️</button>
+            </td>
+        </tr>`;
     }
     html += '</tbody></table></div>';
     container.innerHTML = html;
@@ -881,7 +767,8 @@ window.addCourse = async function() {
         code: code.trim(),
         name: name.trim(),
         description: desc.trim(),
-        instructor_id: currentUser.id
+        instructor_id: currentUser.id,
+        active_period: 'prelim'
     });
 
     if (error) {
@@ -942,6 +829,82 @@ document.getElementById('editCourseForm').addEventListener('submit', async funct
     await populateCourseSelects();
 });
 
+// ============================================================
+// CHEATING CONTESTS REVIEW AND RESOLUTION
+// ============================================================
+window.loadCheatingContests = async function() {
+    const container = document.getElementById('cheatingContestsList');
+    if (instructorCourses.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No assigned courses.</p></div>';
+        return;
+    }
+    const courseIds = instructorCourses.map(c => c.id);
+
+    const { data: contests, error } = await supabase
+        .from('cheating_contests')
+        .select('*, profiles(first_name, last_name, email), assessments(title), courses(code)')
+        .in('course_id', courseIds)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        container.innerHTML = `<div class="empty-state"><p>Error loading contests: ${error.message}</p></div>`;
+        return;
+    }
+
+    const pendingCount = contests?.filter(c => c.status === 'pending').length || 0;
+    document.getElementById('statContests').textContent = pendingCount;
+
+    if (!contests || contests.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No cheating contests filed.</p></div>';
+        return;
+    }
+
+    let html = '<div class="table-wrap"><table><thead><tr><th>Student</th><th>Course</th><th>Assessment</th><th>Reason Given</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+    for (const c of contests) {
+        const studentName = c.profiles ? `${c.profiles.first_name} ${c.profiles.last_name}` : c.student_id;
+        const statusBadge = `<span class="badge badge-${c.status === 'approved' ? 'approved' : c.status === 'rejected' ? 'rejected' : 'pending'}">${c.status.toUpperCase()}</span>`;
+        
+        let actions = 'Resolved';
+        if (c.status === 'pending') {
+            actions = `
+                <button class="btn btn-success btn-sm" onclick="resolveContest('${c.id}', '${c.student_id}', '${c.assessment_id}', 'approved')">✅ Approve (Allow Retake)</button>
+                <button class="btn btn-danger btn-sm" onclick="resolveContest('${c.id}', '${c.student_id}', '${c.assessment_id}', 'rejected')">❌ Reject</button>
+            `;
+        }
+
+        html += `<tr>
+            <td><strong>${studentName}</strong><br><small class="text-muted">${c.profiles?.email || ''}</small></td>
+            <td>${c.courses?.code || 'N/A'}</td>
+            <td>${c.assessments?.title || 'N/A'}</td>
+            <td style="max-width:300px; white-space:normal;">${c.reason}</td>
+            <td>${statusBadge}</td>
+            <td>${actions}</td>
+        </tr>`;
+    }
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+};
+
+window.resolveContest = async function(contestId, studentId, assessmentId, newStatus) {
+    if (!confirm(`Are you sure you want to ${newStatus === 'approved' ? 'APPROVE this contest and allow the student to retake' : 'REJECT this contest'}?`)) {
+        return;
+    }
+
+    await supabase
+        .from('cheating_contests')
+        .update({ status: newStatus, resolved_at: new Date().toISOString() })
+        .eq('id', contestId);
+
+    // If approved, clear the zero grade so the student can start the test again
+    if (newStatus === 'approved') {
+        await supabase.from('grades').delete().eq('student_id', studentId).eq('assessment_id', assessmentId);
+        await supabase.from('student_answers').delete().eq('student_id', studentId).eq('assessment_id', assessmentId);
+    }
+
+    alert(`Contest ${newStatus.toUpperCase()}.`);
+    await loadCheatingContests();
+};
+
 async function loadPendingApprovals() {
     const container = document.getElementById('pendingApprovalsList');
     try {
@@ -996,12 +959,6 @@ async function updateStats() {
             .in('course_id', instructorCourses.map(c => c.id));
         const unique = new Set(enrollments?.map(e => e.student_id) || []);
         document.getElementById('statStudents').textContent = unique.size;
-
-        const { count: pendingCount } = await supabase
-            .from('profiles')
-            .select('*', { count: 'exact', head: true })
-            .eq('role', 'pending');
-        document.getElementById('statPending').textContent = pendingCount || 0;
 
         const { count: assessCount } = await supabase
             .from('assessments')
@@ -1111,9 +1068,6 @@ document.getElementById('scheduleForm').addEventListener('submit', async (e) => 
     document.getElementById('scheduleForm').reset();
 });
 
-// ------------------------------------------------------------
-// EXCUSE LETTERS APPROVAL (Uploaded excuse_letters Table Support)
-// ------------------------------------------------------------
 window.loadExcuseLetters = async function() {
     const container = document.getElementById('excuseLettersList');
     try {
@@ -1328,9 +1282,9 @@ window.deleteAttendanceSession = async function(sessionId) {
     await loadManualSessions();
 };
 
-// ------------------------------------------------------------
-// 12. ASSESSMENTS (With Time-Frame & Re-using / Cloning Support)
-// ------------------------------------------------------------
+// ============================================================
+// ASSESSMENTS MANAGEMENT
+// ============================================================
 window.createNewAssessment = function() {
     document.getElementById('assessmentForm').reset();
     document.getElementById('assessTitle').value = '';
@@ -1572,7 +1526,6 @@ window.handleFileUpload = async function(event) {
 
 window.saveDraft = async function() {
     if (isEditingPublished) {
-        await updatePublishedAssessment();
         return;
     }
     if (!currentDraftAssessmentId) {
@@ -1646,9 +1599,6 @@ window.saveDraft = async function() {
     await loadDraftAssessments();
 };
 
-// ------------------------------------------------------------
-// 13. PUBLISHED ASSESSMENTS LIST (With Re-use / Copy Button)
-// ------------------------------------------------------------
 async function loadAssessmentsList() {
     const container = document.getElementById('assessmentsList');
     try {
@@ -1700,7 +1650,6 @@ async function loadAssessmentsList() {
     }
 }
 
-// Function to clone/re-use an assessment to another course
 window.cloneAssessmentToCourse = async function(assessmentId) {
     if (instructorCourses.length <= 1) {
         alert("You need at least two courses to re-use an assessment across courses.");
@@ -1895,7 +1844,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (publishBtn) {
         publishBtn.addEventListener('click', async function() {
             if (isEditingPublished) {
-                await updatePublishedAssessment();
                 return;
             }
             if (!currentDraftAssessmentId) {
@@ -2058,9 +2006,9 @@ window.goToStep = function(step) {
     if (target) { target.style.display = 'block'; target.classList.add('active'); }
 };
 
-// ------------------------------------------------------------
-// 17. GRADEBOOK
-// ------------------------------------------------------------
+// ============================================================
+// GRADEBOOK
+// ============================================================
 async function loadGradebook() {
     const courseId = document.getElementById('manualCourseSelect').value;
     const container = document.getElementById('gradebookContainer');
@@ -2122,9 +2070,9 @@ async function loadGradebook() {
     }
 }
 
-// ------------------------------------------------------------
-// 18. WEIGHTS
-// ------------------------------------------------------------
+// ============================================================
+// WEIGHTS
+// ============================================================
 async function loadWeightsInputs() {
     const courseId = document.getElementById('weightsCourse').value;
     const container = document.getElementById('weightsInputs');
@@ -2221,9 +2169,9 @@ document.getElementById('weightsForm').addEventListener('submit', async (e) => {
     }
 });
 
-// ------------------------------------------------------------
-// 19. INTERVENTIONS (Fixed: Students Load on Course Selection)
-// ------------------------------------------------------------
+// ============================================================
+// INTERVENTIONS
+// ============================================================
 async function loadInterventions() {
     const container = document.getElementById('interventionHistory');
     try {
@@ -2280,12 +2228,22 @@ async function loadStudentsForIntervention() {
     renderSelect(studentSelect, students, 'id', s => `${s.first_name} ${s.last_name}`);
 }
 
-// Attach event listener so selecting a course automatically loads students
 document.getElementById('intervCourse')?.addEventListener('change', loadStudentsForIntervention);
 
-// ------------------------------------------------------------
-// 20. COMPUTE PERIOD GRADE
-// ------------------------------------------------------------
+// ============================================================
+// PERIOD GRADE COMPUTATION & ACTIVE PERIOD LOCKING
+// ============================================================
+document.getElementById('computeCourse')?.addEventListener('change', async function() {
+    const courseId = this.value;
+    const badge = document.getElementById('currentCourseActivePeriodBadge');
+    if (!courseId) {
+        badge.textContent = 'Select a course to view active period';
+        return;
+    }
+    const c = instructorCourses.find(course => course.id === courseId);
+    badge.textContent = `Current Active Period: ${(c?.active_period || 'prelim').toUpperCase()}`;
+});
+
 document.getElementById('computeForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const courseId = document.getElementById('computeCourse').value;
@@ -2293,17 +2251,6 @@ document.getElementById('computeForm').addEventListener('submit', async function
     const lockPeriod = document.getElementById('lockPeriod').checked;
 
     if (!courseId) { alert('Select a course.'); return; }
-
-    const { data: existingLock } = await supabase
-        .from('period_grades')
-        .select('locked')
-        .eq('course_id', courseId)
-        .eq('period', period)
-        .maybeSingle();
-    if (existingLock && existingLock.locked) {
-        alert('This period is locked. Unlock to recompute.');
-        return;
-    }
 
     const { data: enrollments } = await supabase
         .from('course_enrollments')
@@ -2382,9 +2329,9 @@ document.getElementById('computeForm').addEventListener('submit', async function
         .in('student_id', studentIds);
 
     let html = '<div class="table-wrap"><table><thead><tr><th>Student</th>';
-    html += `<th>Quizzes & Activities (${(wQuiz*100).toFixed(0)}%)</th>`;
-    html += `<th>Case, Recitation & Briefs (${(wCase*100).toFixed(0)}%)</th>`;
-    html += `<th>Attendance & Others (${(wAtt*100).toFixed(0)}%)</th>`;
+    html += `<th>Quizzes (${(wQuiz*100).toFixed(0)}%)</th>`;
+    html += `<th>Case/Recit (${(wCase*100).toFixed(0)}%)</th>`;
+    html += `<th>Attendance (${(wAtt*100).toFixed(0)}%)</th>`;
     html += `<th>Major Exam (${(wExam*100).toFixed(0)}%)</th>`;
     html += '<th>Intervention</th><th>Period Grade</th><th>Locked</th></tr></thead><tbody>';
 
@@ -2479,12 +2426,30 @@ document.getElementById('computeForm').addEventListener('submit', async function
     }
     html += '</tbody></table></div>';
     document.getElementById('computedGradesResult').innerHTML = html;
-    alert(lockPeriod ? 'Period grades computed and locked!' : 'Period grades computed.');
+
+    // IF LOCKING: ADVANCE COURSE ACTIVE PERIOD TO NEXT PERIOD
+    if (lockPeriod) {
+        const nextPeriodMap = { 'prelim': 'midterm', 'midterm': 'semifinal', 'semifinal': 'final', 'final': 'final' };
+        const newActivePeriod = nextPeriodMap[period] || period;
+
+        await supabase
+            .from('courses')
+            .update({ active_period: newActivePeriod })
+            .eq('id', courseId);
+
+        const courseObj = instructorCourses.find(c => c.id === courseId);
+        if (courseObj) courseObj.active_period = newActivePeriod;
+
+        document.getElementById('currentCourseActivePeriodBadge').textContent = `Current Active Period: ${newActivePeriod.toUpperCase()}`;
+        alert(`🔒 ${period.toUpperCase()} grades locked! Course Active Period has advanced to ${newActivePeriod.toUpperCase()}. Students will now see their ${period.toUpperCase()} grade on their dashboard.`);
+    } else {
+        alert('Period grades computed and updated.');
+    }
 });
 
-// ------------------------------------------------------------
-// 21. FINAL GRADE
-// ------------------------------------------------------------
+// ============================================================
+// FINAL GRADE
+// ============================================================
 document.getElementById('finalForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const courseId = document.getElementById('finalCourse').value;
@@ -2539,9 +2504,9 @@ document.getElementById('finalForm').addEventListener('submit', async function(e
     document.getElementById('finalResult').innerHTML = html;
 });
 
-// ------------------------------------------------------------
-// FORMAL ACADEMIC LETTER REPORTS (Addressed to Dr. Anna Loretta C. Romulo)
-// ------------------------------------------------------------
+// ============================================================
+// FORMAL ACADEMIC LETTER REPORTS
+// ============================================================
 window.generateFormalLetterReport = async function() {
     const courseId = document.getElementById('reportCourse').value;
     const reportType = document.getElementById('reportType').value;
@@ -2559,32 +2524,26 @@ window.generateFormalLetterReport = async function() {
     const { data: section } = await supabase.from('sections').select('name, id').eq('course_id', courseId).maybeSingle();
     const sectionName = section?.name || 'Assigned Section';
 
-    // Fetch class schedules for this section
     const { data: scheds } = await supabase.from('schedules').select('day_of_week, start_time, end_time, room').eq('section_id', section?.id || null);
     const schedText = scheds && scheds.length > 0
         ? scheds.map(s => `${s.day_of_week} (${s.start_time}-${s.end_time}, Room ${s.room || 'TBA'})`).join('; ')
         : 'TBA';
 
-    // Fetch enrolled students
     const { data: enrollments } = await supabase.from('course_enrollments').select('student_id').eq('course_id', courseId);
     const studentIds = enrollments?.map(e => e.student_id) || [];
     const { data: students } = await supabase.from('profiles').select('id, first_name, last_name').in('id', studentIds);
 
-    // Fetch attendance statistics
     const { data: sessions } = await supabase.from('attendance_sessions').select('id').eq('section_id', section?.id || null);
     const sessionIds = sessions?.map(s => s.id) || [];
     const { data: allRecords } = await supabase.from('attendance_records').select('student_id, status').in('session_id', sessionIds).in('student_id', studentIds);
 
-    // Fetch period grades and final ratings
     const { data: pGrades } = await supabase.from('period_grades').select('student_id, period, grade').eq('course_id', courseId).in('student_id', studentIds);
     const { data: fGrades } = await supabase.from('final_ratings').select('student_id, final_grade').eq('course_id', courseId).in('student_id', studentIds);
 
-    // Fetch interventions
     const { data: interventions } = await supabase.from('interventions').select('student_id, type, adjustment_value, description').eq('course_id', courseId).in('student_id', studentIds);
 
     const currentDateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-    // Build Formal Academic Letter Header addressed to Dean Romulo
     let letterHtml = `
         <div style="text-align:center; border-bottom:2px solid #000; padding-bottom:1rem; margin-bottom:1.5rem;">
             <h2 style="font-size:1.35rem; font-weight:800; margin-bottom:0.25rem;">NAGA COLLEGE FOUNDATION, INC.</h2>
@@ -2643,12 +2602,12 @@ window.generateFormalLetterReport = async function() {
             ratingDisplay = fg ? `${Number(fg.final_grade).toFixed(2)}% (${fg.final_grade >= 75 ? 'PASSED' : 'FAILED'})` : 'No Rating';
         } else if (reportType === 'absenteeism') {
             ratingDisplay = `${absences} Absence(s)`;
-            if (absences === 0) includeStudent = false; // Only show those with absences
+            if (absences === 0) includeStudent = false;
         } else if (reportType === 'failing') {
             const fg = fGrades?.find(f => f.student_id === sid);
             const numGrade = fg ? parseFloat(fg.final_grade) : 0;
             ratingDisplay = fg ? `${numGrade.toFixed(2)}% (FAILED)` : 'Failing Standing';
-            if (fg && numGrade >= 75) includeStudent = false; // Only include failing students
+            if (fg && numGrade >= 75) includeStudent = false;
         } else if (reportType === 'interventions_report') {
             ratingDisplay = studentIntervs.length > 0 ? 'Intervention Active' : 'No Intervention';
             if (studentIntervs.length === 0) includeStudent = false;
@@ -2692,7 +2651,6 @@ window.generateFormalLetterReport = async function() {
     container.innerHTML = letterHtml;
 };
 
-// Toggle period dropdown when report type changes
 document.getElementById('reportType')?.addEventListener('change', function(e) {
     const periodGroup = document.getElementById('reportPeriodGroup');
     if (periodGroup) {
@@ -2700,9 +2658,9 @@ document.getElementById('reportType')?.addEventListener('change', function(e) {
     }
 });
 
-// ------------------------------------------------------------
-// GROUP ENROLLMENT (Supports Default Password: 111111)
-// ------------------------------------------------------------
+// ============================================================
+// GROUP ENROLLMENT
+// ============================================================
 document.getElementById('enrollForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     const courseId = document.getElementById('enrollCourse').value;
@@ -2714,7 +2672,6 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
 
     let successCount = 0;
     for (const email of emails) {
-        // Find existing profile or register default entry
         let { data: profile } = await supabase.from('profiles').select('id').eq('email', email).maybeSingle();
         if (!profile) {
             const { data: newProfile } = await supabase.from('profiles').insert({
@@ -2740,9 +2697,9 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
     updateStats();
 });
 
-// ------------------------------------------------------------
-// 22. STARTUP & GLOBAL LISTENERS
-// ------------------------------------------------------------
+// ============================================================
+// STARTUP & GLOBAL LISTENERS
+// ============================================================
 document.getElementById('logoutBtn')?.addEventListener('click', async () => {
     if (confirm("Sign out of NCF Learning Tracking System?")) {
         await signOut();
