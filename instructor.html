@@ -101,6 +101,8 @@
         @media (max-width:1024px) { .sidebar { width:220px; } .main { padding:1.5rem; } .form-grid { grid-template-columns:1fr; } }
         @media (max-width:768px) { .app { flex-direction:column; } .sidebar { width:100%; height:auto; position:static; padding:1rem; } .sidebar nav { display:flex; flex-wrap:wrap; gap:0.25rem; } .sidebar nav .nav-label { display:none; } .sidebar nav .nav-item { padding:0.4rem 0.7rem; font-size:0.8rem; } .sidebar .user-section { display:none; } .main { padding:1rem; } .stats-grid { grid-template-columns:1fr 1fr; } }
         @media (max-width:480px) { .stats-grid { grid-template-columns:1fr; } .page-header { flex-direction:column; align-items:flex-start; } }
+        /* QR code styling */
+        .qr-code img { max-width:100px; height:auto; border:1px solid #e2e8f0; border-radius:4px; }
     </style>
 </head>
 <body>
@@ -410,7 +412,7 @@
             </div>
         </div>
         <div style="margin-top:1rem; display:flex; gap:0.5rem; justify-content:flex-end;">
-            <button class="btn btn-success" onclick="saveManualAttendance()">💾 Save All</button>
+            <button class="btn btn-success" id="saveManualAttendanceBtn" onclick="saveManualAttendance()">💾 Save All</button>
             <button class="btn btn-outline" onclick="closeMarkAttendanceModal()">Cancel</button>
         </div>
     </div>
@@ -469,6 +471,25 @@ window.switchSection = function(section) {
     const target = document.querySelector(`.nav-item[data-section="${section}"]`);
     if (target) target.click();
 };
+
+// Get next date for a given day of week (e.g., "Monday")
+function getNextDateForDay(dayOfWeek) {
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const targetIndex = days.indexOf(dayOfWeek);
+    if (targetIndex === -1) return null;
+    const now = new Date();
+    const currentDay = now.getDay();
+    let diff = targetIndex - currentDay;
+    if (diff < 0) diff += 7;
+    const nextDate = new Date(now);
+    nextDate.setDate(now.getDate() + diff);
+    return nextDate.toISOString().split('T')[0];
+}
+
+// Generate QR code URL
+function getQRCodeUrl(data) {
+    return `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(data)}`;
+}
 
 // ------------------------------------------------------------
 // 4. AUTH & INIT
@@ -713,7 +734,7 @@ async function populateCourseSelects() {
 }
 
 // ------------------------------------------------------------
-// 9. SCHEDULES
+// 9. SCHEDULES (with automatic attendance generation)
 // ------------------------------------------------------------
 async function loadSchedules() {
     const container = document.getElementById('scheduleList');
@@ -777,8 +798,70 @@ window.deleteSchedule = async function(scheduleId) {
     await loadSchedules();
 };
 
+// Modified schedule form to auto-generate attendance session
+document.getElementById('scheduleForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const courseId = document.getElementById('scheduleCourse').value;
+    const day = document.getElementById('scheduleDay').value;
+    const start = document.getElementById('scheduleStart').value;
+    const end = document.getElementById('scheduleEnd').value;
+    const room = document.getElementById('scheduleRoom').value;
+    if (!courseId) { alert('Select a course.'); return; }
+    const sectionId = await ensureSectionForCourse(courseId);
+    if (!sectionId) { alert('Error creating section.'); return; }
+
+    // Check for conflicts (existing schedule)
+    const { data: existing } = await supabase.from('schedules').select('*').eq('section_id', sectionId).eq('day_of_week', day);
+    const startMin = timeToMinutes(start); const endMin = timeToMinutes(end);
+    const conflict = existing?.some(s => {
+        const sStart = timeToMinutes(s.start_time);
+        const sEnd = timeToMinutes(s.end_time);
+        return (startMin < sEnd && endMin > sStart);
+    });
+    if (conflict) { alert('Conflict: overlapping schedule on ' + day); return; }
+
+    // Insert schedule
+    const { data: newSchedule, error } = await supabase
+        .from('schedules')
+        .insert({ section_id: sectionId, day_of_week: day, start_time: start, end_time: end, room: room || null })
+        .select()
+        .single();
+    if (error) { alert('Error adding schedule: ' + error.message); return; }
+
+    // Auto-generate attendance session for the next occurrence of this day
+    const sessionDate = getNextDateForDay(day);
+    if (sessionDate) {
+        // Generate a 6-digit code
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        // Expires 15 minutes after end time? We'll set expiry to end time + 15 min
+        const endDateTime = new Date(`${sessionDate}T${end}`);
+        const expiresAt = new Date(endDateTime.getTime() + 15 * 60000);
+        const { error: attError } = await supabase
+            .from('attendance_sessions')
+            .insert({
+                section_id: sectionId,
+                date: sessionDate,
+                start_time: start,
+                end_time: end,
+                code: code,
+                expires_at: expiresAt.toISOString()
+            });
+        if (attError) {
+            console.warn('Failed to auto-generate attendance session:', attError.message);
+            // Not a critical error; continue
+        } else {
+            alert('Schedule added! An attendance session has been generated for ' + sessionDate + ' with code ' + code);
+        }
+    } else {
+        alert('Schedule added! Could not determine next date for attendance session.');
+    }
+
+    await loadSchedules();
+    document.getElementById('scheduleForm').reset();
+});
+
 // ------------------------------------------------------------
-// 10. ATTENDANCE
+// 10. ATTENDANCE (with QR code display and edit restrictions)
 // ------------------------------------------------------------
 async function loadAttendanceSessions() {
     const container = document.getElementById('attendanceSessionsList');
@@ -794,13 +877,16 @@ async function loadAttendanceSessions() {
             container.innerHTML = '<div class="empty-state"><p>No sessions yet.</p></div>';
             return;
         }
-        let html = '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Start</th><th>End</th><th>Code</th><th>Expires</th><th>Actions</th></tr></thead><tbody>';
+        let html = '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Start</th><th>End</th><th>Code</th><th>QR Code</th><th>Expires</th><th>Actions</th></tr></thead><tbody>';
         for (const s of sessions) {
+            // Generate QR code URL based on code
+            const qrUrl = getQRCodeUrl(s.code);
             html += `<tr>
                 <td>${s.date}</td>
                 <td>${s.start_time}</td>
                 <td>${s.end_time}</td>
                 <td>${s.code}</td>
+                <td class="qr-code"><img src="${qrUrl}" alt="QR Code" /></td>
                 <td>${s.expires_at ? new Date(s.expires_at).toLocaleString() : '-'}</td>
                 <td>
                     <button class="btn btn-danger btn-sm" onclick="deleteAttendanceSession('${s.id}')">🗑️</button>
@@ -845,9 +931,17 @@ window.openMarkAttendanceModal = async function() {
     currentManualSessionId = sessionId;
     const { data: session, error } = await supabase.from('attendance_sessions').select('*').eq('id', sessionId).single();
     if (error) { alert('Error loading session: ' + error.message); return; }
+
+    // Check if current time is past the session end time
+    const sessionEndDateTime = new Date(`${session.date}T${session.end_time}`);
+    const now = new Date();
+    const isPastEnd = now > sessionEndDateTime;
+
     document.getElementById('markAttendanceInfo').innerHTML = `
         <p><strong>Session:</strong> ${session.date} ${session.start_time} - ${session.end_time}</p>
+        ${isPastEnd ? '<p style="color:#ef4444;"><strong>⚠️ This session has ended. Editing is no longer allowed.</strong></p>' : ''}
     `;
+
     const { data: section } = await supabase.from('sections').select('course_id').eq('id', session.section_id).single();
     if (!section) { alert('No section found.'); return; }
     const { data: enrollments } = await supabase
@@ -857,6 +951,8 @@ window.openMarkAttendanceModal = async function() {
     if (!enrollments || enrollments.length === 0) {
         document.getElementById('markAttendanceBody').innerHTML = '<tr><td colspan="4">No students enrolled.</td></tr>';
         document.getElementById('markAttendanceModal').classList.add('active');
+        // Disable save button if past end
+        document.getElementById('saveManualAttendanceBtn').disabled = isPastEnd;
         return;
     }
     const studentIds = enrollments.map(e => e.student_id);
@@ -875,6 +971,15 @@ window.openMarkAttendanceModal = async function() {
         .select('id, first_name, last_name')
         .in('id', studentIds);
 
+    // Define status options
+    const statusOptions = ['present', 'late', 'absent', 'excused'];
+    const statusLabels = {
+        'present': 'Present',
+        'late': 'Late',
+        'absent': 'Absent',
+        'excused': 'Absent with Valid Reason'
+    };
+
     let html = '';
     for (const sid of studentIds) {
         const s = students?.find(p => p.id === sid);
@@ -882,19 +987,17 @@ window.openMarkAttendanceModal = async function() {
         const currentStatus = recordMap[sid] || 'absent';
         html += `<tr>
             <td>${name}</td>
-            <td><span class="badge badge-${currentStatus === 'present' ? 'approved' : 'pending'}">${currentStatus}</span></td>
+            <td><span class="badge badge-${currentStatus === 'present' ? 'approved' : currentStatus === 'late' ? 'pending' : 'rejected'}">${statusLabels[currentStatus] || currentStatus}</span></td>
             <td>
-                <select class="att-status-select" data-student="${sid}">
-                    <option value="present" ${currentStatus === 'present' ? 'selected' : ''}>Present</option>
-                    <option value="absent" ${currentStatus === 'absent' ? 'selected' : ''}>Absent</option>
-                    <option value="late" ${currentStatus === 'late' ? 'selected' : ''}>Late</option>
-                    <option value="excused" ${currentStatus === 'excused' ? 'selected' : ''}>Excused</option>
+                <select class="att-status-select" data-student="${sid}" ${isPastEnd ? 'disabled' : ''}>
+                    ${statusOptions.map(opt => `<option value="${opt}" ${currentStatus === opt ? 'selected' : ''}>${statusLabels[opt]}</option>`).join('')}
                 </select>
             </td>
-            <td><button class="btn btn-outline btn-sm" onclick="markSingleAttendance('${sid}', this)">Update</button></td>
+            <td>${isPastEnd ? '🔒' : `<button class="btn btn-outline btn-sm" onclick="markSingleAttendance('${sid}', this)">Update</button>`}</td>
         </tr>`;
     }
     document.getElementById('markAttendanceBody').innerHTML = html;
+    document.getElementById('saveManualAttendanceBtn').disabled = isPastEnd;
     document.getElementById('markAttendanceModal').classList.add('active');
 };
 
@@ -912,13 +1015,13 @@ window.markSingleAttendance = async function(studentId, btn) {
         .upsert({ session_id: sessionId, student_id: studentId, status: status }, { onConflict: 'session_id,student_id' });
     if (error) { alert('Error updating: ' + error.message); return; }
     alert('Updated.');
-    await openMarkAttendanceModal();
+    await openMarkAttendanceModal(); // refresh
 };
 
 window.saveManualAttendance = async function() {
     const sessionId = currentManualSessionId;
     if (!sessionId) return;
-    const selects = document.querySelectorAll('#markAttendanceBody .att-status-select');
+    const selects = document.querySelectorAll('#markAttendanceBody .att-status-select:not([disabled])');
     const updates = [];
     for (const sel of selects) {
         const studentId = sel.dataset.student;
@@ -1889,45 +1992,7 @@ document.getElementById('editCourseForm').addEventListener('submit', async (e) =
     await updateStats();
 });
 
-document.getElementById('scheduleForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const courseId = document.getElementById('scheduleCourse').value;
-    const day = document.getElementById('scheduleDay').value;
-    const start = document.getElementById('scheduleStart').value;
-    const end = document.getElementById('scheduleEnd').value;
-    const room = document.getElementById('scheduleRoom').value;
-    if (!courseId) { alert('Select a course.'); return; }
-    const sectionId = await ensureSectionForCourse(courseId);
-    if (!sectionId) { alert('Error creating section.'); return; }
-    const { data: existing } = await supabase.from('schedules').select('*').eq('section_id', sectionId).eq('day_of_week', day);
-    const startMin = timeToMinutes(start); const endMin = timeToMinutes(end);
-    const conflict = existing?.some(s => {
-        const sStart = timeToMinutes(s.start_time);
-        const sEnd = timeToMinutes(s.end_time);
-        return (startMin < sEnd && endMin > sStart);
-    });
-    if (conflict) { alert('Conflict: overlapping schedule on ' + day); return; }
-    const { error } = await supabase.from('schedules').insert({ section_id: sectionId, day_of_week: day, start_time: start, end_time: end, room: room || null });
-    if (error) { alert('Error: ' + error.message); return; }
-    alert('Schedule added!');
-    await loadSchedules();
-    document.getElementById('scheduleForm').reset();
-});
-
-document.getElementById('editScheduleForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const id = document.getElementById('editScheduleId').value;
-    const day = document.getElementById('editScheduleDay').value;
-    const start = document.getElementById('editScheduleStart').value;
-    const end = document.getElementById('editScheduleEnd').value;
-    const room = document.getElementById('editScheduleRoom').value.trim();
-    const { error } = await supabase.from('schedules').update({ day_of_week: day, start_time: start, end_time: end, room: room || null }).eq('id', id);
-    if (error) { alert('Error: ' + error.message); return; }
-    alert('Schedule updated.');
-    closeEditScheduleModal();
-    await loadSchedules();
-});
-
+// Attendance form (manual create) - unchanged, but we keep it for manual creation
 document.getElementById('attendanceForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const courseId = document.getElementById('attCourse').value;
@@ -1948,11 +2013,28 @@ document.getElementById('attendanceForm').addEventListener('submit', async (e) =
         expires_at: expiresAt.toISOString()
     });
     if (error) { alert('Error: ' + error.message); return; }
-    document.getElementById('attCodeDisplay').textContent = 'Code: ' + code + ' (valid 15 mins)';
+    // Show QR code
+    const qrUrl = getQRCodeUrl(code);
+    document.getElementById('attCodeDisplay').innerHTML = `Code: ${code}<br><img src="${qrUrl}" alt="QR Code" style="margin-top:0.5rem; max-width:150px;" />`;
     document.getElementById('attCodeDisplay').style.display = 'block';
     await loadAttendanceSessions();
     await loadManualSessions();
     document.getElementById('attendanceForm').reset();
+});
+
+// Edit schedule form (unchanged)
+document.getElementById('editScheduleForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('editScheduleId').value;
+    const day = document.getElementById('editScheduleDay').value;
+    const start = document.getElementById('editScheduleStart').value;
+    const end = document.getElementById('editScheduleEnd').value;
+    const room = document.getElementById('editScheduleRoom').value.trim();
+    const { error } = await supabase.from('schedules').update({ day_of_week: day, start_time: start, end_time: end, room: room || null }).eq('id', id);
+    if (error) { alert('Error: ' + error.message); return; }
+    alert('Schedule updated.');
+    closeEditScheduleModal();
+    await loadSchedules();
 });
 
 window.addCourse = async function() {
