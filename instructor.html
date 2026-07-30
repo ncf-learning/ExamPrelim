@@ -446,6 +446,7 @@ let currentProfile = null;
 let instructorCourses = [];
 let currentDraftAssessmentId = null; // null = no draft yet, will be auto-created on first question
 let currentManualSessionId = null;
+let isEditingPublished = false; // flag to indicate we are editing a published assessment
 
 // ------------------------------------------------------------
 // 3. UTILITY FUNCTIONS
@@ -1072,6 +1073,9 @@ window.createNewAssessment = function() {
     document.getElementById('questionList').innerHTML = '<div class="empty-state">No questions added yet.</div>';
     // Reset draft ID
     currentDraftAssessmentId = null;
+    // Reset published editing flag and button text
+    isEditingPublished = false;
+    document.getElementById('publishAssessmentBtn').textContent = '🚀 Publish Assessment';
     // Clear any stored question cache
     window._currentQuestions = [];
     // Switch to assessments section and go to step 1
@@ -1353,6 +1357,11 @@ window.handleFileUpload = async function(event) {
 
 // Save Draft (explicit save)
 window.saveDraft = async function() {
+    if (isEditingPublished) {
+        // If editing published, just update the assessment
+        await updatePublishedAssessment();
+        return;
+    }
     if (!currentDraftAssessmentId) {
         // If no draft, create one
         const draftId = await ensureDraftExists();
@@ -1423,11 +1432,225 @@ window.saveDraft = async function() {
     await loadDraftAssessments();
 };
 
-// Publish
+// ------------------------------------------------------------
+// 12. PUBLISHED ASSESSMENTS LIST (with edit button)
+// ------------------------------------------------------------
+async function loadAssessmentsList() {
+    const container = document.getElementById('assessmentsList');
+    try {
+        const { data: assessments, error } = await supabase
+            .from('assessments')
+            .select('*, courses (code, name)')
+            .eq('is_published', true)
+            .in('course_id', instructorCourses.map(c => c.id))
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        if (!assessments || assessments.length === 0) {
+            container.innerHTML = '<div class="empty-state"><p>No published assessments yet.</p></div>';
+            return;
+        }
+        let html = '<div class="table-wrap"><table><thead><tr><th>Title</th><th>Course</th><th>Type</th><th>Max Score</th><th>Date</th><th>Actions</th></tr></thead><tbody>';
+        for (const a of assessments) {
+            html += `<tr>
+                <td>${a.title}</td>
+                <td>${a.courses?.code || 'N/A'}</td>
+                <td>${a.assessment_type_id}</td>
+                <td>${a.max_score}</td>
+                <td>${new Date(a.date).toLocaleString()}</td>
+                <td>
+                    <button class="btn btn-outline btn-sm" onclick="loadPublishedAssessment('${a.id}')">✏️</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteAssessment('${a.id}')">🗑️</button>
+                </td>
+            </tr>`;
+        }
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+    } catch (err) {
+        console.error('loadAssessmentsList error:', err);
+        container.innerHTML = '<div class="empty-state"><p>Error loading assessments.</p></div>';
+    }
+}
+
+window.deleteAssessment = async function(assessmentId) {
+    if (!confirm('Delete this assessment and all questions?')) return;
+    const { error } = await supabase.from('assessments').delete().eq('id', assessmentId);
+    if (error) { alert('Error: ' + error.message); return; }
+    alert('Assessment deleted.');
+    await loadAssessmentsList();
+    await updateStats();
+};
+
+// ------------------------------------------------------------
+// 13. LOAD PUBLISHED ASSESSMENT FOR EDITING
+// ------------------------------------------------------------
+window.loadPublishedAssessment = async function(assessmentId) {
+    const { data: assessment, error } = await supabase
+        .from('assessments')
+        .select('*')
+        .eq('id', assessmentId)
+        .single();
+    if (error) { alert('Error loading assessment: ' + error.message); return; }
+
+    // Populate form fields
+    document.getElementById('assessTitle').value = assessment.title || '';
+    document.getElementById('assessDesc').value = assessment.description || '';
+    if (assessment.assessment_type_id) {
+        const { data: type } = await supabase
+            .from('assessment_types')
+            .select('name')
+            .eq('id', assessment.assessment_type_id)
+            .single();
+        if (type) document.getElementById('assessType').value = type.name;
+    }
+    document.getElementById('assessDuration').value = assessment.duration_minute || 60;
+    document.getElementById('assessMaxScore').value = assessment.max_score || 100;
+    document.getElementById('assessDate').value = assessment.date || '';
+    document.getElementById('assessShow').value = assessment.questions_to_show || '';
+    document.getElementById('assessRandomize').checked = assessment.randomize_ques || false;
+    document.getElementById('assessAI').value = assessment.ai_grading || 'none';
+    document.getElementById('assessShuffleOptions').checked = assessment.shuffle_options || false;
+    document.getElementById('assessShowAnswers').checked = assessment.show_answers || false;
+    document.getElementById('assessPassing').value = assessment.passing_score || 60;
+
+    if (assessment.course_id) {
+        const select = document.getElementById('assessCourses');
+        Array.from(select.options).forEach(opt => {
+            opt.selected = (opt.value === assessment.course_id);
+        });
+    }
+
+    // Load questions
+    const { data: questions, error: qError } = await supabase
+        .from('assessment_questions')
+        .select('*')
+        .eq('assessment_id', assessmentId)
+        .order('id', { ascending: true });
+    if (qError) { alert('Error loading questions: ' + qError.message); return; }
+    // Store questions in window._currentQuestions (but we don't need it for draft)
+    // We'll display them.
+    const container = document.getElementById('questionList');
+    if (!questions || questions.length === 0) {
+        container.innerHTML = '<div class="empty-state">No questions added yet.</div>';
+    } else {
+        let html = '';
+        questions.forEach((q, idx) => {
+            html += `<div class="question-item">
+                <span class="q-text">${idx+1}. ${q.question} (${q.type}, ${q.points} pts)</span>
+                <div class="q-actions">
+                    <button class="btn btn-outline btn-sm" onclick="editQuestionDB('${q.id}')">✏️</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteQuestionDB('${q.id}')">🗑️</button>
+                </div>
+            </div>`;
+        });
+        container.innerHTML = html;
+    }
+
+    // Set draft ID and flag
+    currentDraftAssessmentId = assessmentId;
+    isEditingPublished = true;
+    // Change publish button text
+    document.getElementById('publishAssessmentBtn').textContent = '🔄 Update Assessment';
+    // Switch to assessments section and go to step 1
+    switchSection('assessments');
+    goToStep(1);
+};
+
+// ------------------------------------------------------------
+// 14. UPDATE PUBLISHED ASSESSMENT
+// ------------------------------------------------------------
+async function updatePublishedAssessment() {
+    if (!currentDraftAssessmentId) {
+        alert('No assessment to update.');
+        return;
+    }
+    const title = document.getElementById('assessTitle').value.trim() || 'Untitled Assessment';
+    const desc = document.getElementById('assessDesc').value.trim();
+    const type = document.getElementById('assessType').value;
+    const duration = parseInt(document.getElementById('assessDuration').value) || 60;
+    const maxScore = parseFloat(document.getElementById('assessMaxScore').value) || 100;
+    const date = document.getElementById('assessDate').value || null;
+    const questionsToShow = parseInt(document.getElementById('assessShow').value) || null;
+    const randomize = document.getElementById('assessRandomize').checked;
+    const ai = document.getElementById('assessAI').value;
+    const shuffleOptions = document.getElementById('assessShuffleOptions').checked;
+    const showAnswers = document.getElementById('assessShowAnswers').checked;
+    const passing = parseInt(document.getElementById('assessPassing').value) || 60;
+
+    const courseSelect = document.getElementById('assessCourses');
+    const selectedCourseIds = Array.from(courseSelect.selectedOptions).map(opt => opt.value);
+    const courseId = selectedCourseIds.length > 0 ? selectedCourseIds[0] : null;
+
+    let typeId = null;
+    if (courseId) {
+        const { data: existingType } = await supabase
+            .from('assessment_types')
+            .select('id')
+            .eq('course_id', courseId)
+            .eq('name', type)
+            .maybeSingle();
+        if (existingType) {
+            typeId = existingType.id;
+        } else {
+            const { data: newType, error } = await supabase
+                .from('assessment_types')
+                .insert({ course_id: courseId, name: type, weight: 0 })
+                .select()
+                .single();
+            if (!error) typeId = newType.id;
+        }
+    }
+
+    // Update assessment (keep is_published = true)
+    const { error } = await supabase
+        .from('assessments')
+        .update({
+            title,
+            description: desc,
+            assessment_type_id: typeId,
+            max_score: maxScore,
+            duration_minute: duration,
+            date: date,
+            randomize_ques: randomize,
+            questions_to_show: questionsToShow,
+            shuffle_options: shuffleOptions,
+            show_answers: showAnswers,
+            passing_score: passing,
+            ai_grading: ai,
+            course_id: courseId
+        })
+        .eq('id', currentDraftAssessmentId);
+
+    if (error) {
+        alert('Error updating assessment: ' + error.message);
+        return;
+    }
+
+    alert('Assessment updated successfully!');
+    // Reset state and button
+    isEditingPublished = false;
+    document.getElementById('publishAssessmentBtn').textContent = '🚀 Publish Assessment';
+    currentDraftAssessmentId = null;
+    // Refresh lists
+    await loadAssessmentsList();
+    await loadDraftAssessments();
+    await updateStats();
+    // Reset form
+    document.getElementById('assessmentForm').reset();
+    document.getElementById('questionList').innerHTML = '<div class="empty-state">No questions added yet.</div>';
+    goToStep(1);
+}
+
+// ------------------------------------------------------------
+// 15. PUBLISH BUTTON HANDLER (modified to support update)
+// ------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', function() {
     const publishBtn = document.getElementById('publishAssessmentBtn');
     if (publishBtn) {
         publishBtn.addEventListener('click', async function() {
+            if (isEditingPublished) {
+                await updatePublishedAssessment();
+                return;
+            }
             if (!currentDraftAssessmentId) {
                 alert('No draft to publish. Please create an assessment first.');
                 return;
@@ -1455,7 +1678,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Load draft assessments list
+// ------------------------------------------------------------
+// 16. DRAFT ASSESSMENTS LIST (unchanged)
+// ------------------------------------------------------------
 async function loadDraftAssessments() {
     const container = document.getElementById('draftAssessmentsList');
     try {
@@ -1500,6 +1725,9 @@ window.loadDraft = async function(draftId) {
         .single();
     if (error) { alert('Error loading draft: ' + error.message); return; }
     currentDraftAssessmentId = draftId;
+    // Ensure we are not in published edit mode
+    isEditingPublished = false;
+    document.getElementById('publishAssessmentBtn').textContent = '🚀 Publish Assessment';
 
     document.getElementById('assessTitle').value = draft.title || '';
     document.getElementById('assessDesc').value = draft.description || '';
@@ -1511,7 +1739,6 @@ window.loadDraft = async function(draftId) {
             .single();
         if (type) document.getElementById('assessType').value = type.name;
     }
-    // Read duration_minute from DB
     document.getElementById('assessDuration').value = draft.duration_minute || 60;
     document.getElementById('assessMaxScore').value = draft.max_score || 100;
     document.getElementById('assessDate').value = draft.date || '';
@@ -1550,54 +1777,7 @@ window.deleteDraft = async function(draftId) {
 };
 
 // ------------------------------------------------------------
-// 12. PUBLISHED ASSESSMENTS LIST
-// ------------------------------------------------------------
-async function loadAssessmentsList() {
-    const container = document.getElementById('assessmentsList');
-    try {
-        const { data: assessments, error } = await supabase
-            .from('assessments')
-            .select('*, courses (code, name)')
-            .eq('is_published', true)
-            .in('course_id', instructorCourses.map(c => c.id))
-            .order('created_at', { ascending: false });
-        if (error) throw error;
-        if (!assessments || assessments.length === 0) {
-            container.innerHTML = '<div class="empty-state"><p>No published assessments yet.</p></div>';
-            return;
-        }
-        let html = '<div class="table-wrap"><table><thead><tr><th>Title</th><th>Course</th><th>Type</th><th>Max Score</th><th>Date</th><th>Actions</th></tr></thead><tbody>';
-        for (const a of assessments) {
-            html += `<tr>
-                <td>${a.title}</td>
-                <td>${a.courses?.code || 'N/A'}</td>
-                <td>${a.assessment_type_id}</td>
-                <td>${a.max_score}</td>
-                <td>${new Date(a.date).toLocaleString()}</td>
-                <td>
-                    <button class="btn btn-danger btn-sm" onclick="deleteAssessment('${a.id}')">🗑️</button>
-                </td>
-            </tr>`;
-        }
-        html += '</tbody></table></div>';
-        container.innerHTML = html;
-    } catch (err) {
-        console.error('loadAssessmentsList error:', err);
-        container.innerHTML = '<div class="empty-state"><p>Error loading assessments.</p></div>';
-    }
-}
-
-window.deleteAssessment = async function(assessmentId) {
-    if (!confirm('Delete this assessment and all questions?')) return;
-    const { error } = await supabase.from('assessments').delete().eq('id', assessmentId);
-    if (error) { alert('Error: ' + error.message); return; }
-    alert('Assessment deleted.');
-    await loadAssessmentsList();
-    await updateStats();
-};
-
-// ------------------------------------------------------------
-// 13. QUESTION EDITOR FORM SUBMIT
+// 17. QUESTION EDITOR FORM SUBMIT (unchanged)
 // ------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', function() {
     const questionForm = document.getElementById('questionEditorForm');
@@ -1658,7 +1838,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ------------------------------------------------------------
-// 14. NAVIGATION STEPS
+// 18. NAVIGATION STEPS
 // ------------------------------------------------------------
 window.goToStep = function(step) {
     document.querySelectorAll('.step').forEach(el => { el.style.display = 'none'; el.classList.remove('active'); });
@@ -1667,7 +1847,7 @@ window.goToStep = function(step) {
 };
 
 // ------------------------------------------------------------
-// 15. GRADEBOOK, WEIGHTS, INTERVENTIONS (unchanged)
+// 19. GRADEBOOK, WEIGHTS, INTERVENTIONS (unchanged)
 // ------------------------------------------------------------
 async function loadGradebook() {
     const courseId = document.getElementById('manualCourseSelect').value;
@@ -1849,7 +2029,7 @@ async function loadStudentsForIntervention() {
 }
 
 // ------------------------------------------------------------
-// 16. OTHER FORM HANDLERS
+// 20. OTHER FORM HANDLERS
 // ------------------------------------------------------------
 document.getElementById('computeForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1948,7 +2128,7 @@ document.getElementById('reportForm').addEventListener('submit', function(e) {
 });
 
 // ------------------------------------------------------------
-// 17. NAVIGATION & EVENT BINDING
+// 21. NAVIGATION & EVENT BINDING
 // ------------------------------------------------------------
 document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', async function() {
@@ -1992,7 +2172,7 @@ document.getElementById('editCourseForm').addEventListener('submit', async (e) =
     await updateStats();
 });
 
-// Attendance form (manual create) - unchanged, but we keep it for manual creation
+// Attendance form (manual create) - unchanged
 document.getElementById('attendanceForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const courseId = document.getElementById('attCourse').value;
@@ -2089,7 +2269,7 @@ document.getElementById('intervCourse').addEventListener('change', loadStudentsF
 document.getElementById('exportGrades').addEventListener('click', () => alert('CSV Export – coming soon!'));
 
 // ------------------------------------------------------------
-// 18. START
+// 22. START
 // ------------------------------------------------------------
 init();
 </script>
