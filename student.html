@@ -717,8 +717,8 @@ async function loadAssessments() {
         .eq('student_id', currentUser.id);
 
     const takenMap = new Map();
-    taken?.forEach(g => takenMap.set(String(g.assessment_id).toLowerCase(), g.score));
-    answered?.forEach(a => { if (!takenMap.has(String(a.assessment_id).toLowerCase())) takenMap.set(String(a.assessment_id).toLowerCase(), 0); });
+    taken?.forEach(g => takenMap.set(g.assessment_id, g.score));
+    answered?.forEach(a => { if (!takenMap.has(a.assessment_id)) takenMap.set(a.assessment_id, 0); });
 
     const contestMap = new Map();
     contests?.forEach(c => contestMap.set(c.assessment_id, c));
@@ -735,11 +735,11 @@ async function loadAssessments() {
         const endDate = a.end_date ? new Date(a.end_date) : new Date(assessDate.getTime() + (durationMin * 60 * 1000) + (24 * 3600 * 1000));
 
         const contest = contestMap.get(a.id);
-        const isCompleted = takenMap.has(String(a.id).toLowerCase());
-        const score = takenMap.get(String(a.id).toLowerCase());
+        const isCompleted = takenMap.has(a.id);
+        const score = takenMap.get(a.id);
 
-        // STRICT ORDER OF CHECKING: Once completed, NEVER place in availableList
-        if (isCompleted) {
+        // STRICT SINGLE-ATTEMPT ENFORCEMENT: Once taken, it MUST go to Taken! Never Available!
+        if (isCompleted && (!contest || contest.status !== 'approved')) {
             takenList.push({ ...a, contest, score });
         } else if (contest && contest.status === 'approved') {
             if (now >= startDate && now <= endDate) {
@@ -906,9 +906,18 @@ async function gradeEssayWithAI(questionText, answerText, maxPoints) {
     }
 
     const relevanceRatio = qWords.length > 0 ? Math.min(1, relevanceHits / qWords.length) : 0.7;
-    const lengthRatio = Math.min(1, words / 25);
+    const lengthRatio = Math.min(1, words / 30);
 
-    const rawPercentage = (relevanceRatio * 0.70) + (lengthRatio * 0.30);
+    let rawPercentage = (relevanceRatio * 0.50) + (lengthRatio * 0.50);
+
+    // STRICT SUBSTANCE CAPS FOR ESSAYS:
+    // A very short answer (< 10 words) cannot score higher than 30% even if keywords match
+    if (words < 10) {
+        rawPercentage = Math.min(rawPercentage, 0.30);
+    } else if (words < 20) {
+        rawPercentage = Math.min(rawPercentage, 0.60);
+    }
+
     let awarded = Math.round(rawPercentage * maxPoints * 10) / 10;
     awarded = Math.min(maxPoints, Math.max(0, awarded));
 
@@ -952,7 +961,7 @@ window.startAssessment = async function(assessmentId) {
             .maybeSingle();
 
         if (existingGrade || existingAnswer) {
-            alert("⛔ You have already taken and submitted this assessment. Retakes are not permitted.");
+            alert("⛔ You have already taken and submitted this assessment. It is now stored in your Taken list and cannot be retaken.");
             await loadAssessments();
             return;
         }
@@ -1085,8 +1094,6 @@ function triggerAntiCheatViolation(reason) {
 window.submitAssessment = async function(isViolation = false) {
     if (!activeExam || (!isViolation && isSubmittingExam)) return;
     isSubmittingExam = true;
-    const submitBtns = document.querySelectorAll('.exam-header button');
-    submitBtns.forEach(btn => btn.disabled = true);
 
     document.removeEventListener("visibilitychange", handleAntiCheatVisibility);
     window.removeEventListener("blur", handleAntiCheatBlur);
@@ -1094,7 +1101,6 @@ window.submitAssessment = async function(isViolation = false) {
 
     if (!isViolation && !confirm("Are you sure you want to submit your assessment? You cannot re-take it after submission.")) {
         isSubmittingExam = false;
-        submitBtns.forEach(btn => btn.disabled = false);
         document.addEventListener("visibilitychange", handleAntiCheatVisibility);
         window.addEventListener("blur", handleAntiCheatBlur);
         return;
@@ -1143,6 +1149,7 @@ window.submitAssessment = async function(isViolation = false) {
                 ratingText = `0 / ${qPoints} pts (No Answer)`;
             }
         } else {
+            // STRICT ESSAY / TEXT AUTOMATIC AI GRADING
             totalExamPoints += qPoints;
             const textInput = document.querySelector(`[name="q_${q.id}"]`);
             if (textInput && textInput.value.trim() !== '') {
@@ -1165,7 +1172,7 @@ window.submitAssessment = async function(isViolation = false) {
             student_id: currentUser.id,
             assessment_id: assessmentId,
             question_id: q.id,
-            answer: studentAnswerStr || '',
+            answer: JSON.stringify(studentAnswerStr || ''),
             is_correct: isCorrect,
             score: Number(awardedPoints)
         });
@@ -1184,7 +1191,12 @@ window.submitAssessment = async function(isViolation = false) {
 
     if (submissionEntries.length > 0) {
         await supabase.from('student_answers').delete().eq('student_id', currentUser.id).eq('assessment_id', assessmentId);
-        await supabase.from('student_answers').insert(submissionEntries);
+        const { error: ansErr } = await supabase.from('student_answers').insert(submissionEntries);
+        if (ansErr) {
+            console.error("student_answers insert error:", ansErr);
+            alert("Database Error saving answers: " + ansErr.message);
+            return;
+        }
     }
 
     let finalScore = isViolation ? 0 : earnedPoints;
@@ -1195,21 +1207,23 @@ window.submitAssessment = async function(isViolation = false) {
     }
 
     await supabase.from('grades').delete().eq('student_id', currentUser.id).eq('assessment_id', assessmentId);
-    await supabase.from('grades').insert({
+    const { error: gradeErr } = await supabase.from('grades').insert({
         student_id: currentUser.id,
         assessment_id: assessmentId,
         course_id: courseId,
         score: Number(isViolation ? 0 : finalScore.toFixed(2)),
-        max_score: Number(examMaxScore),
-        period: (activeExam.period || 'prelim').toLowerCase(),
-        percentage: Number(((finalScore / examMaxScore) * 100).toFixed(2))
+        max_score: Number(examMaxScore)
     });
+    if (gradeErr) {
+        console.error("grades insert error:", gradeErr);
+        alert("Database Error saving grade: " + gradeErr.message);
+        return;
+    }
 
     const submittedTitle = activeExam.title;
     activeExam = null;
     activeExamQuestions = [];
     document.getElementById('appBody').classList.remove('exam-mode');
-    submitBtns.forEach(btn => btn.disabled = false);
 
     if (!isViolation) {
         alert("Assessment submitted successfully! Showing item ratings and AI grading results.");
@@ -1302,10 +1316,17 @@ window.viewAssessmentRatings = async function(assessmentId, assessmentTitle) {
         const pct = (awarded / qMax) * 100;
         const gradingMethod = q.type === 'essay' ? 'AI Graded' : 'Auto-Graded';
         const ratingLabel = pct >= 90 ? "Excellent" : pct >= 75 ? "Very Good" : pct >= 60 ? "Satisfactory" : "Needs Improvement";
+        let ansText = ans?.answer || '(No Answer)';
+        try {
+            if (typeof ansText === 'string' && (ansText.startsWith('"') || ansText.startsWith('{'))) {
+                const parsed = JSON.parse(ansText);
+                ansText = typeof parsed === 'string' ? parsed : (parsed.text || ansText);
+            }
+        } catch(e) {}
         return {
             question: q.question,
             type: q.type,
-            answer: ans?.answer || '(No Answer)',
+            answer: ansText,
             score: awarded,
             maxScore: qMax,
             gradingMethod,
