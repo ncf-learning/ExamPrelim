@@ -149,7 +149,7 @@
         <section id="section-dashboard" class="page-section active">
             <div class="page-header">
                 <div><h1>Dashboard <small>Overview of your classes</small></h1></div>
-                <div class="actions"><button class="btn btn-primary" onclick="switchSection('assessments')">+ New Assessment</button></div>
+                <div class="actions"><button class="btn btn-primary" onclick="createNewAssessment()">+ New Assessment</button></div>
             </div>
             <div class="stats-grid">
                 <div class="stat-card"><span class="icon">📘</span><div class="number" id="statCourses">0</div><div class="label">Total Courses</div></div>
@@ -158,7 +158,7 @@
                 <div class="stat-card"><span class="icon">📋</span><div class="number" id="statAssessments">0</div><div class="label">Assessments</div></div>
             </div>
             <div class="card"><div class="card-header"><h3>⏳ Pending Approvals</h3></div><div id="pendingApprovalsList"><div class="empty-state"><p>Loading...</p></div></div></div>
-            <div class="card"><div class="card-header"><h3>🚀 Quick Actions</h3></div><div class="flex gap-2" style="flex-wrap:wrap;"><button class="btn btn-outline" onclick="switchSection('attendance')">📋 Take Attendance</button><button class="btn btn-outline" onclick="switchSection('assessments')">✏️ Create Assessment</button><button class="btn btn-outline" onclick="switchSection('gradebook')">📈 View Grades</button><button class="btn btn-outline" onclick="switchSection('enroll')">👥 Enroll Student</button></div></div>
+            <div class="card"><div class="card-header"><h3>🚀 Quick Actions</h3></div><div class="flex gap-2" style="flex-wrap:wrap;"><button class="btn btn-outline" onclick="switchSection('attendance')">📋 Take Attendance</button><button class="btn btn-outline" onclick="createNewAssessment()">✏️ Create Assessment</button><button class="btn btn-outline" onclick="switchSection('gradebook')">📈 View Grades</button><button class="btn btn-outline" onclick="switchSection('enroll')">👥 Enroll Student</button></div></div>
         </section>
 
         <!-- ===== COURSES ===== -->
@@ -208,12 +208,12 @@
             <div class="card"><div class="card-header"><h3>Current Schedules</h3></div><div id="scheduleList"><div class="empty-state"><p>No schedules set.</p></div></div></div>
         </section>
 
-        <!-- ===== ASSESSMENTS (DRAFT SUPPORT) ===== -->
+        <!-- ===== ASSESSMENTS (DRAFT SUPPORT – AUTO-CREATE) ===== -->
         <section id="section-assessments" class="page-section">
             <div class="page-header">
                 <h1>Assessments <small>Build professional exams</small></h1>
                 <div class="actions">
-                    <button class="btn btn-primary" onclick="createNewDraft()">+ New Assessment</button>
+                    <button class="btn btn-primary" onclick="createNewAssessment()">+ New Assessment</button>
                 </div>
             </div>
             <div class="card">
@@ -243,7 +243,7 @@
                             <button type="button" class="btn btn-outline" onclick="openQuestionEditor()">+ Add Question</button>
                             <button type="button" class="btn btn-outline" onclick="importFromBank()">📚 Import from Bank</button>
                             <button type="button" class="btn btn-outline" onclick="uploadQuestions()">📤 Upload JSON</button>
-                            <button type="button" class="btn btn-outline" onclick="clearQuestions()">🗑️ Clear All</button>
+                            <button type="button" class="btn btn-outline" onclick="clearAllQuestions()">🗑️ Clear All</button>
                         </div>
                         <div style="margin-top:1rem;">
                             <button type="button" class="btn btn-outline" onclick="goToStep(1)">← Back</button>
@@ -266,8 +266,8 @@
                 <input type="file" id="jsonFileInput" accept=".json,.js" style="display:none" onchange="handleFileUpload(event)" />
             </div>
             <div class="card">
-                <div class="card-header"><h3>Existing Assessments</h3></div>
-                <div id="assessmentsList"><div class="empty-state"><p>No assessments created yet.</p></div></div>
+                <div class="card-header"><h3>Published Assessments</h3></div>
+                <div id="assessmentsList"><div class="empty-state"><p>No published assessments yet.</p></div></div>
             </div>
             <div class="card">
                 <div class="card-header"><h3>Draft Assessments</h3></div>
@@ -442,8 +442,7 @@ import { supabase, getCurrentUser, getCurrentProfile, signOut } from './supabase
 let currentUser = null;
 let currentProfile = null;
 let instructorCourses = [];
-let currentDraftAssessmentId = null; // ID of the draft being edited
-let editingQuestionIndex = -1; // only used for UI, not needed for DB
+let currentDraftAssessmentId = null; // null = no draft yet, will be auto-created on first question
 let currentManualSessionId = null;
 
 // ------------------------------------------------------------
@@ -948,89 +947,125 @@ window.deleteAttendanceSession = async function(sessionId) {
 };
 
 // ------------------------------------------------------------
-// 11. ASSESSMENTS – DRAFT MANAGEMENT
+// 11. ASSESSMENTS – DRAFT MANAGEMENT (AUTO-CREATE)
 // ------------------------------------------------------------
-async function createNewDraft() {
-    // Create a new draft assessment record
+
+// Create a new assessment: reset form, clear draft ID, switch to section
+window.createNewAssessment = function() {
+    // Reset the form
+    document.getElementById('assessmentForm').reset();
+    document.getElementById('assessTitle').value = '';
+    document.getElementById('assessDesc').value = '';
+    document.getElementById('assessDate').value = '';
+    document.getElementById('assessDuration').value = 60;
+    document.getElementById('assessMaxScore').value = 100;
+    document.getElementById('assessPassing').value = 60;
+    document.getElementById('assessRandomize').checked = false;
+    document.getElementById('assessShuffleOptions').checked = false;
+    document.getElementById('assessShowAnswers').checked = false;
+    document.getElementById('assessAI').value = 'none';
+    // Clear question list
+    document.getElementById('questionList').innerHTML = '<div class="empty-state">No questions added yet.</div>';
+    // Reset draft ID
+    currentDraftAssessmentId = null;
+    // Clear any stored question cache
+    window._currentQuestions = [];
+    // Switch to assessments section and go to step 1
+    switchSection('assessments');
+    goToStep(1);
+};
+
+// Ensure a draft exists: if not, create one with current form data
+async function ensureDraftExists() {
+    if (currentDraftAssessmentId) return currentDraftAssessmentId;
+
+    const title = document.getElementById('assessTitle').value.trim() || 'Untitled Draft';
+    const desc = document.getElementById('assessDesc').value.trim();
+    const type = document.getElementById('assessType').value;
+    const duration = parseInt(document.getElementById('assessDuration').value) || 60;
+    const maxScore = parseFloat(document.getElementById('assessMaxScore').value) || 100;
+    const date = document.getElementById('assessDate').value || null;
+    const questionsToShow = parseInt(document.getElementById('assessShow').value) || null;
+    const randomize = document.getElementById('assessRandomize').checked;
+    const ai = document.getElementById('assessAI').value;
+    const shuffleOptions = document.getElementById('assessShuffleOptions').checked;
+    const showAnswers = document.getElementById('assessShowAnswers').checked;
+    const passing = parseInt(document.getElementById('assessPassing').value) || 60;
+
+    // Get selected courses
+    const courseSelect = document.getElementById('assessCourses');
+    const selectedCourseIds = Array.from(courseSelect.selectedOptions).map(opt => opt.value);
+    const courseId = selectedCourseIds.length > 0 ? selectedCourseIds[0] : null;
+
+    // Get or create assessment type
+    let typeId = null;
+    if (courseId) {
+        const { data: existingType } = await supabase
+            .from('assessment_types')
+            .select('id')
+            .eq('course_id', courseId)
+            .eq('name', type)
+            .maybeSingle();
+        if (existingType) {
+            typeId = existingType.id;
+        } else {
+            const { data: newType, error } = await supabase
+                .from('assessment_types')
+                .insert({ course_id: courseId, name: type, weight: 0 })
+                .select()
+                .single();
+            if (!error) typeId = newType.id;
+        }
+    }
+
+    // Create the draft
     const { data: draft, error } = await supabase
         .from('assessments')
         .insert({
-            title: 'Untitled Draft',
-            description: '',
-            is_published: false,
-            // other fields will be set later
+            title: title,
+            description: desc,
+            assessment_type_id: typeId,
+            duration_minute: duration,
+            max_score: maxScore,
+            date: date,
+            randomize_ques: randomize,
+            questions_to_show: questionsToShow,
+            shuffle_options: shuffleOptions,
+            show_answers: showAnswers,
+            passing_score: passing,
+            ai_grading: ai,
+            course_id: courseId,
+            is_published: false
         })
         .select()
         .single();
+
     if (error) {
         alert('Error creating draft: ' + error.message);
-        return;
-    }
-    currentDraftAssessmentId = draft.id;
-    // Reset form and load empty state
-    document.getElementById('assessmentForm').reset();
-    document.getElementById('assessTitle').value = 'Untitled Draft';
-    document.getElementById('assessDesc').value = '';
-    document.getElementById('assessDate').value = '';
-    // Clear question list UI (will be loaded from DB)
-    document.getElementById('questionList').innerHTML = '<div class="empty-state">No questions added yet.</div>';
-    // Clear any existing questions (we'll load from DB)
-    // Switch to section and step 1
-    switchSection('assessments');
-    goToStep(1);
-    // Load any existing questions for this draft (none)
-    await loadQuestionsForDraft(currentDraftAssessmentId);
-    // Update the draft list
-    await loadDraftAssessments();
-    alert('New draft created. You can now add questions and save.');
-}
-
-async function loadQuestionsForDraft(assessmentId) {
-    if (!assessmentId) return;
-    const { data: questions, error } = await supabase
-        .from('assessment_questions')
-        .select('*')
-        .eq('assessment_id', assessmentId)
-        .order('id', { ascending: true });
-    if (error) {
-        console.error('Error loading questions:', error);
-        return;
-    }
-    // Render them
-    const container = document.getElementById('questionList');
-    if (!questions || questions.length === 0) {
-        container.innerHTML = '<div class="empty-state">No questions added yet.</div>';
-        return;
-    }
-    let html = '';
-    questions.forEach((q, idx) => {
-        html += `<div class="question-item">
-            <span class="q-text">${idx+1}. ${q.question} (${q.type}, ${q.points} pts)</span>
-            <div class="q-actions">
-                <button class="btn btn-outline btn-sm" onclick="editQuestionDB('${q.id}')">✏️</button>
-                <button class="btn btn-danger btn-sm" onclick="deleteQuestionDB('${q.id}')">🗑️</button>
-            </div>
-        </div>`;
-    });
-    container.innerHTML = html;
-    // Store questions in a global array for quick access? We can just re-fetch as needed.
-    // We'll keep a simple cache.
-    window._currentQuestions = questions;
-}
-
-async function saveQuestionToDB(questionData, questionId = null) {
-    if (!currentDraftAssessmentId) {
-        alert('No draft assessment. Please create a new assessment first.');
         return null;
     }
+
+    currentDraftAssessmentId = draft.id;
+    console.log('✅ Draft created with ID:', currentDraftAssessmentId);
+    await loadDraftAssessments();
+    return currentDraftAssessmentId;
+}
+
+// Save a question to the draft (auto-creates draft if needed)
+async function saveQuestionToDB(questionData, questionId = null) {
+    // Ensure draft exists
+    const draftId = await ensureDraftExists();
+    if (!draftId) return null;
+
     const payload = {
-        assessment_id: currentDraftAssessmentId,
+        assessment_id: draftId,
         question: questionData.question,
         type: questionData.type,
         points: questionData.points,
         options: questionData.options || null,
         correct_answer: questionData.correct !== undefined && questionData.correct !== null ? questionData.correct : null
     };
+
     let result;
     if (questionId) {
         // Update existing
@@ -1052,30 +1087,62 @@ async function saveQuestionToDB(questionData, questionId = null) {
         if (error) { alert('Error saving question: ' + error.message); return null; }
         result = data;
     }
-    await loadQuestionsForDraft(currentDraftAssessmentId);
+    await loadQuestionsForDraft(draftId);
     return result;
 }
 
-async function deleteQuestionDB(questionId) {
+// Load questions for a draft
+async function loadQuestionsForDraft(assessmentId) {
+    if (!assessmentId) return;
+    const { data: questions, error } = await supabase
+        .from('assessment_questions')
+        .select('*')
+        .eq('assessment_id', assessmentId)
+        .order('id', { ascending: true });
+    if (error) {
+        console.error('Error loading questions:', error);
+        return;
+    }
+    const container = document.getElementById('questionList');
+    if (!questions || questions.length === 0) {
+        container.innerHTML = '<div class="empty-state">No questions added yet.</div>';
+        return;
+    }
+    let html = '';
+    questions.forEach((q, idx) => {
+        html += `<div class="question-item">
+            <span class="q-text">${idx+1}. ${q.question} (${q.type}, ${q.points} pts)</span>
+            <div class="q-actions">
+                <button class="btn btn-outline btn-sm" onclick="editQuestionDB('${q.id}')">✏️</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteQuestionDB('${q.id}')">🗑️</button>
+            </div>
+        </div>`;
+    });
+    container.innerHTML = html;
+    window._currentQuestions = questions;
+}
+
+// Delete a question
+window.deleteQuestionDB = async function(questionId) {
     if (!confirm('Delete this question?')) return;
     const { error } = await supabase
         .from('assessment_questions')
         .delete()
         .eq('id', questionId);
     if (error) { alert('Error deleting: ' + error.message); return; }
-    await loadQuestionsForDraft(currentDraftAssessmentId);
-}
+    if (currentDraftAssessmentId) {
+        await loadQuestionsForDraft(currentDraftAssessmentId);
+    }
+};
 
-// Edit question: open modal with existing data
+// Edit question
 window.editQuestionDB = async function(questionId) {
-    // Fetch the question
     const { data: q, error } = await supabase
         .from('assessment_questions')
         .select('*')
         .eq('id', questionId)
         .single();
     if (error) { alert('Error loading question: ' + error.message); return; }
-    // Populate modal
     document.getElementById('modalTitle').textContent = 'Edit Question';
     document.getElementById('qText').value = q.question;
     document.getElementById('qType').value = q.type;
@@ -1087,76 +1154,14 @@ window.editQuestionDB = async function(questionId) {
         document.getElementById('qOptions').value = '';
     }
     toggleOptions();
-    // Store the question ID in a data attribute on the form for update
     document.getElementById('questionEditorForm').dataset.editId = questionId;
     document.getElementById('questionModal').classList.add('active');
 };
 
-// Override the question form submit to handle both add and edit
-document.addEventListener('DOMContentLoaded', function() {
-    const questionForm = document.getElementById('questionEditorForm');
-    if (questionForm) {
-        questionForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const text = document.getElementById('qText').value.trim();
-            const type = document.getElementById('qType').value;
-            const points = parseInt(document.getElementById('qPoints').value) || 1;
-            const optionsRaw = document.getElementById('qOptions').value;
-            const editId = this.dataset.editId || null;
-
-            if (!text) {
-                alert('Please enter a question.');
-                return;
-            }
-
-            // Parse options for mc/tf
-            let options = null;
-            let correct = null;
-            if (type === 'mc' || type === 'tf') {
-                const lines = optionsRaw.split('\n').map(s => s.trim()).filter(s => s !== '');
-                if (lines.length === 0) {
-                    alert('Please enter at least one option.');
-                    return;
-                }
-                options = [];
-                let foundCorrect = false;
-                for (let line of lines) {
-                    if (line.startsWith('*')) {
-                        options.push(line.slice(1).trim());
-                        if (!foundCorrect) {
-                            correct = options.length - 1;
-                            foundCorrect = true;
-                        }
-                    } else {
-                        options.push(line);
-                    }
-                }
-                if (!foundCorrect && options.length > 0) {
-                    correct = 0;
-                }
-            }
-
-            const questionData = {
-                question: text,
-                type: type,
-                points: points,
-                options: options,
-                correct: correct
-            };
-
-            await saveQuestionToDB(questionData, editId);
-            // Clear editId after save
-            delete this.dataset.editId;
-            closeQuestionEditor();
-        });
-    }
-});
-
-// Clear all questions (delete all from DB)
-window.clearQuestions = async function() {
+// Clear all questions
+window.clearAllQuestions = async function() {
     if (!currentDraftAssessmentId) {
-        alert('No draft assessment.');
+        alert('No draft to clear.');
         return;
     }
     if (!confirm('Delete all questions for this draft?')) return;
@@ -1168,18 +1173,94 @@ window.clearQuestions = async function() {
     await loadQuestionsForDraft(currentDraftAssessmentId);
 };
 
-// Save Draft (assessment details)
+// Open question editor (auto-creates draft)
+window.openQuestionEditor = function() {
+    // Ensure draft exists before opening
+    // We'll create it when saving, but we can check if one exists
+    // Just open the modal, save will handle creation
+    document.getElementById('modalTitle').textContent = 'Add Question';
+    document.getElementById('questionEditorForm').reset();
+    document.getElementById('qText').value = '';
+    document.getElementById('qOptions').value = '';
+    document.getElementById('qType').value = 'mc';
+    toggleOptions();
+    delete document.getElementById('questionEditorForm').dataset.editId;
+    document.getElementById('questionModal').classList.add('active');
+};
+
+window.closeQuestionEditor = function() {
+    document.getElementById('questionModal').classList.remove('active');
+};
+
+window.toggleOptions = function() {
+    const type = document.getElementById('qType').value;
+    const group = document.getElementById('optionsGroup');
+    if (type === 'essay' || type === 'fill') { group.style.display = 'none'; } else { group.style.display = 'block'; }
+};
+
+// Import from bank
+window.importFromBank = async function() {
+    const firstCourse = document.getElementById('assessCourses').value;
+    if (!firstCourse) { alert('Please select at least one course first.'); return; }
+    const { data: bank, error } = await supabase.from('question_bank').select('*').eq('course_id', firstCourse);
+    if (error) { alert('Error loading bank: ' + error.message); return; }
+    if (!bank || bank.length === 0) { alert('No questions in the bank.'); return; }
+    for (const b of bank) {
+        await saveQuestionToDB({
+            question: b.question,
+            type: b.type,
+            points: 1,
+            options: b.options || null,
+            correct: b.correct_answer !== undefined ? b.correct_answer : null
+        });
+    }
+    alert('Imported ' + bank.length + ' questions.');
+};
+
+// Upload JSON
+window.uploadQuestions = function() {
+    document.getElementById('jsonFileInput').click();
+};
+
+window.handleFileUpload = async function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            let content = e.target.result;
+            let jsonData;
+            if (file.name.endsWith('.js')) {
+                const match = content.match(/const\s+QUESTION_BANK\s*=\s*(\[[\s\S]*?\]);/);
+                if (match) { jsonData = eval(match[1]); } else { throw new Error('Could not find QUESTION_BANK array.'); }
+            } else { jsonData = JSON.parse(content); }
+            if (!Array.isArray(jsonData)) throw new Error('File must contain an array.');
+            const imported = jsonData.map(q => ({ question: q.question || q.text || '', type: q.type || 'mc', options: q.options || null, correct: q.correct !== undefined ? q.correct : (q.answer !== undefined ? q.answer : null), points: q.points || 1 })).filter(q => q.question.trim() !== '');
+            if (imported.length === 0) { alert('No valid questions found.'); return; }
+            for (const q of imported) {
+                await saveQuestionToDB(q);
+            }
+            alert('Imported ' + imported.length + ' questions.');
+        } catch (err) { alert('Error parsing file: ' + err.message); console.error(err); }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+};
+
+// Save Draft (explicit save)
 window.saveDraft = async function() {
     if (!currentDraftAssessmentId) {
-        alert('No draft assessment. Please create one first.');
-        return;
+        // If no draft, create one
+        const draftId = await ensureDraftExists();
+        if (!draftId) return;
     }
-    const title = document.getElementById('assessTitle').value.trim();
+    // Update with current form data
+    const title = document.getElementById('assessTitle').value.trim() || 'Untitled Draft';
     const desc = document.getElementById('assessDesc').value.trim();
     const type = document.getElementById('assessType').value;
     const duration = parseInt(document.getElementById('assessDuration').value) || 60;
     const maxScore = parseFloat(document.getElementById('assessMaxScore').value) || 100;
-    const date = document.getElementById('assessDate').value;
+    const date = document.getElementById('assessDate').value || null;
     const questionsToShow = parseInt(document.getElementById('assessShow').value) || null;
     const randomize = document.getElementById('assessRandomize').checked;
     const ai = document.getElementById('assessAI').value;
@@ -1187,30 +1268,11 @@ window.saveDraft = async function() {
     const showAnswers = document.getElementById('assessShowAnswers').checked;
     const passing = parseInt(document.getElementById('assessPassing').value) || 60;
 
-    // Get selected courses
     const courseSelect = document.getElementById('assessCourses');
     const selectedCourseIds = Array.from(courseSelect.selectedOptions).map(opt => opt.value);
-
-    // For draft, we may not require a course yet, but we can store first selected if any
     const courseId = selectedCourseIds.length > 0 ? selectedCourseIds[0] : null;
 
-    const updateData = {
-        title: title || 'Untitled Draft',
-        description: desc,
-        assessment_type_id: null, // we'll set type separately, but we need type_id
-        duration_minute: duration,
-        max_score: maxScore,
-        date: date || null,
-        randomize_ques: randomize,
-        questions_to_show: questionsToShow,
-        shuffle_options: shuffleOptions,
-        show_answers: showAnswers,
-        passing_score: passing,
-        ai_grading: ai,
-        course_id: courseId
-    };
-
-    // For type, we need to get or create assessment type
+    let typeId = null;
     if (courseId) {
         const { data: existingType } = await supabase
             .from('assessment_types')
@@ -1219,23 +1281,36 @@ window.saveDraft = async function() {
             .eq('name', type)
             .maybeSingle();
         if (existingType) {
-            updateData.assessment_type_id = existingType.id;
+            typeId = existingType.id;
         } else {
             const { data: newType, error } = await supabase
                 .from('assessment_types')
                 .insert({ course_id: courseId, name: type, weight: 0 })
                 .select()
                 .single();
-            if (!error) {
-                updateData.assessment_type_id = newType.id;
-            }
+            if (!error) typeId = newType.id;
         }
     }
 
     const { error } = await supabase
         .from('assessments')
-        .update(updateData)
+        .update({
+            title,
+            description: desc,
+            assessment_type_id: typeId,
+            duration_minute: duration,
+            max_score: maxScore,
+            date: date,
+            randomize_ques: randomize,
+            questions_to_show: questionsToShow,
+            shuffle_options: shuffleOptions,
+            show_answers: showAnswers,
+            passing_score: passing,
+            ai_grading: ai,
+            course_id: courseId
+        })
         .eq('id', currentDraftAssessmentId);
+
     if (error) {
         alert('Error saving draft: ' + error.message);
         return;
@@ -1244,20 +1319,18 @@ window.saveDraft = async function() {
     await loadDraftAssessments();
 };
 
-// Publish: finalize and set is_published = true
-// We'll reuse the existing publish button logic but adapt it to update the draft
+// Publish
 document.addEventListener('DOMContentLoaded', function() {
     const publishBtn = document.getElementById('publishAssessmentBtn');
     if (publishBtn) {
         publishBtn.addEventListener('click', async function() {
             if (!currentDraftAssessmentId) {
-                alert('No draft to publish.');
+                alert('No draft to publish. Please create an assessment first.');
                 return;
             }
-            // Save draft first to ensure all fields are up-to-date
+            // Save draft first
             await saveDraft();
-
-            // Then publish: set is_published = true
+            // Publish
             const { error } = await supabase
                 .from('assessments')
                 .update({ is_published: true })
@@ -1268,7 +1341,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             alert('Assessment published!');
             currentDraftAssessmentId = null;
-            // Reset form
             document.getElementById('assessmentForm').reset();
             document.getElementById('questionList').innerHTML = '<div class="empty-state">No questions added yet.</div>';
             await loadAssessmentsList();
@@ -1317,7 +1389,6 @@ async function loadDraftAssessments() {
 }
 
 window.loadDraft = async function(draftId) {
-    // Fetch the draft data
     const { data: draft, error } = await supabase
         .from('assessments')
         .select('*')
@@ -1326,20 +1397,15 @@ window.loadDraft = async function(draftId) {
     if (error) { alert('Error loading draft: ' + error.message); return; }
     currentDraftAssessmentId = draftId;
 
-    // Populate form fields
     document.getElementById('assessTitle').value = draft.title || '';
     document.getElementById('assessDesc').value = draft.description || '';
-    document.getElementById('assessType').value = draft.assessment_type_id ? 'Quiz' : 'Quiz'; // we'll need to fetch type name
-    // For type, we can fetch the type name from assessment_types
     if (draft.assessment_type_id) {
         const { data: type } = await supabase
             .from('assessment_types')
             .select('name')
             .eq('id', draft.assessment_type_id)
             .single();
-        if (type) {
-            document.getElementById('assessType').value = type.name;
-        }
+        if (type) document.getElementById('assessType').value = type.name;
     }
     document.getElementById('assessDuration').value = draft.duration_minute || 60;
     document.getElementById('assessMaxScore').value = draft.max_score || 100;
@@ -1351,7 +1417,6 @@ window.loadDraft = async function(draftId) {
     document.getElementById('assessShowAnswers').checked = draft.show_answers || false;
     document.getElementById('assessPassing').value = draft.passing_score || 60;
 
-    // Set selected courses
     if (draft.course_id) {
         const select = document.getElementById('assessCourses');
         Array.from(select.options).forEach(opt => {
@@ -1359,10 +1424,7 @@ window.loadDraft = async function(draftId) {
         });
     }
 
-    // Load questions
     await loadQuestionsForDraft(draftId);
-
-    // Switch to assessment section and step 1
     switchSection('assessments');
     goToStep(1);
 };
@@ -1383,7 +1445,7 @@ window.deleteDraft = async function(draftId) {
 };
 
 // ------------------------------------------------------------
-// 12. EXISTING ASSESSMENTS LIST (published only)
+// 12. PUBLISHED ASSESSMENTS LIST
 // ------------------------------------------------------------
 async function loadAssessmentsList() {
     const container = document.getElementById('assessmentsList');
@@ -1430,97 +1492,68 @@ window.deleteAssessment = async function(assessmentId) {
 };
 
 // ------------------------------------------------------------
-// 13. QUESTION MODAL (Open editor)
+// 13. QUESTION EDITOR FORM SUBMIT
 // ------------------------------------------------------------
-window.openQuestionEditor = function() {
-    if (!currentDraftAssessmentId) {
-        alert('Please create a draft assessment first (click "+ New Assessment").');
-        return;
-    }
-    document.getElementById('modalTitle').textContent = 'Add Question';
-    document.getElementById('questionEditorForm').reset();
-    document.getElementById('qText').value = '';
-    document.getElementById('qOptions').value = '';
-    document.getElementById('qType').value = 'mc';
-    toggleOptions();
-    delete document.getElementById('questionEditorForm').dataset.editId;
-    document.getElementById('questionModal').classList.add('active');
-};
+document.addEventListener('DOMContentLoaded', function() {
+    const questionForm = document.getElementById('questionEditorForm');
+    if (questionForm) {
+        questionForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
 
-window.closeQuestionEditor = function() {
-    document.getElementById('questionModal').classList.remove('active');
-};
+            const text = document.getElementById('qText').value.trim();
+            const type = document.getElementById('qType').value;
+            const points = parseInt(document.getElementById('qPoints').value) || 1;
+            const optionsRaw = document.getElementById('qOptions').value;
+            const editId = this.dataset.editId || null;
 
-window.toggleOptions = function() {
-    const type = document.getElementById('qType').value;
-    const group = document.getElementById('optionsGroup');
-    if (type === 'essay' || type === 'fill') { group.style.display = 'none'; } else { group.style.display = 'block'; }
-};
+            if (!text) {
+                alert('Please enter a question.');
+                return;
+            }
 
-// ------------------------------------------------------------
-// 14. IMPORT FROM BANK (for draft)
-// ------------------------------------------------------------
-window.importFromBank = async function() {
-    if (!currentDraftAssessmentId) {
-        alert('Please create a draft first.');
-        return;
-    }
-    const firstCourse = document.getElementById('assessCourses').value;
-    if (!firstCourse) { alert('Please select at least one course first.'); return; }
-    const { data: bank, error } = await supabase.from('question_bank').select('*').eq('course_id', firstCourse);
-    if (error) { alert('Error loading bank: ' + error.message); return; }
-    if (!bank || bank.length === 0) { alert('No questions in the bank.'); return; }
-    // Import each question
-    for (const b of bank) {
-        await saveQuestionToDB({
-            question: b.question,
-            type: b.type,
-            points: 1,
-            options: b.options || null,
-            correct: b.correct_answer !== undefined ? b.correct_answer : null
+            let options = null;
+            let correct = null;
+            if (type === 'mc' || type === 'tf') {
+                const lines = optionsRaw.split('\n').map(s => s.trim()).filter(s => s !== '');
+                if (lines.length === 0) {
+                    alert('Please enter at least one option.');
+                    return;
+                }
+                options = [];
+                let foundCorrect = false;
+                for (let line of lines) {
+                    if (line.startsWith('*')) {
+                        options.push(line.slice(1).trim());
+                        if (!foundCorrect) {
+                            correct = options.length - 1;
+                            foundCorrect = true;
+                        }
+                    } else {
+                        options.push(line);
+                    }
+                }
+                if (!foundCorrect && options.length > 0) {
+                    correct = 0;
+                }
+            }
+
+            const questionData = {
+                question: text,
+                type: type,
+                points: points,
+                options: options,
+                correct: correct
+            };
+
+            await saveQuestionToDB(questionData, editId);
+            delete this.dataset.editId;
+            closeQuestionEditor();
         });
     }
-    alert('Imported ' + bank.length + ' questions.');
-};
+});
 
 // ------------------------------------------------------------
-// 15. UPLOAD JSON (for draft)
-// ------------------------------------------------------------
-window.uploadQuestions = function() {
-    if (!currentDraftAssessmentId) {
-        alert('Please create a draft first.');
-        return;
-    }
-    document.getElementById('jsonFileInput').click();
-};
-
-window.handleFileUpload = async function(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-        try {
-            let content = e.target.result;
-            let jsonData;
-            if (file.name.endsWith('.js')) {
-                const match = content.match(/const\s+QUESTION_BANK\s*=\s*(\[[\s\S]*?\]);/);
-                if (match) { jsonData = eval(match[1]); } else { throw new Error('Could not find QUESTION_BANK array.'); }
-            } else { jsonData = JSON.parse(content); }
-            if (!Array.isArray(jsonData)) throw new Error('File must contain an array.');
-            const imported = jsonData.map(q => ({ question: q.question || q.text || '', type: q.type || 'mc', options: q.options || null, correct: q.correct !== undefined ? q.correct : (q.answer !== undefined ? q.answer : null), points: q.points || 1 })).filter(q => q.question.trim() !== '');
-            if (imported.length === 0) { alert('No valid questions found.'); return; }
-            for (const q of imported) {
-                await saveQuestionToDB(q);
-            }
-            alert('Imported ' + imported.length + ' questions.');
-        } catch (err) { alert('Error parsing file: ' + err.message); console.error(err); }
-    };
-    reader.readAsText(file);
-    event.target.value = '';
-};
-
-// ------------------------------------------------------------
-// 16. NAVIGATION & OTHER STUFF
+// 14. NAVIGATION STEPS
 // ------------------------------------------------------------
 window.goToStep = function(step) {
     document.querySelectorAll('.step').forEach(el => { el.style.display = 'none'; el.classList.remove('active'); });
@@ -1529,7 +1562,7 @@ window.goToStep = function(step) {
 };
 
 // ------------------------------------------------------------
-// 17. GRADEBOOK, WEIGHTS, INTERVENTIONS (unchanged)
+// 15. GRADEBOOK, WEIGHTS, INTERVENTIONS (unchanged)
 // ------------------------------------------------------------
 async function loadGradebook() {
     const courseId = document.getElementById('manualCourseSelect').value;
@@ -1711,7 +1744,7 @@ async function loadStudentsForIntervention() {
 }
 
 // ------------------------------------------------------------
-// 18. OTHER FORM HANDLERS (Compute, Final, Enroll, Reports)
+// 16. OTHER FORM HANDLERS
 // ------------------------------------------------------------
 document.getElementById('computeForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1810,7 +1843,7 @@ document.getElementById('reportForm').addEventListener('submit', function(e) {
 });
 
 // ------------------------------------------------------------
-// 19. NAVIGATION & EVENT BINDING
+// 17. NAVIGATION & EVENT BINDING
 // ------------------------------------------------------------
 document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', async function() {
@@ -1972,7 +2005,7 @@ document.getElementById('intervCourse').addEventListener('change', loadStudentsF
 document.getElementById('exportGrades').addEventListener('click', () => alert('CSV Export – coming soon!'));
 
 // ------------------------------------------------------------
-// 20. START
+// 18. START
 // ------------------------------------------------------------
 init();
 </script>
