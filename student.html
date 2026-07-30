@@ -3,20 +3,16 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Student Dashboard – NCF Learning System</title>
+    <title>Instructor Dashboard – NCF Learning System</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <style>
-        /* ===== RESET & BASE ===== */
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family:'Inter',sans-serif; background:#f1f5f9; color:#0f172a; }
         .app { display:flex; min-height:100vh; }
-
-        /* ===== SIDEBAR ===== */
         .sidebar {
             width:260px; background:#0f172a; padding:1.5rem 1rem;
             position:sticky; top:0; height:100vh; overflow-y:auto;
             display:flex; flex-direction:column; flex-shrink:0;
-            transition: 0.3s;
         }
         .sidebar .brand { display:flex; align-items:center; gap:0.75rem; padding-bottom:1.5rem; border-bottom:1px solid rgba(255,255,255,0.08); margin-bottom:1.5rem; }
         .sidebar .brand .logo { width:40px; height:40px; background:#3b82f6; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; }
@@ -34,54 +30,33 @@
         .sidebar .user-section .user-card .info .role { font-size:0.7rem; color:#94a3b8; }
         .sidebar .user-section .logout-btn { display:flex; align-items:center; gap:0.5rem; padding:0.6rem 0.75rem; border-radius:8px; color:#f87171; font-size:0.85rem; font-weight:500; cursor:pointer; border:none; background:transparent; width:100%; font-family:inherit; transition:0.2s; }
         .sidebar .user-section .logout-btn:hover { background:rgba(239,68,68,0.1); }
-
-        /* ===== MAIN ===== */
-        .main { flex:1; padding:2rem 2.5rem; overflow-y:auto; background:#f1f5f9; transition: 0.3s; }
+        .main { flex:1; padding:2rem 2.5rem; overflow-y:auto; background:#f1f5f9; }
         .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem; flex-wrap:wrap; gap:1rem; }
         .page-header h1 { font-size:1.6rem; font-weight:700; }
         .page-header h1 small { font-size:0.85rem; font-weight:400; color:#94a3b8; display:block; }
-        .page-section { display:none; }
-        .page-section.active { display:block; animation:fadeIn 0.25s ease; }
-        @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
-
-        /* ===== CARDS & GRID ===== */
+        .page-header .actions { display:flex; gap:0.75rem; align-items:center; }
+        .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1rem; margin-bottom:2rem; }
+        .stat-card { background:#fff; border-radius:12px; padding:1.25rem 1.5rem; border:1px solid #e2e8f0; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+        .stat-card .number { font-size:1.8rem; font-weight:700; }
+        .stat-card .label { font-size:0.8rem; color:#94a3b8; font-weight:500; }
+        .stat-card .icon { float:right; font-size:1.6rem; opacity:0.4; }
         .card { background:#fff; border-radius:12px; border:1px solid #e2e8f0; padding:1.5rem; margin-bottom:1.5rem; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
         .card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
         .card-header h3 { font-size:1rem; font-weight:600; }
-        .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1rem; margin-bottom:1.5rem; }
-        .stat-card { background:#fff; border-radius:12px; padding:1rem 1.25rem; border:1px solid #e2e8f0; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
-        .stat-card .number { font-size:1.5rem; font-weight:700; }
-        .stat-card .label { font-size:0.75rem; color:#94a3b8; font-weight:500; }
-        .stat-card .icon { font-size:1.8rem; float:right; opacity:0.3; }
-
-        /* ===== MENU GRID (Dashboard cards) ===== */
-        .menu-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1.5rem; }
-        .menu-card {
-            background:#fff; border-radius:12px; padding:1.5rem; text-align:center;
-            border:1px solid #e2e8f0; cursor:pointer; transition:0.2s;
-            box-shadow:0 1px 3px rgba(0,0,0,0.06);
-        }
-        .menu-card:hover { transform:translateY(-4px); box-shadow:0 8px 16px rgba(0,0,0,0.1); border-color:#3b82f6; }
-        .menu-card .icon { font-size:2.5rem; margin-bottom:0.5rem; }
-        .menu-card .title { font-weight:600; font-size:1rem; }
-        .menu-card .desc { font-size:0.8rem; color:#94a3b8; }
-
-        /* ===== TABLES ===== */
         .table-wrap { overflow-x:auto; }
         table { width:100%; border-collapse:collapse; font-size:0.875rem; }
         table th { text-align:left; padding:0.6rem 0.75rem; color:#475569; font-weight:600; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.5px; border-bottom:2px solid #e2e8f0; background:#f1f5f9; }
         table td { padding:0.6rem 0.75rem; border-bottom:1px solid #f1f5f9; }
         table tbody tr:hover { background:#f1f5f9; }
-
-        /* ===== FORMS ===== */
         .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
         .form-grid .full { grid-column:1/-1; }
         .form-group { display:flex; flex-direction:column; gap:0.25rem; }
         .form-group label { font-size:0.8rem; font-weight:500; color:#475569; }
         .form-group input, .form-group select, .form-group textarea { padding:0.6rem 0.8rem; border:1px solid #e2e8f0; border-radius:8px; font-size:0.875rem; font-family:inherit; background:#fff; width:100%; transition:0.2s; }
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,0.1); }
-
-        /* ===== BUTTONS ===== */
+        .form-group input[type="file"] { padding:0.4rem; border:2px dashed #e2e8f0; cursor:pointer; }
+        .form-group input[type="checkbox"] { width:auto; }
+        .form-group select[multiple] { min-height:100px; }
         .btn { padding:0.55rem 1.25rem; border-radius:8px; font-size:0.85rem; font-weight:600; font-family:inherit; cursor:pointer; border:none; transition:0.2s; display:inline-flex; align-items:center; gap:0.5rem; }
         .btn-primary { background:#3b82f6; color:#fff; }
         .btn-primary:hover { background:#2563eb; }
@@ -92,97 +67,76 @@
         .btn-outline { background:transparent; color:#475569; border:1px solid #e2e8f0; }
         .btn-outline:hover { background:#f1f5f9; }
         .btn-sm { padding:0.2rem 0.7rem; font-size:0.75rem; }
-        .btn-warning { background:#f59e0b; color:#fff; }
-        .btn-warning:hover { background:#d97706; }
-
-        /* ===== BADGES ===== */
-        .badge { display:inline-block; padding:0.15rem 0.6rem; border-radius:20px; font-size:0.7rem; font-weight:600; }
+        .btn-danger-outline { background:transparent; color:#ef4444; border:1px solid #ef4444; }
+        .btn-danger-outline:hover { background:#fee2e2; }
+        .badge { display:inline-block; padding:0.15rem 0.6rem; border-radius:20px; font-size:0.7rem; font-weight:600; text-transform:uppercase; }
         .badge-pending { background:#fef3c7; color:#92400e; }
         .badge-approved { background:#d1fae5; color:#065f46; }
         .badge-rejected { background:#fee2e2; color:#991b1b; }
-        .badge-success { background:#d1fae5; color:#065f46; }
-        .badge-warning { background:#fef3c7; color:#92400e; }
-        .badge-danger { background:#fee2e2; color:#991b1b; }
-        .badge-info { background:#e0f2fe; color:#0369a1; }
-
-        /* ===== TABS ===== */
-        .tabs { display:flex; gap:0.5rem; border-bottom:2px solid #e2e8f0; margin-bottom:1rem; flex-wrap:wrap; }
-        .tab { padding:0.5rem 1rem; cursor:pointer; border-bottom:2px solid transparent; transition:0.2s; font-weight:500; font-size:0.9rem; color:#64748b; }
-        .tab.active { border-bottom-color:#3b82f6; color:#0f172a; }
-        .tab:hover { color:#0f172a; }
-        .tab-content { display:none; }
-        .tab-content.active { display:block; }
-
-        /* ===== EMPTY STATE ===== */
+        .badge-period { background:#e0f2fe; color:#0369a1; }
         .empty-state { text-align:center; padding:2.5rem 1rem; color:#94a3b8; }
         .empty-state .icon { font-size:2.5rem; margin-bottom:0.5rem; }
-
-        /* ===== MODAL ===== */
+        .page-section { display:none; }
+        .page-section.active { display:block; animation:fadeIn 0.25s ease; }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+        .text-muted { color:#94a3b8; }
+        .text-sm { font-size:0.8rem; }
+        .mt-1 { margin-top:0.5rem; }
+        .mt-2 { margin-top:1rem; }
+        .flex { display:flex; }
+        .gap-2 { gap:1rem; }
+        .fw-600 { font-weight:600; }
+        .step { padding:1rem 0; }
+        .step h4 { margin-bottom:1rem; font-size:1.1rem; }
+        .question-item { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.75rem; margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center; }
+        .question-item .q-text { flex:1; margin-right:1rem; font-size:0.9rem; }
+        .question-item .q-actions { display:flex; gap:0.5rem; }
         .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); display:none; align-items:center; justify-content:center; z-index:1000; }
         .modal.active { display:flex; }
-        .modal-content { background:#fff; border-radius:12px; padding:2rem; max-width:600px; width:95%; max-height:80vh; overflow-y:auto; }
+        .modal-content { background:#fff; border-radius:12px; padding:2rem; max-width:800px; width:95%; max-height:80vh; overflow-y:auto; }
+        .modal-content .form-grid { grid-template-columns:1fr; }
         .modal-content .close { float:right; background:none; border:none; font-size:1.5rem; cursor:pointer; }
-
-        /* ===== ANTI-CHEAT EXAM UI ===== */
-        .exam-mode .sidebar { display: none !important; }
-        .exam-mode .main { padding: 1rem; }
-        .noselect {
-            user-select: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-        }
-        .exam-header {
-            display: flex; justify-content: space-between; align-items: center; 
-            background: #fff; padding: 1rem 1.5rem; border-radius: 8px; border: 1px solid #e2e8f0; 
-            margin-bottom: 1.5rem; position: sticky; top: 0; z-index: 100; 
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        .question-box { background: #fff; padding: 1.5rem; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 1rem; }
-        .question-box h4 { margin-bottom: 1rem; font-size: 1.1rem; }
-        .option-label { display: block; margin-bottom: 0.75rem; cursor: pointer; padding: 0.5rem; border-radius: 6px; border: 1px solid transparent; transition: 0.2s;}
-        .option-label:hover { background: #f8fafc; border-color: #cbd5e1; }
-        .option-label input { margin-right: 0.5rem; }
-        
-        /* ===== RESPONSIVE ===== */
+        .modal-content table { width:100%; }
+        .modal-content select { padding:0.3rem 0.6rem; border-radius:4px; border:1px solid #e2e8f0; }
         @media (max-width:1024px) { .sidebar { width:220px; } .main { padding:1.5rem; } .form-grid { grid-template-columns:1fr; } }
-        @media (max-width:768px) { .app { flex-direction:column; } .sidebar { width:100%; height:auto; position:static; padding:1rem; } .sidebar nav { display:flex; flex-wrap:wrap; gap:0.25rem; } .sidebar nav .nav-label { display:none; } .sidebar nav .nav-item { padding:0.4rem 0.7rem; font-size:0.8rem; } .sidebar .user-section { display:none; } .main { padding:1rem; } .stats-grid { grid-template-columns:1fr 1fr; } .menu-grid { grid-template-columns:1fr 1fr; } }
-        @media (max-width:480px) { .stats-grid { grid-template-columns:1fr; } .menu-grid { grid-template-columns:1fr; } .page-header { flex-direction:column; align-items:flex-start; } }
-
-        /* ===== RECITATION BUTTON FLASH ===== */
-        .recite-btn { background:#22c55e; color:#fff; animation:pulse 2s infinite; }
-        .recite-btn:hover { background:#16a34a; }
-        @keyframes pulse { 0% { box-shadow:0 0 0 0 rgba(34,197,94,0.5); } 70% { box-shadow:0 0 0 10px rgba(34,197,94,0); } 100% { box-shadow:0 0 0 0 rgba(34,197,94,0); } }
+        @media (max-width:768px) { .app { flex-direction:column; } .sidebar { width:100%; height:auto; position:static; padding:1rem; } .sidebar nav { display:flex; flex-wrap:wrap; gap:0.25rem; } .sidebar nav .nav-label { display:none; } .sidebar nav .nav-item { padding:0.4rem 0.7rem; font-size:0.8rem; } .sidebar .user-section { display:none; } .main { padding:1rem; } .stats-grid { grid-template-columns:1fr 1fr; } }
+        @media (max-width:480px) { .stats-grid { grid-template-columns:1fr; } .page-header { flex-direction:column; align-items:flex-start; } }
+        .qr-code img { max-width:100px; height:auto; border:1px solid #e2e8f0; border-radius:4px; }
     </style>
 </head>
-<body class="" id="appBody">
+<body>
 
 <div class="app">
-
     <!-- SIDEBAR -->
-    <aside class="sidebar" id="appSidebar">
+    <aside class="sidebar">
         <div class="brand">
             <div class="logo">N</div>
-            <div class="name">NCF LTS <small>Student Portal</small></div>
+            <div class="name">NCF LTS <small>Learning Tracking System</small></div>
         </div>
         <nav>
             <div class="nav-label">Main</div>
-            <div class="nav-item active" data-section="dashboard"><span class="icon">🏠</span> Dashboard</div>
-            <div class="nav-item" data-section="profile"><span class="icon">👤</span> Profile</div>
-            <div class="nav-item" data-section="activities"><span class="icon">📋</span> Activities</div>
-            <div class="nav-label">Academics</div>
+            <div class="nav-item active" data-section="dashboard"><span class="icon">📊</span> Dashboard</div>
+            <div class="nav-item" data-section="courses"><span class="icon">📘</span> Courses</div>
+            <div class="nav-label">Management</div>
+            <div class="nav-item" data-section="attendance"><span class="icon">📋</span> Attendance</div>
+            <div class="nav-item" data-section="schedule"><span class="icon">📅</span> Schedule</div>
             <div class="nav-item" data-section="assessments"><span class="icon">✏️</span> Assessments</div>
-            <div class="nav-item" data-section="grades"><span class="icon">📈</span> Grades</div>
-            <div class="nav-label">Attendance</div>
-            <div class="nav-item" data-section="attendance"><span class="icon">📅</span> Attendance</div>
-            <div class="nav-item" data-section="recitation"><span class="icon">🎤</span> Recitation</div>
+            <div class="nav-label">Grading</div>
+            <div class="nav-item" data-section="gradebook"><span class="icon">📈</span> Gradebook</div>
+            <div class="nav-item" data-section="weights"><span class="icon">⚖️</span> Weights</div>
+            <div class="nav-item" data-section="compute"><span class="icon">🧮</span> Compute</div>
+            <div class="nav-item" data-section="final"><span class="icon">⭐</span> Final Rating</div>
+            <div class="nav-label">Tools</div>
+            <div class="nav-item" data-section="reports"><span class="icon">📄</span> Reports</div>
+            <div class="nav-item" data-section="interventions"><span class="icon">🛠️</span> Interventions</div>
+            <div class="nav-item" data-section="enroll"><span class="icon">👥</span> Enroll</div>
         </nav>
         <div class="user-section">
             <div class="user-card">
-                <div class="avatar" id="userAvatar">S</div>
+                <div class="avatar" id="userAvatar">JC</div>
                 <div class="info">
                     <div class="name" id="userName">Loading...</div>
-                    <div class="role">Student</div>
+                    <div class="role">Instructor</div>
                 </div>
             </div>
             <button class="logout-btn" id="logoutBtn">🚪 Sign Out</button>
@@ -190,211 +144,480 @@
     </aside>
 
     <!-- MAIN CONTENT -->
-    <main class="main" id="mainContent">
-
-        <!-- ==================== DASHBOARD (Main Menu) ==================== -->
+    <main class="main">
+        <!-- ===== DASHBOARD ===== -->
         <section id="section-dashboard" class="page-section active">
             <div class="page-header">
-                <h1>Dashboard <small>Welcome to your learning hub</small></h1>
+                <div><h1>Dashboard <small>Overview of your classes</small></h1></div>
+                <div class="actions"><button class="btn btn-primary" onclick="createNewAssessment()">+ New Assessment</button></div>
             </div>
-
-            <!-- Stats -->
-            <div class="stats-grid" id="dashboardStats">
-                <div class="stat-card"><span class="icon">📘</span><div class="number" id="dashCourses">0</div><div class="label">Courses</div></div>
-                <div class="stat-card"><span class="icon">📋</span><div class="number" id="dashAssessments">0</div><div class="label">Upcoming Assessments</div></div>
-                <div class="stat-card"><span class="icon">✅</span><div class="number" id="dashPresent">0</div><div class="label">Present</div></div>
-                <div class="stat-card"><span class="icon">❌</span><div class="number" id="dashAbsent">0</div><div class="label">Absent</div></div>
-            </div>
-
-            <!-- Quick Menu Cards -->
-            <div class="menu-grid">
-                <div class="menu-card" onclick="switchSection('profile')">
-                    <div class="icon">👤</div>
-                    <div class="title">My Profile</div>
-                    <div class="desc">View & update your info</div>
-                </div>
-                <div class="menu-card" onclick="switchSection('activities')">
-                    <div class="icon">📋</div>
-                    <div class="title">Activities</div>
-                    <div class="desc">Upcoming assignments</div>
-                </div>
-                <div class="menu-card" onclick="switchSection('assessments')">
-                    <div class="icon">✏️</div>
-                    <div class="title">Assessments</div>
-                    <div class="desc">Take exams & view results</div>
-                </div>
-                <div class="menu-card" onclick="switchSection('grades')">
-                    <div class="icon">📈</div>
-                    <div class="title">Grades</div>
-                    <div class="desc">Period & final grades</div>
-                </div>
-                <div class="menu-card" onclick="switchSection('attendance')">
-                    <div class="icon">📅</div>
-                    <div class="title">Attendance</div>
-                    <div class="desc">Track presence & excuses</div>
-                </div>
-                <div class="menu-card" onclick="switchSection('recitation')">
-                    <div class="icon">🎤</div>
-                    <div class="title">Recitation</div>
-                    <div class="desc">Log class participation</div>
-                </div>
-            </div>
-
-            <!-- Recent Activity Feed -->
-            <div class="card" style="margin-top:1.5rem;">
-                <div class="card-header"><h3>📌 Recent Updates</h3></div>
-                <div id="recentActivity"><div class="empty-state">No recent activity.</div></div>
-            </div>
-        </section>
-
-        <!-- ==================== PROFILE ==================== -->
-        <section id="section-profile" class="page-section">
-            <div class="page-header"><h1>My Profile <small>View and update your information</small></h1></div>
-            <div class="card">
-                <div class="card-header"><h3>Personal Details</h3></div>
-                <form id="profileForm" class="form-grid">
-                    <div class="form-group full"><label>Email (read-only)</label><input type="email" id="profileEmail" disabled /></div>
-                    <div class="form-group"><label>First Name</label><input type="text" id="profileFirstName" required /></div>
-                    <div class="form-group"><label>Last Name</label><input type="text" id="profileLastName" required /></div>
-                    <div class="form-group full"><button type="submit" class="btn btn-primary">Update Profile</button></div>
-                </form>
-            </div>
-            <div class="card">
-                <div class="card-header"><h3>My Courses</h3></div>
-                <div id="myCoursesList"><div class="empty-state">Loading...</div></div>
-            </div>
-        </section>
-
-        <!-- ==================== ACTIVITIES ==================== -->
-        <section id="section-activities" class="page-section">
-            <div class="page-header"><h1>Activities <small>Assignments and tasks</small></h1></div>
-            <div class="card">
-                <div class="card-header"><h3>Upcoming / Pending Activities</h3></div>
-                <div id="activitiesList"><div class="empty-state">No activities found.</div></div>
-            </div>
-        </section>
-
-        <!-- ==================== ASSESSMENTS ==================== -->
-        <section id="section-assessments" class="page-section">
-            <div class="page-header"><h1>Assessments <small>Take exams and view results</small></h1></div>
-            <div class="card">
-                <div class="tabs" id="assessmentTabs">
-                    <div class="tab active" data-tab="taken">📋 Taken</div>
-                    <div class="tab" data-tab="available">🟢 Available</div>
-                    <div class="tab" data-tab="future">🔮 Future</div>
-                </div>
-                <div class="tab-content active" id="tab-taken"><div id="takenAssessments"><div class="empty-state">You haven't taken any assessments yet.</div></div></div>
-                <div class="tab-content" id="tab-available"><div id="availableAssessments"><div class="empty-state">No assessments available right now.</div></div></div>
-                <div class="tab-content" id="tab-future"><div id="futureAssessments"><div class="empty-state">No future assessments scheduled.</div></div></div>
-            </div>
-        </section>
-
-        <!-- ==================== EXAM TAKING SECTION (NEW) ==================== -->
-        <section id="section-exam" class="page-section">
-            <!-- Anti-Cheat Container -->
-            <div class="noselect" oncontextmenu="return false;" oncopy="return false;" oncut="return false;" onpaste="return false;">
-                <div class="exam-header">
-                    <div>
-                        <h2 id="activeExamTitle">Exam Title</h2>
-                        <span id="examTimerDisplay" class="badge badge-info" style="font-size:0.9rem; margin-right:1rem;">Time Left: --:--</span>
-                        <span class="badge badge-warning">Anti-Cheat Enabled: Do not leave this tab.</span>
-                    </div>
-                    <div class="actions">
-                        <button class="btn btn-success" onclick="submitAssessment(false)">Submit Assessment</button>
-                    </div>
-                </div>
-                <div id="examQuestionsContainer">
-                    <div class="empty-state">Loading questions...</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- ==================== GRADES ==================== -->
-        <section id="section-grades" class="page-section">
-            <div class="page-header"><h1>Grades <small>Your academic performance</small></h1></div>
-            <div class="card">
-                <div class="card-header"><h3>Period Grades</h3></div>
-                <div id="gradesContainer"><div class="empty-state">Loading...</div></div>
-            </div>
-            <div class="card">
-                <div class="card-header"><h3>Final Ratings</h3></div>
-                <div id="finalRatingsContainer"><div class="empty-state">Loading...</div></div>
-            </div>
-        </section>
-
-        <!-- ==================== ATTENDANCE ==================== -->
-        <section id="section-attendance" class="page-section">
-            <div class="page-header"><h1>Attendance <small>Track your presence and submit excuses</small></h1></div>
             <div class="stats-grid">
-                <div class="stat-card"><div class="number" id="totalSessions">0</div><div class="label">Total Sessions</div></div>
-                <div class="stat-card"><div class="number" id="presentCount">0</div><div class="label">Present</div></div>
-                <div class="stat-card"><div class="number" id="absentCount">0</div><div class="label">Absent</div></div>
-                <div class="stat-card"><div class="number" id="lateCount">0</div><div class="label">Late</div></div>
-                <div class="stat-card"><div class="number" id="excusedCount">0</div><div class="label">Excused</div></div>
+                <div class="stat-card"><span class="icon">📘</span><div class="number" id="statCourses">0</div><div class="label">Total Courses</div></div>
+                <div class="stat-card"><span class="icon">👨‍🎓</span><div class="number" id="statStudents">0</div><div class="label">Total Students</div></div>
+                <div class="stat-card"><span class="icon">⏳</span><div class="number" id="statPending">0</div><div class="label">Pending Approvals</div></div>
+                <div class="stat-card"><span class="icon">📋</span><div class="number" id="statAssessments">0</div><div class="label">Assessments</div></div>
             </div>
-            <div class="card">
-                <div class="card-header"><h3>Attendance Records</h3></div>
-                <div id="attendanceRecords"><div class="empty-state">Loading...</div></div>
-            </div>
-            <div class="card">
-                <div class="card-header"><h3>Upload Excuse Letter</h3></div>
-                <form id="excuseForm" class="form-grid">
-                    <div class="form-group full"><label>Course</label><select id="excuseCourse" required></select></div>
-                    <div class="form-group full"><label>Attendance Session (optional – leave blank for general absence)</label><select id="excuseSession"><option value="">General absence</option></select></div>
-                    <div class="form-group full"><label>Upload File (PDF, image)</label><input type="file" id="excuseFile" accept=".pdf,.png,.jpg,.jpeg" required /></div>
-                    <div class="form-group full"><button type="submit" class="btn btn-primary">📤 Upload Excuse Letter</button></div>
-                </form>
-                <div id="excuseHistory" class="mt-2"><h4>Your Excuse Letters</h4><div id="excuseList"><div class="empty-state">No letters submitted.</div></div></div>
-            </div>
+            <div class="card"><div class="card-header"><h3>⏳ Pending Approvals</h3></div><div id="pendingApprovalsList"><div class="empty-state"><p>Loading...</p></div></div></div>
+            <div class="card"><div class="card-header"><h3>🚀 Quick Actions</h3></div><div class="flex gap-2" style="flex-wrap:wrap;"><button class="btn btn-outline" onclick="switchSection('attendance')">📋 Take Attendance</button><button class="btn btn-outline" onclick="createNewAssessment()">✏️ Create Assessment</button><button class="btn btn-outline" onclick="switchSection('gradebook')">📈 View Grades</button><button class="btn btn-outline" onclick="switchSection('enroll')">👥 Enroll Student</button></div></div>
         </section>
 
-        <!-- ==================== RECITATION ==================== -->
-        <section id="section-recitation" class="page-section">
-            <div class="page-header"><h1>Recitation Logger <small>Log your class participation</small></h1></div>
+        <!-- ===== COURSES ===== -->
+        <section id="section-courses" class="page-section">
+            <div class="page-header"><div><h1>Courses <small>Manage your courses</small></h1></div><div class="actions"><button class="btn btn-primary" id="addCourseBtn" onclick="addCourse()">+ New Course</button></div></div>
+            <div class="card"><div id="instructorCourses"><div class="empty-state"><p>Loading your courses...</p></div></div></div>
+        </section>
+
+        <!-- ===== ATTENDANCE ===== -->
+        <section id="section-attendance" class="page-section">
+            <div class="page-header"><div><h1>Attendance <small>Create sessions and track attendance</small></h1></div></div>
             <div class="card">
-                <div class="card-header"><h3>Record Recitation</h3></div>
-                <div id="recitationStatus" class="empty-state">Checking class schedule...</div>
-                <div id="recitationFormContainer" style="display:none; margin-top:1rem;">
-                    <form id="recitationForm" class="form-grid">
-                        <div class="form-group full"><label>Course (Auto-Selected Active Class)</label><select id="recitCourse" required></select></div>
-                        <div class="form-group"><label>Date</label><input type="date" id="recitDate" required /></div>
-                        <div class="form-group"><label>Time</label><input type="time" id="recitTime" required /></div>
-                        <div class="form-group"><label>Recitation Rating (1-5)</label><select id="recitRating" required><option value="5">5 - Excellent</option><option value="4">4 - Very Good</option><option value="3" selected>3 - Satisfactory</option><option value="2">2 - Fair</option><option value="1">1 - Poor</option></select></div>
-                        <div class="form-group full"><button type="submit" class="btn btn-success recite-btn">🎤 Record Recitation</button></div>
-                    </form>
+                <div class="card-header"><h3>Create Session (Self‑Check‑In)</h3></div>
+                <form id="attendanceForm" class="form-grid">
+                    <div class="form-group full"><label>Course</label><select id="attCourse" required></select></div>
+                    <div class="form-group"><label>Date</label><input type="date" id="attDate" required></div>
+                    <div class="form-group"><label>Start</label><input type="time" id="attStart" required></div>
+                    <div class="form-group"><label>End</label><input type="time" id="attEnd" required></div>
+                    <div class="form-group full"><button type="submit" class="btn btn-primary">Generate Code</button></div>
+                </form>
+                <div id="attCodeDisplay" style="display:none; margin-top:0.75rem; padding:0.75rem; background:#f1f5f9; border-radius:8px; text-align:center; font-size:1.5rem; font-weight:700; letter-spacing:4px; font-family:monospace;"></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3>Manual Attendance Marking</h3></div>
+                <div class="form-grid">
+                    <div class="form-group full"><label>Select Session</label><select id="manualSessionSelect"><option value="">Choose a session...</option></select></div>
+                    <div class="form-group full"><button class="btn btn-primary" onclick="openMarkAttendanceModal()">📝 Mark Attendance</button><button class="btn btn-outline" onclick="loadManualSessions()">🔄 Refresh Sessions</button></div>
+                </div>
+            </div>
+            <div class="card"><div class="card-header"><h3>Attendance Sessions</h3></div><div id="attendanceSessionsList"><div class="empty-state"><p>No sessions yet.</p></div></div></div>
+        </section>
+
+        <!-- ===== SCHEDULE ===== -->
+        <section id="section-schedule" class="page-section">
+            <div class="page-header"><div><h1>Schedule <small>Set class schedules</small></h1></div></div>
+            <div class="card">
+                <div class="card-header"><h3>Add Schedule</h3></div>
+                <form id="scheduleForm" class="form-grid">
+                    <div class="form-group full"><label>Course</label><select id="scheduleCourse" required></select></div>
+                    <div class="form-group"><label>Day</label><select id="scheduleDay"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select></div>
+                    <div class="form-group"><label>Start</label><input type="time" id="scheduleStart" required></div>
+                    <div class="form-group"><label>End</label><input type="time" id="scheduleEnd" required></div>
+                    <div class="form-group"><label>Room</label><input type="text" id="scheduleRoom" placeholder="Room 101"></div>
+                    <div class="form-group full"><button type="submit" class="btn btn-primary">Add Schedule</button></div>
+                </form>
+            </div>
+            <div class="card"><div class="card-header"><h3>Current Schedules</h3></div><div id="scheduleList"><div class="empty-state"><p>No schedules set.</p></div></div></div>
+        </section>
+
+        <!-- ===== ASSESSMENTS ===== -->
+        <section id="section-assessments" class="page-section">
+            <div class="page-header">
+                <h1>Assessments <small>Build quizzes, recitations, activities, and major exams</small></h1>
+                <div class="actions">
+                    <button class="btn btn-primary" onclick="createNewAssessment()">+ New Assessment</button>
                 </div>
             </div>
             <div class="card">
-                <div class="card-header"><h3>Recitation History</h3></div>
-                <div id="recitationHistory"><div class="empty-state">No recitations logged yet.</div></div>
+                <div class="card-header"><h3>Create / Edit Assessment</h3></div>
+                <form id="assessmentForm" onsubmit="return false;">
+                    <div class="step active" data-step="1">
+                        <h4>1. Assessment Details</h4>
+                        <div class="form-grid">
+                            <div class="form-group full"><label>Courses (hold Ctrl/Cmd to select multiple)</label><select id="assessCourses" multiple required><option value="">Select courses...</option></select></div>
+                            <div class="form-group"><label>Grading Period</label><select id="assessPeriod"><option value="prelim">Prelim</option><option value="midterm">Midterm</option><option value="semifinal">Semi-Final</option><option value="final">Final</option></select></div>
+                            <div class="form-group"><label>Category Type</label><select id="assessType"><option value="Quizzes and activities">Quizzes and activities</option><option value="Case analysis, Recitation, and reflection briefs">Case analysis, Recitation, and reflection briefs</option><option value="Major Exam">Major Exam</option></select></div>
+                            <div class="form-group"><label>Duration (min)</label><input type="number" id="assessDuration" value="60" min="1"></div>
+                            <div class="form-group full"><label>Title</label><input type="text" id="assessTitle" placeholder="e.g., Quiz 1: Chapter 1-3" required></div>
+                            <div class="form-group full"><label>Description</label><textarea id="assessDesc" rows="2"></textarea></div>
+                            <div class="form-group"><label>Max Score</label><input type="number" id="assessMaxScore" value="100" min="1"></div>
+                            <div class="form-group"><label>Date & Time</label><input type="datetime-local" id="assessDate" required></div>
+                            <div class="form-group"><label>Questions to show</label><input type="number" id="assessShow" placeholder="Leave blank to show all" min="1"></div>
+                            <div class="form-group"><label>Randomise questions per student?</label><input type="checkbox" id="assessRandomize"></div>
+                            <div class="form-group"><label>AI Grading</label><select id="assessAI"><option value="none">None</option><option value="openai">OpenAI</option><option value="gemini">Gemini</option></select></div>
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="goToStep(2)">Next → Questions</button>
+                        <button type="button" class="btn btn-outline" onclick="saveDraft()">💾 Save Draft</button>
+                    </div>
+                    <div class="step" data-step="2" style="display:none;">
+                        <h4>2. Question Bank</h4>
+                        <div id="questionList"><div class="empty-state">No questions added yet.</div></div>
+                        <div style="display:flex; gap:0.5rem; margin-top:0.5rem; flex-wrap:wrap;">
+                            <button type="button" class="btn btn-outline" onclick="openQuestionEditor()">+ Add Question</button>
+                            <button type="button" class="btn btn-outline" onclick="importFromBank()">📚 Import from Bank</button>
+                            <button type="button" class="btn btn-outline" onclick="uploadQuestions()">📤 Upload JSON</button>
+                            <button type="button" class="btn btn-outline" onclick="clearAllQuestions()">🗑️ Clear All</button>
+                        </div>
+                        <div style="margin-top:1rem;">
+                            <button type="button" class="btn btn-outline" onclick="goToStep(1)">← Back</button>
+                            <button type="button" class="btn btn-primary" onclick="goToStep(3)">Next → Settings</button>
+                            <button type="button" class="btn btn-outline" onclick="saveDraft()">💾 Save Draft</button>
+                        </div>
+                    </div>
+                    <div class="step" data-step="3" style="display:none;">
+                        <h4>3. Additional Settings</h4>
+                        <div class="form-grid">
+                            <div class="form-group"><label>Shuffle options per question?</label><input type="checkbox" id="assessShuffleOptions"></div>
+                            <div class="form-group"><label>Show correct answers after submission?</label><input type="checkbox" id="assessShowAnswers"></div>
+                            <div class="form-group full"><label>Passing Score (%)</label><input type="number" id="assessPassing" value="60" min="0" max="100"></div>
+                        </div>
+                        <button type="button" class="btn btn-success mt-2" id="publishAssessmentBtn">🚀 Publish Assessment</button>
+                        <button type="button" class="btn btn-outline" onclick="goToStep(2)">← Back</button>
+                        <button type="button" class="btn btn-outline" onclick="saveDraft()">💾 Save Draft</button>
+                    </div>
+                </form>
+                <input type="file" id="jsonFileInput" accept=".json,.js" style="display:none" onchange="handleFileUpload(event)" />
+            </div>
+            <div class="card">
+                <div class="card-header"><h3>Published Assessments</h3></div>
+                <div id="assessmentsList"><div class="empty-state"><p>No published assessments yet.</p></div></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3>Draft Assessments</h3></div>
+                <div id="draftAssessmentsList"><div class="empty-state"><p>No drafts.</p></div></div>
             </div>
         </section>
 
+        <!-- ===== GRADEBOOK ===== -->
+        <section id="section-gradebook" class="page-section">
+            <div class="page-header"><div><h1>Gradebook <small>Spreadsheet view</small></h1></div></div>
+            <div class="card">
+                <div class="card-header"><h3>Grades</h3><button class="btn btn-outline btn-sm" id="exportGrades">📥 Export CSV</button></div>
+                <div class="form-group" style="margin-bottom:1rem;"><label>Select Course</label><select id="manualCourseSelect"><option value="">Choose a course...</option></select></div>
+                <div id="gradebookContainer"><div class="empty-state"><p>Select a course to view grades.</p></div></div>
+            </div>
+        </section>
+
+        <!-- ===== WEIGHTS ===== -->
+        <section id="section-weights" class="page-section">
+            <div class="page-header"><div><h1>Grade Weights <small>Configure percentage weights per assessment category</small></h1></div></div>
+            <div class="card">
+                <form id="weightsForm">
+                    <div class="form-group" style="margin-bottom:1.25rem;"><label>Select Course</label><select id="weightsCourse" required></select></div>
+                    <div id="weightsInputs"><div class="empty-state"><p>Select a course to manage weights.</p></div></div>
+                    <button type="submit" class="btn btn-primary mt-2">💾 Save Weights</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- ===== COMPUTE ===== -->
+        <section id="section-compute" class="page-section">
+            <div class="page-header"><div><h1>Compute Period Grades <small>Averages quizzes, recitations, activities, attendance, and major exams</small></h1></div></div>
+            <div class="card">
+                <div class="card-header"><h3>Period Grade Computation</h3></div>
+                <form id="computeForm" class="form-grid">
+                    <div class="form-group full"><label>Course</label><select id="computeCourse" required></select></div>
+                    <div class="form-group"><label>Period</label><select id="computePeriod"><option value="prelim">Prelim</option><option value="midterm">Midterm</option><option value="semifinal">Semi‑Final</option><option value="final">Final</option></select></div>
+                    <div class="form-group full">
+                        <label style="display:flex; align-items:center; gap:0.5rem;">
+                            <input type="checkbox" id="lockPeriod" /> Lock period after computation (prevents further changes)
+                        </label>
+                    </div>
+                    <div class="form-group full"><button type="submit" class="btn btn-primary">Compute</button></div>
+                </form>
+                <div id="computedGradesResult" class="mt-2"></div>
+            </div>
+        </section>
+
+        <!-- ===== FINAL ===== -->
+        <section id="section-final" class="page-section">
+            <div class="page-header"><div><h1>Final Rating</h1></div></div>
+            <div class="card">
+                <form id="finalForm" class="form-grid">
+                    <div class="form-group full"><label>Course</label><select id="finalCourse" required></select></div>
+                    <div class="form-group full"><button type="submit" class="btn btn-primary">Compute Final</button></div>
+                </form>
+                <div id="finalResult" class="mt-2"></div>
+            </div>
+        </section>
+
+        <!-- ===== REPORTS ===== -->
+        <section id="section-reports" class="page-section">
+            <div class="page-header"><div><h1>Reports</h1></div></div>
+            <div class="card">
+                <form id="reportForm" class="form-grid">
+                    <div class="form-group full"><label>Course</label><select id="reportCourse" required></select></div>
+                    <div class="form-group"><label>Type</label><select id="reportType"><option value="absenteeism">Absenteeism</option><option value="failing">Failing Grades</option><option value="summary">Summary</option></select></div>
+                    <div class="form-group full"><button type="submit" class="btn btn-primary">Generate</button></div>
+                </form>
+                <div id="reportOutput" style="margin-top:1rem; padding:1rem; background:#f1f5f9; border-radius:8px; white-space:pre-wrap; font-family:monospace; font-size:0.85rem; min-height:80px;"></div>
+            </div>
+        </section>
+
+        <!-- ===== INTERVENTIONS ===== -->
+        <section id="section-interventions" class="page-section">
+            <div class="page-header"><div><h1>Interventions</h1></div></div>
+            <div class="card">
+                <form id="interventionForm" class="form-grid">
+                    <div class="form-group full"><label>Course</label><select id="intervCourse" required></select></div>
+                    <div class="form-group full"><label>Student</label><select id="intervStudent" required></select></div>
+                    <div class="form-group"><label>Type</label><select id="intervType"><option value="grade_adjustment">Grade Adjustment</option><option value="extra_credit">Extra Credit</option><option value="remediation">Remediation</option><option value="counseling">Counseling</option></select></div>
+                    <div class="form-group"><label>Adjustment</label><input type="number" id="intervAdjustment" step="0.01" placeholder="+5"></div>
+                    <div class="form-group full"><label>Description</label><input type="text" id="intervDesc" placeholder="Reason"></div>
+                    <div class="form-group full"><button type="submit" class="btn btn-primary">Apply</button></div>
+                </form>
+                <div id="interventionHistory" class="mt-2"></div>
+            </div>
+        </section>
+
+        <!-- ===== ENROLL ===== -->
+        <section id="section-enroll" class="page-section">
+            <div class="page-header"><div><h1>Enroll Students</h1></div></div>
+            <div class="card">
+                <form id="enrollForm" class="form-grid">
+                    <div class="form-group full"><label>Course</label><select id="enrollCourse" required></select></div>
+                    <div class="form-group full"><label>Student Email</label><input type="email" id="enrollEmail" placeholder="student@ncf.edu.ph" required></div>
+                    <div class="form-group full"><button type="submit" class="btn btn-primary">Enroll</button></div>
+                </form>
+            </div>
+        </section>
     </main>
 </div>
 
+<!-- MODALS -->
+<div class="modal" id="editCourseModal">
+    <div class="modal-content">
+        <button class="close" onclick="closeEditCourseModal()">✕</button>
+        <h3>Edit Course</h3>
+        <form id="editCourseForm" class="form-grid">
+            <input type="hidden" id="editCourseId" />
+            <div class="form-group full"><label>Course Code</label><input type="text" id="editCourseCode" required /></div>
+            <div class="form-group full"><label>Course Name</label><input type="text" id="editCourseName" required /></div>
+            <div class="form-group full"><label>Description</label><textarea id="editCourseDesc" rows="2"></textarea></div>
+            <div class="form-group full"><button type="submit" class="btn btn-primary">Update Course</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="modal" id="editScheduleModal">
+    <div class="modal-content">
+        <button class="close" onclick="closeEditScheduleModal()">✕</button>
+        <h3>Edit Schedule</h3>
+        <form id="editScheduleForm" class="form-grid">
+            <input type="hidden" id="editScheduleId" />
+            <div class="form-group full"><label>Day</label><select id="editScheduleDay"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select></div>
+            <div class="form-group"><label>Start</label><input type="time" id="editScheduleStart" required /></div>
+            <div class="form-group"><label>End</label><input type="time" id="editScheduleEnd" required /></div>
+            <div class="form-group full"><label>Room</label><input type="text" id="editScheduleRoom" placeholder="Room 101" /></div>
+            <div class="form-group full"><button type="submit" class="btn btn-primary">Update Schedule</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="modal" id="markAttendanceModal">
+    <div class="modal-content">
+        <button class="close" onclick="closeMarkAttendanceModal()">✕</button>
+        <h3>Mark Attendance</h3>
+        <div id="markAttendanceInfo"></div>
+        <div id="markAttendanceTableWrap" style="margin-top:1rem;">
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Student</th><th>Current Status</th><th>Update Status</th><th>Action</th></tr></thead>
+                    <tbody id="markAttendanceBody"></tbody>
+                </table>
+            </div>
+        </div>
+        <div style="margin-top:1rem; display:flex; gap:0.5rem; justify-content:flex-end;">
+            <button class="btn btn-success" id="saveManualAttendanceBtn" onclick="saveManualAttendance()">💾 Save All</button>
+            <button class="btn btn-outline" onclick="closeMarkAttendanceModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="questionModal">
+    <div class="modal-content">
+        <button class="close" onclick="closeQuestionEditor()">✕</button>
+        <h3 id="modalTitle">Add Question</h3>
+        <form id="questionEditorForm" class="form-grid">
+            <div class="form-group full"><label>Question Text</label><input type="text" id="qText" required placeholder="Enter your question here..." /></div>
+            <div class="form-group full"><label>Question Type</label><select id="qType" onchange="toggleOptions()"><option value="mc">Multiple Choice</option><option value="tf">True / False</option><option value="essay">Essay</option><option value="fill">Fill in the Blank</option></select></div>
+            <div class="form-group full" id="optionsGroup"><label>Options (put <code>*</code> before the correct answer, one per line)</label><textarea id="qOptions" rows="4" placeholder="Option 1&#10;*Option 2 (correct)&#10;Option 3"></textarea><span class="text-muted text-sm">Example: Option A<br>*Option B (correct)</span></div>
+            <div class="form-group"><label>Points</label><input type="number" id="qPoints" value="1" min="1" /></div>
+            <div class="form-group full" style="display:flex; gap:0.5rem; margin-top:0.5rem;"><button type="submit" class="btn btn-primary">💾 Save Question</button><button type="button" class="btn btn-outline" onclick="closeQuestionEditor()">Cancel</button></div>
+        </form>
+    </div>
+</div>
+
+<!-- ================= EDIT ASSESSMENT MODAL ================= -->
+<div class="modal" id="editAssessmentModal">
+    <div class="modal-content">
+        <button class="close" onclick="closeEditAssessmentModal()">✕</button>
+        <h3>Edit Published Assessment</h3>
+        <form id="editAssessmentForm" class="form-grid" style="margin-top:1rem;">
+            <input type="hidden" id="editAssessId" />
+            <div class="form-group full"><label>Title</label><input type="text" id="editAssessTitle" required /></div>
+            <div class="form-group full"><label>Description</label><textarea id="editAssessDesc" rows="2"></textarea></div>
+            <div class="form-group full"><label>Course</label><select id="editAssessCourse" required><option value="">Select course...</option></select></div>
+            <div class="form-group"><label>Grading Period</label><select id="editAssessPeriod"><option value="prelim">Prelim</option><option value="midterm">Midterm</option><option value="semifinal">Semi-Final</option><option value="final">Final</option></select></div>
+            <div class="form-group"><label>Category Type</label><select id="editAssessType"><option value="Quizzes and activities">Quizzes and activities</option><option value="Case analysis, Recitation, and reflection briefs">Case analysis, Recitation, and reflection briefs</option><option value="Major Exam">Major Exam</option></select></div>
+            <div class="form-group"><label>Duration (min)</label><input type="number" id="editAssessDuration" min="1" /></div>
+            <div class="form-group"><label>Max Score</label><input type="number" id="editAssessMaxScore" min="1" /></div>
+            <div class="form-group"><label>Passing Score (%)</label><input type="number" id="editAssessPassing" min="0" max="100" /></div>
+            <div class="form-group"><label>Date & Time</label><input type="datetime-local" id="editAssessDate" required /></div>
+            <div class="form-group"><label>Questions to show</label><input type="number" id="editAssessShow" placeholder="Leave blank to show all" min="1" /></div>
+            <div class="form-group"><label>Randomise questions per student?</label><input type="checkbox" id="editAssessRandomize" /></div>
+            <div class="form-group"><label>Shuffle options per question?</label><input type="checkbox" id="editAssessShuffleOptions" /></div>
+            <div class="form-group"><label>Show correct answers after submission?</label><input type="checkbox" id="editAssessShowAnswers" /></div>
+            <div class="form-group full" style="margin-top:1rem; display:flex; gap:0.5rem;">
+                <button type="submit" class="btn btn-primary">💾 Update Assessment</button>
+                <button type="button" class="btn btn-outline" onclick="closeEditAssessmentModal()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script type="module">
-// ============================================================
+/* ============================================================================
+   SQL DATABASE SCHEMA & DATABASE MIGRATION SCRIPT (SUPABASE / POSTGRESQL)
+   ============================================================================
+   -- 1. COURSES & SECTIONS
+   CREATE TABLE IF NOT EXISTS public.courses (
+       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+       code TEXT NOT NULL,
+       name TEXT NOT NULL,
+       description TEXT,
+       instructor_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+       created_at TIMESTAMPTZ DEFAULT now()
+   );
+
+   CREATE TABLE IF NOT EXISTS public.sections (
+       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+       course_id UUID REFERENCES public.courses(id) ON DELETE CASCADE,
+       name TEXT NOT NULL,
+       created_at TIMESTAMPTZ DEFAULT now()
+   );
+
+   -- 2. ASSESSMENT TYPES (Stores percentage weights per category)
+   CREATE TABLE IF NOT EXISTS public.assessment_types (
+       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+       course_id UUID REFERENCES public.courses(id) ON DELETE CASCADE,
+       name TEXT NOT NULL,
+       weight NUMERIC DEFAULT 0,
+       created_at TIMESTAMPTZ DEFAULT now()
+   );
+
+   -- 3. ATTENDANCE RECORDS TABLE
+   CREATE TABLE IF NOT EXISTS public.attendance_records (
+       id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+       session_id UUID,
+       student_id UUID,
+       status TEXT,
+       time_in TIMESTAMPTZ,
+       time_out TIMESTAMPTZ,
+       created_at TIMESTAMPTZ DEFAULT now(),
+       marked_at TIMESTAMPTZ,
+       excuse_letter_id UUID
+   );
+
+   -- 4. GRADES TABLE (Includes PERIOD, SCORE, MAX_SCORE, PERCENTAGE)
+   CREATE TABLE IF NOT EXISTS public.grades (
+       id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+       student_id UUID,
+       course_id UUID,
+       assessment_type_id UUID,
+       score NUMERIC,
+       max_score NUMERIC,
+       percentage NUMERIC,
+       period TEXT,
+       date TIMESTAMPTZ DEFAULT now()
+   );
+
+   -- 5. INTERVENTIONS TABLE (Stores extra credit or grade adjustments)
+   CREATE TABLE IF NOT EXISTS public.interventions (
+       id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+       student_id UUID,
+       course_id UUID,
+       type TEXT,
+       description TEXT,
+       adjustment_value NUMERIC,
+       created_at TIMESTAMPTZ DEFAULT now(),
+       instructor_id UUID
+   );
+
+   -- 6. MANUAL GRADES TABLE (Stores manual grade entries per assessment category)
+   CREATE TABLE IF NOT EXISTS public.manual_grades (
+       id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+       student_id UUID,
+       course_id UUID,
+       assessment_type_id UUID,
+       score NUMERIC,
+       max_score NUMERIC DEFAULT 100,
+       notes TEXT,
+       created_at TIMESTAMPTZ DEFAULT now(),
+       updated_at TIMESTAMPTZ DEFAULT now()
+   );
+
+   -- 7. RECITATIONS TABLE (Stores student recitation ratings)
+   CREATE TABLE IF NOT EXISTS public.recitations (
+       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+       student_id UUID,
+       course_id UUID,
+       schedule_id UUID,
+       recorded_at TIMESTAMPTZ DEFAULT now(),
+       date DATE,
+       time TIME,
+       created_at TIMESTAMPTZ DEFAULT now(),
+       rating INT4
+   );
+
+   -- 8. COMPUTED PERIOD/FINAL GRADES
+   CREATE TABLE IF NOT EXISTS public.period_grades (
+       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+       student_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+       course_id UUID REFERENCES public.courses(id) ON DELETE CASCADE,
+       period TEXT NOT NULL CHECK (period IN ('prelim', 'midterm', 'semifinal', 'final')),
+       grade NUMERIC DEFAULT 0,
+       locked BOOLEAN DEFAULT false,
+       updated_at TIMESTAMPTZ DEFAULT now(),
+       UNIQUE(student_id, course_id, period)
+   );
+
+   CREATE TABLE IF NOT EXISTS public.final_ratings (
+       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+       student_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+       course_id UUID REFERENCES public.courses(id) ON DELETE CASCADE,
+       final_grade NUMERIC DEFAULT 0,
+       updated_at TIMESTAMPTZ DEFAULT now(),
+       UNIQUE(student_id, course_id)
+   );
+   ============================================================================ */
+
+// ------------------------------------------------------------
 // 1. IMPORTS
-// ============================================================
+// ------------------------------------------------------------
 import { supabase, getCurrentUser, getCurrentProfile, signOut } from './supabase.js';
 
-// ============================================================
+// ------------------------------------------------------------
 // 2. STATE
-// ============================================================
+// ------------------------------------------------------------
 let currentUser = null;
 let currentProfile = null;
-let enrolledCourses = [];
-let today = new Date();
+let instructorCourses = [];
+let currentDraftAssessmentId = null;
+let currentManualSessionId = null;
+let isEditingPublished = false;
 
-// Active Exam State
-let activeExam = null;
-let activeExamQuestions = [];
-let examTimerInterval = null;
+const PH_TIMEZONE = 'Asia/Manila';
 
-// ============================================================
-// 3. UTILITY
-// ============================================================
+function toPhilippineTime(utcDateStr) {
+    if (!utcDateStr) return '';
+    const date = new Date(utcDateStr);
+    const phTime = new Date(date.toLocaleString('en-US', { timeZone: PH_TIMEZONE }));
+    const year = phTime.getFullYear();
+    const month = String(phTime.getMonth() + 1).padStart(2, '0');
+    const day = String(phTime.getDate()).padStart(2, '0');
+    const hours = String(phTime.getHours()).padStart(2, '0');
+    const minutes = String(phTime.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function toUTC(phTimeStr) {
+    if (!phTimeStr) return null;
+    const [datePart, timePart] = phTimeStr.split('T');
+    const [year, month, day] = datePart.split('-').map(Number);
+    const [hours, minutes] = timePart.split(':').map(Number);
+    const phDate = new Date(Date.UTC(year, month - 1, day, hours - 8, minutes));
+    return phDate.toISOString();
+}
+
 function renderSelect(select, options, valueKey, labelKey) {
     select.innerHTML = '<option value="">Select...</option>';
     if (!options || options.length === 0) return;
@@ -406,30 +629,84 @@ function renderSelect(select, options, valueKey, labelKey) {
     });
 }
 
-// Expose switchSection globally for onclick in menu cards
+function timeToMinutes(time) {
+    if (!time) return 0;
+    const [h, m] = time.split(':').map(Number);
+    return (h || 0) * 60 + (m || 0);
+}
+
+function setupNavigation() {
+    const navItems = document.querySelectorAll('.sidebar nav .nav-item');
+    const sections = document.querySelectorAll('.page-section');
+
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const targetSection = item.dataset.section;
+            if (!targetSection) return;
+
+            navItems.forEach(nav => nav.classList.remove('active'));
+            item.classList.add('active');
+
+            sections.forEach(sec => sec.classList.remove('active'));
+            const targetEl = document.getElementById(`section-${targetSection}`);
+            if (targetEl) {
+                targetEl.classList.add('active');
+            }
+
+            if (targetSection === 'gradebook' && typeof loadGradebook === 'function') {
+                loadGradebook();
+            }
+            if (targetSection === 'weights' && typeof loadWeightsInputs === 'function') {
+                loadWeightsInputs();
+            }
+            if (targetSection === 'interventions' && typeof loadStudentsForIntervention === 'function') {
+                loadStudentsForIntervention();
+            }
+        });
+    });
+}
+
 window.switchSection = function(section) {
     const target = document.querySelector(`.nav-item[data-section="${section}"]`);
     if (target) target.click();
 };
 
-function timeToMinutes(time) {
-    if (!time) return 0;
-    const [h, m] = time.split(':').map(Number);
-    return h * 60 + m;
+function getNextDateForDay(dayOfWeek) {
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const targetIndex = days.indexOf(dayOfWeek);
+    if (targetIndex === -1) return null;
+    const now = new Date();
+    const currentDay = now.getDay();
+    let diff = targetIndex - currentDay;
+    if (diff < 0) diff += 7;
+    const nextDate = new Date(now);
+    nextDate.setDate(now.getDate() + diff);
+    return nextDate.toISOString().split('T')[0];
 }
 
-// ============================================================
-// 4. AUTH & INIT
-// ============================================================
+function getQRCodeUrl(data) {
+    return `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(data)}`;
+}
+
 async function checkAuth() {
     const user = await getCurrentUser();
-    if (!user) { window.location.href = 'index.html'; return null; }
+    if (!user) {
+        window.location.href = 'index.html';
+        return null;
+    }
     return user;
 }
 
 async function loadProfile(userId) {
-    const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
-    if (error) { console.error(error); return null; }
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+    if (error) {
+        console.error('Error loading profile:', error);
+        return null;
+    }
     return data;
 }
 
@@ -440,897 +717,1654 @@ async function init() {
         currentUser = user;
 
         const profile = await loadProfile(user.id);
-        if (!profile) { alert('Profile not found.'); return; }
-        if (profile.role !== 'student') {
-            alert('Not authorized as student.');
+        if (!profile) {
+            alert('Profile not found. Please contact support.');
+            return;
+        }
+        if (profile.role !== 'instructor') {
+            alert('Not authorized as instructor.');
             await signOut();
             return;
         }
         currentProfile = profile;
-        document.getElementById('userAvatar').textContent = (profile.first_name?.[0] || 'S') + (profile.last_name?.[0] || '');
+        document.getElementById('userAvatar').textContent = (profile.first_name?.[0] || 'N') + (profile.last_name?.[0] || 'C');
         document.getElementById('userName').textContent = `${profile.first_name} ${profile.last_name}`;
 
-        await loadEnrolledCourses();
-        await loadProfileData();
-        await loadActivities();
-        await loadAssessments();
-        await loadGrades();
-        await loadAttendance();
-        await loadExcuseHistory();
-        await loadRecitationHistory();
-        await checkRecitationAvailability();
-        await loadDashboardStats();
-        await loadRecentActivity();
-
-        console.log('✅ Student dashboard ready.');
+        await ensureSingleSectionPerCourse();
+        await loadInstructorData();
+        await loadPendingApprovals();
+        await populateCourseSelects();
+        await updateStats();
+        await loadSchedules();
+        await loadAttendanceSessions();
+        await loadManualSessions();
+        await loadAssessmentsList();
+        await loadDraftAssessments();
+        await loadInterventions();
     } catch (err) {
         console.error('Init error:', err);
-        alert('Failed to load: ' + err.message);
+        alert('Failed to initialize: ' + err.message);
     }
 }
 
-// ============================================================
-// 5. ENROLLED COURSES
-// ============================================================
-async function loadEnrolledCourses() {
-    const { data: enrollments, error: e1 } = await supabase
-        .from('course_enrollments')
-        .select('course_id')
-        .eq('student_id', currentUser.id);
-    if (e1) { console.error('Error fetching enrollments:', e1); return; }
-    if (!enrollments || enrollments.length === 0) {
-        enrolledCourses = [];
-        document.getElementById('myCoursesList').innerHTML = '<div class="empty-state">You are not enrolled in any courses.</div>';
+async function ensureSingleSectionPerCourse() {
+    const { data: courses, error } = await supabase.from('courses').select('id, code');
+    if (error) return;
+    for (const course of courses) {
+        const { data: sections, error } = await supabase.from('sections').select('id').eq('course_id', course.id);
+        if (error) continue;
+        if (sections && sections.length > 1) {
+            const deleteIds = sections.slice(1).map(s => s.id);
+            for (const id of deleteIds) await supabase.from('sections').delete().eq('id', id);
+        } else if (!sections || sections.length === 0) {
+            await supabase.from('sections').insert({ course_id: course.id, name: course.code + ' Section' });
+        }
+    }
+}
+
+async function ensureSectionForCourse(courseId) {
+    const { data: sections, error } = await supabase.from('sections').select('id').eq('course_id', courseId);
+    if (error) return null;
+    if (sections && sections.length > 0) return sections[0].id;
+    const course = instructorCourses.find(c => c.id === courseId);
+    const sectionName = course ? course.code + ' Section' : 'Default Section';
+    const { data: newSection, error: insertError } = await supabase.from('sections').insert({ course_id: courseId, name: sectionName }).select().single();
+    if (insertError) return null;
+    return newSection.id;
+}
+
+async function loadInstructorData() {
+    if (!currentUser) return;
+    const { data: myCourses, error: err1 } = await supabase.from('courses').select('*').eq('instructor_id', currentUser.id);
+    if (err1) { alert('Error loading courses: ' + err1.message); return; }
+
+    const { data: orphanedCourses } = await supabase.from('courses').select('*').is('instructor_id', null);
+    if (orphanedCourses && orphanedCourses.length > 0) {
+        for (const course of orphanedCourses) {
+            await supabase.from('courses').update({ instructor_id: currentUser.id }).eq('id', course.id);
+        }
+        const { data: updatedCourses } = await supabase.from('courses').select('*').eq('instructor_id', currentUser.id);
+        instructorCourses = updatedCourses || myCourses || [];
+    } else {
+        instructorCourses = myCourses || [];
+    }
+
+    const container = document.getElementById('instructorCourses');
+    if (instructorCourses.length === 0) {
+        container.innerHTML = '<div class="empty-state"><span class="icon">📘</span><p>No courses assigned yet. Click "+ New Course" to get started.</p></div>';
         return;
     }
-    const courseIds = enrollments.map(e => e.course_id);
-
-    const { data: courses, error: e2 } = await supabase
-        .from('courses')
-        .select('id, code, name')
-        .in('id', courseIds);
-    if (e2) { console.error('Error fetching courses:', e2); return; }
-    enrolledCourses = courses || [];
-
-    const container = document.getElementById('myCoursesList');
-    if (enrolledCourses.length === 0) {
-        container.innerHTML = '<div class="empty-state">You are not enrolled in any courses.</div>';
-        return;
+    let html = '<div class="table-wrap"><table><thead><tr><th>Code</th><th>Name</th><th>Description</th><th>Actions</th></tr></thead><tbody>';
+    for (const c of instructorCourses) {
+        html += `<tr><td><strong>${c.code}</strong></td><td>${c.name}</td><td>${c.description || '-'}</td><td><button class="btn btn-outline btn-sm" onclick="openEditCourseModal('${c.id}')">✏️</button><button class="btn btn-danger btn-sm" onclick="deleteCourse('${c.id}')">🗑️</button></td></tr>`;
     }
-    let html = '<ul style="list-style:none;padding:0;">';
-    enrolledCourses.forEach(c => {
-        html += `<li style="padding:0.5rem 0;border-bottom:1px solid #f1f5f9;">📘 <strong>${c.code}</strong> – ${c.name}</li>`;
-    });
-    html += '</ul>';
+    html += '</tbody></table></div>';
     container.innerHTML = html;
+
+    const gradebookSelect = document.getElementById('manualCourseSelect');
+    if (gradebookSelect) renderSelect(gradebookSelect, instructorCourses, 'id', c => `${c.code} - ${c.name}`);
 }
 
-// ============================================================
-// 6. PROFILE
-// ============================================================
-async function loadProfileData() {
-    document.getElementById('profileEmail').value = currentProfile.email || currentUser.email;
-    document.getElementById('profileFirstName').value = currentProfile.first_name || '';
-    document.getElementById('profileLastName').value = currentProfile.last_name || '';
-}
+window.addCourse = async function() {
+    const code = prompt("Enter Course Code (e.g., IT 101):");
+    if (!code) return;
+    const name = prompt("Enter Course Name:");
+    if (!name) return;
+    const desc = prompt("Enter Course Description (optional):", "") || "";
 
-document.getElementById('profileForm').addEventListener('submit', async (e) => {
+    const { error } = await supabase.from('courses').insert({
+        code: code.trim(),
+        name: name.trim(),
+        description: desc.trim(),
+        instructor_id: currentUser.id
+    });
+
+    if (error) {
+        alert("Error adding course: " + error.message);
+        return;
+    }
+    alert("Course added successfully!");
+    await loadInstructorData();
+    await populateCourseSelects();
+    await updateStats();
+};
+
+window.openEditCourseModal = async function(courseId) {
+    const course = instructorCourses.find(c => c.id === courseId);
+    if (!course) return;
+    document.getElementById('editCourseId').value = course.id;
+    document.getElementById('editCourseCode').value = course.code || '';
+    document.getElementById('editCourseName').value = course.name || '';
+    document.getElementById('editCourseDesc').value = course.description || '';
+    document.getElementById('editCourseModal').classList.add('active');
+};
+
+window.closeEditCourseModal = function() {
+    document.getElementById('editCourseModal').classList.remove('active');
+};
+
+window.deleteCourse = async function(courseId) {
+    if (!confirm("Are you sure you want to delete this course?")) return;
+    const { error } = await supabase.from('courses').delete().eq('id', courseId);
+    if (error) {
+        alert("Error deleting course: " + error.message);
+        return;
+    }
+    alert("Course deleted.");
+    await loadInstructorData();
+    await populateCourseSelects();
+    await updateStats();
+};
+
+document.getElementById('editCourseForm').addEventListener('submit', async function(e) {
     e.preventDefault();
-    const firstName = document.getElementById('profileFirstName').value.trim();
-    const lastName = document.getElementById('profileLastName').value.trim();
-    if (!firstName || !lastName) { alert('First and last name are required.'); return; }
-    const { error } = await supabase
-        .from('profiles')
-        .update({ first_name: firstName, last_name: lastName })
-        .eq('id', currentUser.id);
-    if (error) { alert('Error updating: ' + error.message); return; }
-    alert('Profile updated!');
-    currentProfile.first_name = firstName;
-    currentProfile.last_name = lastName;
-    document.getElementById('userName').textContent = `${firstName} ${lastName}`;
+    const id = document.getElementById('editCourseId').value;
+    const code = document.getElementById('editCourseCode').value.trim();
+    const name = document.getElementById('editCourseName').value.trim();
+    const description = document.getElementById('editCourseDesc').value.trim();
+
+    const { error } = await supabase.from('courses').update({
+        code, name, description
+    }).eq('id', id);
+
+    if (error) {
+        alert("Error updating course: " + error.message);
+        return;
+    }
+    alert("Course updated!");
+    closeEditCourseModal();
+    await loadInstructorData();
+    await populateCourseSelects();
 });
 
-// ============================================================
-// 7. ACTIVITIES
-// ============================================================
-async function loadActivities() {
-    const container = document.getElementById('activitiesList');
-    if (enrolledCourses.length === 0) {
-        container.innerHTML = '<div class="empty-state">No courses – no activities.</div>';
-        return;
-    }
-    const courseIds = enrolledCourses.map(c => c.id);
-    const { data, error } = await supabase
-        .from('activities')
-        .select('*, courses(code, name)')
-        .in('course_id', courseIds)
-        .order('due_date', { ascending: true });
-    if (error) { console.error(error); container.innerHTML = '<div class="empty-state">Error loading activities.</div>'; return; }
-    if (!data || data.length === 0) {
-        container.innerHTML = '<div class="empty-state">No activities assigned.</div>';
-        return;
-    }
-    let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Title</th><th>Due Date</th><th>Status</th></tr></thead><tbody>';
-    const now = new Date();
-    for (const act of data) {
-        const due = new Date(act.due_date);
-        let status = due > now ? '<span class="badge badge-info">Upcoming</span>' : '<span class="badge badge-danger">Overdue</span>';
-        html += `<tr>
-            <td>${act.courses?.code || 'N/A'}</td>
-            <td>${act.title}</td>
-            <td>${due.toLocaleString()}</td>
-            <td>${status}</td>
-        </tr>`;
-    }
-    html += '</tbody></table></div>';
-    container.innerHTML = html;
-}
-
-// ============================================================
-// 8. ASSESSMENTS
-// ============================================================
-async function loadAssessments() {
-    if (enrolledCourses.length === 0) {
-        document.getElementById('takenAssessments').innerHTML = '<div class="empty-state">No courses.</div>';
-        document.getElementById('availableAssessments').innerHTML = '<div class="empty-state">No courses.</div>';
-        document.getElementById('futureAssessments').innerHTML = '<div class="empty-state">No courses.</div>';
-        return;
-    }
-    const courseIds = enrolledCourses.map(c => c.id);
-    const { data: allAssessments, error } = await supabase
-        .from('assessments')
-        .select('*, courses(code, name), assessment_types(name)')
-        .in('course_id', courseIds)
-        .order('date', { ascending: true });
-    if (error) { console.error(error); return; }
-    if (!allAssessments) return;
-
-    const { data: taken } = await supabase
-        .from('grades') 
-        .select('assessment_id')
-        .eq('student_id', currentUser.id);
-    
-    const { data: answered } = await supabase
-        .from('student_answers')
-        .select('assessment_id')
-        .eq('student_id', currentUser.id);
-
-    const takenIds = new Set([
-        ...(taken?.map(a => a.assessment_id) || []),
-        ...(answered?.map(a => a.assessment_id) || [])
-    ]);
-
-    const now = new Date();
-    const takenList = [];
-    const availableList = [];
-    const futureList = [];
-
-    for (const a of allAssessments) {
-        const assessDate = new Date(a.date);
-        const durationMin = a.duration_minutes || a.duration_minute || 60;
-        const expirationDate = new Date(assessDate.getTime() + (durationMin * 60 * 1000) + (24 * 3600 * 1000));
-
-        if (takenIds.has(a.id)) {
-            takenList.push(a);
-        } else if (assessDate <= now && now <= expirationDate) {
-            availableList.push(a);
-        } else if (now > expirationDate) {
-            takenList.push(a);
-        } else {
-            futureList.push(a);
+async function loadPendingApprovals() {
+    const container = document.getElementById('pendingApprovalsList');
+    try {
+        const { data: pending, error } = await supabase
+            .from('profiles')
+            .select('id, email, first_name, last_name')
+            .eq('role', 'pending');
+        if (error) throw error;
+        if (!pending || pending.length === 0) {
+            container.innerHTML = '<div class="empty-state"><p>No pending approvals.</p></div>';
+            return;
         }
-    }
-
-    renderAssessmentList('takenAssessments', takenList, true);
-    renderAssessmentList('availableAssessments', availableList, false);
-    renderAssessmentList('futureAssessments', futureList, false);
-
-    document.querySelectorAll('#assessmentTabs .tab').forEach(tab => {
-        tab.addEventListener('click', function() {
-            document.querySelectorAll('#assessmentTabs .tab').forEach(t => t.classList.remove('active'));
-            this.classList.add('active');
-            const target = this.dataset.tab;
-            document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
-            document.getElementById('tab-' + target).classList.add('active');
-        });
-    });
-}
-
-function renderAssessmentList(containerId, assessments, isTaken) {
-    const container = document.getElementById(containerId);
-    if (!assessments || assessments.length === 0) {
-        container.innerHTML = `<div class="empty-state">${isTaken ? 'No assessments taken yet.' : 'None.'}</div>`;
-        return;
-    }
-    
-    let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Title</th><th>Type</th><th>Date</th><th>Max Score</th><th>Action</th></tr></thead><tbody>';
-    for (const a of assessments) {
-        html += `<tr>
-            <td>${a.courses?.code || 'N/A'}</td>
-            <td>${a.title}</td>
-            <td>${a.assessment_types?.name || 'N/A'}</td>
-            <td>${new Date(a.date).toLocaleString()}</td>
-            <td>${a.max_score}</td>`;
-        if (isTaken) {
-            html += `<td><span class="badge badge-success">Completed</span></td>`;
-        } else if (containerId === 'availableAssessments') {
-            html += `<td><button class="btn btn-primary btn-sm" onclick="startAssessment('${a.id}')">✏️ Take Test</button></td>`;
-        } else {
-            html += `<td><span class="badge badge-info">Scheduled</span></td>`;
+        let html = '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Actions</th></tr></thead><tbody>';
+        for (const p of pending) {
+            html += `<tr><td>${p.first_name} ${p.last_name}</td><td>${p.email}</td><td>
+                <button class="btn btn-success btn-sm" onclick="approveUser('${p.id}')">✅ Approve</button>
+                <button class="btn btn-danger btn-sm" onclick="rejectUser('${p.id}')">❌ Reject</button>
+            </td></tr>`;
         }
-        html += '</tr>';
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+    } catch (err) {
+        container.innerHTML = '<div class="empty-state"><p>Error loading pending approvals.</p></div>';
     }
-    html += '</tbody></table></div>';
-    container.innerHTML = html;
 }
 
-// ============================================================
-// 8.5 TAKING THE EXAM & ANTI-CHEAT SYSTEM
-// ============================================================
-
-window.startAssessment = async function(assessmentId) {
-    const { data: existingGrade } = await supabase
-        .from('grades')
-        .select('id')
-        .eq('student_id', currentUser.id)
-        .eq('assessment_id', assessmentId)
-        .maybeSingle();
-
-    if (existingGrade) {
-        alert("You have already taken this assessment. You cannot re-take it.");
-        await loadAssessments();
-        return;
-    }
-
-    if (!confirm("WARNING: Starting this assessment will enable Anti-Cheat mode. \n\nYou can only take this assessment ONCE. \nLeaving the tab or window will automatically submit your answers.\n\nAre you ready?")) {
-        return;
-    }
-
-    const { data: assessment, error: aErr } = await supabase
-        .from('assessments')
-        .select('*')
-        .eq('id', assessmentId)
-        .single();
-    if (aErr || !assessment) { alert('Error loading assessment details.'); return; }
-
-    const { data: questions, error: qErr } = await supabase
-        .from('assessment_questions')
-        .select('id, question, type, points, options')
-        .eq('assessment_id', assessmentId)
-        .order('id', { ascending: true });
-    
-    if (qErr || !questions) { alert('Error loading questions.'); return; }
-    if (questions.length === 0) { alert('This assessment has no questions configured.'); return; }
-
-    activeExam = assessment;
-    activeExamQuestions = assessment.randomize_ques ? questions.sort(() => Math.random() - 0.5) : questions;
-
-    document.getElementById('appBody').classList.add('exam-mode');
-    document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-    document.getElementById('section-exam').classList.add('active');
-    document.getElementById('activeExamTitle').textContent = assessment.title;
-
-    renderExamQuestions();
-    startExamTimer(assessment.duration_minutes || assessment.duration_minute || 60);
-
-    document.addEventListener("visibilitychange", handleAntiCheatVisibility);
-    window.addEventListener("blur", handleAntiCheatBlur);
+window.approveUser = async function(userId) {
+    if (!confirm('Approve this user?')) return;
+    await supabase.from('profiles').update({ role: 'student' }).eq('id', userId);
+    await loadPendingApprovals();
+    await updateStats();
 };
 
-function startExamTimer(durationMinutes) {
-    let timeLeft = durationMinutes * 60;
-    const timerDisplay = document.getElementById('examTimerDisplay');
-    
-    if (examTimerInterval) clearInterval(examTimerInterval);
+window.rejectUser = async function(userId) {
+    if (!confirm('Reject this user?')) return;
+    await supabase.from('profiles').update({ role: 'rejected' }).eq('id', userId);
+    await loadPendingApprovals();
+    await updateStats();
+};
 
-    examTimerInterval = setInterval(() => {
-        let m = Math.floor(timeLeft / 60);
-        let s = timeLeft % 60;
-        timerDisplay.textContent = `Time Left: ${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-        
-        if (timeLeft <= 0) {
-            clearInterval(examTimerInterval);
-            alert("Time is up! Your assessment will now be submitted automatically.");
-            submitAssessment(false);
-        }
-        timeLeft--;
-    }, 1000);
+async function updateStats() {
+    try {
+        const { count: courseCount } = await supabase
+            .from('courses')
+            .select('*', { count: 'exact', head: true })
+            .eq('instructor_id', currentUser.id);
+        document.getElementById('statCourses').textContent = courseCount || 0;
+
+        const { data: enrollments } = await supabase
+            .from('course_enrollments')
+            .select('student_id')
+            .in('course_id', instructorCourses.map(c => c.id));
+        const unique = new Set(enrollments?.map(e => e.student_id) || []);
+        document.getElementById('statStudents').textContent = unique.size;
+
+        const { count: pendingCount } = await supabase
+            .from('profiles')
+            .select('*', { count: 'exact', head: true })
+            .eq('role', 'pending');
+        document.getElementById('statPending').textContent = pendingCount || 0;
+
+        const { count: assessCount } = await supabase
+            .from('assessments')
+            .select('*', { count: 'exact', head: true })
+            .eq('is_published', true)
+            .in('course_id', instructorCourses.map(c => c.id));
+        document.getElementById('statAssessments').textContent = assessCount || 0;
+    } catch (err) {}
 }
 
-function renderExamQuestions() {
-    const container = document.getElementById('examQuestionsContainer');
-    let html = '';
-    
-    activeExamQuestions.forEach((q, index) => {
-        html += `<div class="question-box" data-question-id="${q.id}" data-question-type="${q.type}">
-            <h4>${index + 1}. ${q.question} <span style="font-size: 0.8rem; color: #64748b; font-weight: normal;">(${q.points} pts)</span></h4>`;
-        
-        if (q.type === 'mc' || q.type === 'tf') {
-            let options = q.options || [];
-            if (activeExam.shuffle_options) {
-                options = options.map((val, idx) => ({val, idx})).sort(() => Math.random() - 0.5);
-                options.forEach(opt => {
-                    html += `<label class="option-label">
-                        <input type="radio" name="q_${q.id}" value="${opt.idx}" /> ${opt.val}
-                    </label>`;
+async function populateCourseSelects() {
+    const selectIds = [
+        'attCourse', 'scheduleCourse', 'assessCourses', 'weightsCourse',
+        'computeCourse', 'finalCourse', 'reportCourse', 'intervCourse', 'enrollCourse',
+        'editAssessCourse'
+    ];
+    for (const id of selectIds) {
+        const el = document.getElementById(id);
+        if (el) {
+            if (el.id === 'assessCourses') {
+                const current = Array.from(el.selectedOptions).map(o => o.value);
+                renderSelect(el, instructorCourses, 'id', c => `${c.code} - ${c.name}`);
+                Array.from(el.options).forEach(opt => {
+                    if (current.includes(opt.value)) opt.selected = true;
                 });
             } else {
-                options.forEach((opt, idx) => {
-                    html += `<label class="option-label">
-                        <input type="radio" name="q_${q.id}" value="${idx}" /> ${opt}
-                    </label>`;
-                });
-            }
-        } else {
-            html += `<textarea name="q_${q.id}" rows="${q.type === 'essay' ? 4 : 1}" style="width:100%; border:1px solid #e2e8f0; border-radius:6px; padding:0.5rem;"></textarea>`;
-        }
-        html += `</div>`;
-    });
-
-    container.innerHTML = html;
-}
-
-function handleAntiCheatVisibility() {
-    if (document.hidden && activeExam) {
-        triggerAntiCheatViolation("You changed tabs or minimized the browser.");
-    }
-}
-function handleAntiCheatBlur() {
-    if (activeExam) {
-        triggerAntiCheatViolation("You switched to another window or application.");
-    }
-}
-
-function triggerAntiCheatViolation(reason) {
-    if (!activeExam) return;
-    alert(`🚨 SECURITY VIOLATION 🚨\n\n${reason}\n\nYour exam has been locked and submitted.`);
-    submitAssessment(true);
-}
-
-window.submitAssessment = async function(isViolation = false) {
-    if (examTimerInterval) clearInterval(examTimerInterval);
-    if (!activeExam) return;
-
-    if (!isViolation && !confirm("Are you sure you want to submit your assessment? You cannot re-take it after submission.")) return;
-    
-    const assessmentId = activeExam.id;
-    let earnedPoints = 0;
-    let autoGradableMax = 0;
-
-    const { data: dbQuestions } = await supabase
-        .from('assessment_questions')
-        .select('id, type, points, correct_answer')
-        .eq('assessment_id', assessmentId);
-
-    const submissionEntries = [];
-    
-    activeExamQuestions.forEach(q => {
-        const dbQ = dbQuestions?.find(db => db.id === q.id);
-        if (!dbQ) return;
-
-        let studentAnswerStr = null;
-        let isCorrect = false;
-        let hasAnswered = false;
-
-        if (q.type === 'mc' || q.type === 'tf') {
-            autoGradableMax += q.points;
-            const selected = document.querySelector(`input[name="q_${q.id}"]:checked`);
-            if (selected) {
-                studentAnswerStr = selected.value;
-                hasAnswered = true;
-                if (!isViolation && parseInt(studentAnswerStr) === dbQ.correct_answer) {
-                    earnedPoints += q.points;
-                    isCorrect = true;
-                }
-            }
-        } else {
-            const textInput = document.querySelector(`[name="q_${q.id}"]`);
-            if (textInput && textInput.value.trim() !== '') {
-                studentAnswerStr = textInput.value.trim();
-                hasAnswered = true;
+                renderSelect(el, instructorCourses, 'id', c => `${c.code} - ${c.name}`);
             }
         }
+    }
+}
 
-        if (hasAnswered) {
-            submissionEntries.push({
-                student_id: currentUser.id,
-                assessment_id: assessmentId,
-                question_id: q.id,
-                answer: studentAnswerStr,
-                is_correct: isCorrect,
-                points_awarded: isCorrect ? q.points : 0
-            });
+async function loadSchedules() {
+    const container = document.getElementById('scheduleList');
+    try {
+        const { data: schedules, error } = await supabase
+            .from('schedules')
+            .select(`
+                id, day_of_week, start_time, end_time, room,
+                section_id,
+                sections ( course_id, name )
+            `)
+            .in('section_id', (await supabase.from('sections').select('id').in('course_id', instructorCourses.map(c => c.id))).data?.map(s => s.id) || []);
+        if (error) throw error;
+        if (!schedules || schedules.length === 0) {
+            container.innerHTML = '<div class="empty-state"><p>No schedules set.</p></div>';
+            return;
         }
-    });
-
-    if (submissionEntries.length > 0) {
-        await supabase.from('student_answers').insert(submissionEntries);
-    }
-
-    let finalScore = isViolation ? 0 : earnedPoints;
-    let examMaxScore = activeExam.max_score || 100;
-    
-    if (autoGradableMax > 0) {
-        finalScore = (finalScore / autoGradableMax) * examMaxScore; 
-    }
-
-    await supabase.from('grades').insert({
-        student_id: currentUser.id,
-        assessment_id: assessmentId,
-        course_id: activeExam.course_id,
-        score: isViolation ? 0 : finalScore,
-        max_score: examMaxScore
-    });
-
-    activeExam = null;
-    activeExamQuestions = [];
-    document.removeEventListener("visibilitychange", handleAntiCheatVisibility);
-    window.removeEventListener("blur", handleAntiCheatBlur);
-    document.getElementById('appBody').classList.remove('exam-mode');
-
-    if (!isViolation) {
-        alert("Assessment submitted successfully!");
-    }
-    
-    await loadAssessments();
-    switchSection('assessments');
-};
-
-// ============================================================
-// 9. GRADES
-// ============================================================
-async function loadGrades() {
-    if (enrolledCourses.length === 0) {
-        document.getElementById('gradesContainer').innerHTML = '<div class="empty-state">No courses.</div>';
-        document.getElementById('finalRatingsContainer').innerHTML = '<div class="empty-state">No courses.</div>';
-        return;
-    }
-    const courseIds = enrolledCourses.map(c => c.id);
-
-    const { data: pGrades, error: e1 } = await supabase
-        .from('period_grades')
-        .select('*, courses(code, name)')
-        .in('course_id', courseIds)
-        .eq('student_id', currentUser.id);
-    if (e1) console.error(e1);
-    const { data: fRatings, error: e2 } = await supabase
-        .from('final_ratings')
-        .select('*, courses(code, name)')
-        .in('course_id', courseIds)
-        .eq('student_id', currentUser.id);
-    if (e2) console.error(e2);
-
-    const gradesContainer = document.getElementById('gradesContainer');
-    if (!pGrades || pGrades.length === 0) {
-        gradesContainer.innerHTML = '<div class="empty-state">No period grades yet.</div>';
-    } else {
-        const byCourse = {};
-        pGrades.forEach(g => {
-            const key = g.course_id;
-            if (!byCourse[key]) byCourse[key] = { course: g.courses, periods: {} };
-            byCourse[key].periods[g.period] = g.grade;
-        });
-        let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Prelim</th><th>Midterm</th><th>Semi‑Final</th><th>Final</th></tr></thead><tbody>';
-        for (const key in byCourse) {
-            const item = byCourse[key];
+        let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Day</th><th>Start</th><th>End</th><th>Room</th><th>Actions</th></tr></thead><tbody>';
+        for (const s of schedules) {
+            const courseName = s.sections?.name || 'N/A';
             html += `<tr>
-                <td>${item.course?.code || 'N/A'}</td>
-                <td>${item.periods.prelim?.toFixed(2) || '-'}</td>
-                <td>${item.periods.midterm?.toFixed(2) || '-'}</td>
-                <td>${item.periods.semifinal?.toFixed(2) || '-'}</td>
-                <td>${item.periods.final?.toFixed(2) || '-'}</td>
+                <td>${courseName}</td>
+                <td>${s.day_of_week}</td>
+                <td>${s.start_time}</td>
+                <td>${s.end_time}</td>
+                <td>${s.room || '-'}</td>
+                <td>
+                    <button class="btn btn-outline btn-sm" onclick="openEditScheduleModal('${s.id}')">✏️</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteSchedule('${s.id}')">🗑️</button>
+                </td>
             </tr>`;
         }
         html += '</tbody></table></div>';
-        gradesContainer.innerHTML = html;
-    }
-
-    const finalContainer = document.getElementById('finalRatingsContainer');
-    if (!fRatings || fRatings.length === 0) {
-        finalContainer.innerHTML = '<div class="empty-state">No final ratings yet.</div>';
-    } else {
-        let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Final Grade</th></tr></thead><tbody>';
-        fRatings.forEach(f => {
-            html += `<tr><td>${f.courses?.code || 'N/A'}</td><td><strong>${f.final_grade.toFixed(2)}</strong></td></tr>`;
-        });
-        html += '</tbody></table></div>';
-        finalContainer.innerHTML = html;
+        container.innerHTML = html;
+    } catch (err) {
+        container.innerHTML = '<div class="empty-state"><p>Error loading schedules.</p></div>';
     }
 }
 
-// ============================================================
-// 10. ATTENDANCE + EXCUSE LETTERS
-// ============================================================
-async function loadAttendance() {
-    if (enrolledCourses.length === 0) {
-        document.getElementById('attendanceRecords').innerHTML = '<div class="empty-state">No courses.</div>';
-        return;
-    }
-    const courseIds = enrolledCourses.map(c => c.id);
-    const { data: sections } = await supabase
-        .from('sections')
-        .select('id')
-        .in('course_id', courseIds);
-    if (!sections || sections.length === 0) {
-        document.getElementById('attendanceRecords').innerHTML = '<div class="empty-state">No attendance sessions.</div>';
-        return;
-    }
-    const sectionIds = sections.map(s => s.id);
-    const { data: sessions, error: sErr } = await supabase
-        .from('attendance_sessions')
-        .select('*, sections(course_id, courses(code, name))')
-        .in('section_id', sectionIds)
-        .order('date', { ascending: false });
-    if (sErr) { console.error(sErr); return; }
-    if (!sessions || sessions.length === 0) {
-        document.getElementById('attendanceRecords').innerHTML = '<div class="empty-state">No sessions.</div>';
-        return;
-    }
-    const sessionIds = sessions.map(s => s.id);
-    const { data: records } = await supabase
-        .from('attendance_records')
-        .select('*')
-        .in('session_id', sessionIds)
-        .eq('student_id', currentUser.id);
-    const recordMap = {};
-    if (records) {
-        records.forEach(r => { recordMap[r.session_id] = r.status; });
-    }
+window.openEditScheduleModal = async function(scheduleId) {
+    const { data: schedule } = await supabase.from('schedules').select('*').eq('id', scheduleId).single();
+    if (!schedule) return;
+    document.getElementById('editScheduleId').value = schedule.id;
+    document.getElementById('editScheduleDay').value = schedule.day_of_week;
+    document.getElementById('editScheduleStart').value = schedule.start_time;
+    document.getElementById('editScheduleEnd').value = schedule.end_time;
+    document.getElementById('editScheduleRoom').value = schedule.room || '';
+    document.getElementById('editScheduleModal').classList.add('active');
+};
 
-    let present = 0, absent = 0, late = 0, excused = 0;
-    let total = sessions.length;
-    sessions.forEach(s => {
-        const status = recordMap[s.id] || 'absent';
-        switch(status) {
-            case 'present': present++; break;
-            case 'absent': absent++; break;
-            case 'late': late++; break;
-            case 'excused': excused++; break;
-        }
-    });
-    document.getElementById('totalSessions').textContent = total;
-    document.getElementById('presentCount').textContent = present;
-    document.getElementById('absentCount').textContent = absent;
-    document.getElementById('lateCount').textContent = late;
-    document.getElementById('excusedCount').textContent = excused;
+window.closeEditScheduleModal = function() {
+    document.getElementById('editScheduleModal').classList.remove('active');
+};
 
-    let html = '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Course</th><th>Time</th><th>Status</th></tr></thead><tbody>';
-    sessions.forEach(s => {
-        const status = recordMap[s.id] || 'absent';
-        const badge = status === 'present' ? 'badge-success' :
-                     status === 'absent' ? 'badge-danger' :
-                     status === 'late' ? 'badge-warning' : 'badge-info';
-        const courseCode = s.sections?.courses?.code || 'N/A';
-        html += `<tr>
-            <td>${s.date}</td>
-            <td>${courseCode}</td>
-            <td>${s.start_time} - ${s.end_time}</td>
-            <td><span class="badge ${badge}">${status}</span></td>
-        </tr>`;
-    });
-    html += '</tbody></table></div>';
-    document.getElementById('attendanceRecords').innerHTML = html;
+window.deleteSchedule = async function(scheduleId) {
+    if (!confirm('Delete this schedule?')) return;
+    await supabase.from('schedules').delete().eq('id', scheduleId);
+    await loadSchedules();
+};
 
-    const courseSelect = document.getElementById('excuseCourse');
-    renderSelect(courseSelect, enrolledCourses, 'id', c => `${c.code} - ${c.name}`);
-    const sessionSelect = document.getElementById('excuseSession');
-    renderSelect(sessionSelect, sessions, 'id', s => `${s.date} ${s.start_time}-${s.end_time}`);
-}
-
-document.getElementById('excuseForm').addEventListener('submit', async (e) => {
+document.getElementById('scheduleForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const courseId = document.getElementById('excuseCourse').value;
-    const sessionId = document.getElementById('excuseSession').value || null;
-    const fileInput = document.getElementById('excuseFile');
-    if (!courseId) { alert('Select a course.'); return; }
-    if (!fileInput.files || fileInput.files.length === 0) { alert('Select a file.'); return; }
-    const file = fileInput.files[0];
+    const courseId = document.getElementById('scheduleCourse').value;
+    const day = document.getElementById('scheduleDay').value;
+    const start = document.getElementById('scheduleStart').value;
+    const end = document.getElementById('scheduleEnd').value;
+    const room = document.getElementById('scheduleRoom').value;
+    if (!courseId) return;
+    const sectionId = await ensureSectionForCourse(courseId);
+    if (!sectionId) return;
 
-    const filePath = `excuse_letters/${currentUser.id}/${Date.now()}_${file.name}`;
-    const { data: uploadData, error: uploadErr } = await supabase.storage
-        .from('excuse_letters')
-        .upload(filePath, file);
-    if (uploadErr) { alert('Upload failed: ' + uploadErr.message); return; }
-    const { data: urlData } = supabase.storage.from('excuse_letters').getPublicUrl(filePath);
-    const fileUrl = urlData.publicUrl;
-
-    const { error: insertErr } = await supabase
-        .from('excuse_letters')
-        .insert({
-            student_id: currentUser.id,
-            course_id: courseId,
-            attendance_session_id: sessionId || null,
-            file_url: fileUrl,
-            status: 'pending'
-        });
-    if (insertErr) { alert('Error saving: ' + insertErr.message); return; }
-    alert('Excuse letter uploaded!');
-    document.getElementById('excuseForm').reset();
-    await loadExcuseHistory();
+    await supabase
+        .from('schedules')
+        .insert({ section_id: sectionId, day_of_week: day, start_time: start, end_time: end, room: room || null });
+    await loadSchedules();
+    document.getElementById('scheduleForm').reset();
 });
 
-async function loadExcuseHistory() {
-    const container = document.getElementById('excuseList');
-    const { data, error } = await supabase
-        .from('excuse_letters')
-        .select('*, courses(code, name)')
-        .eq('student_id', currentUser.id)
-        .order('upload_date', { ascending: false });
-    if (error) { console.error(error); return; }
-    if (!data || data.length === 0) {
-        container.innerHTML = '<div class="empty-state">No excuse letters submitted.</div>';
-        return;
-    }
-    let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>File</th><th>Status</th><th>Date</th></tr></thead><tbody>';
-    data.forEach(d => {
-        const badge = d.status === 'pending' ? 'badge-warning' :
-                       d.status === 'approved' ? 'badge-success' : 'badge-danger';
-        html += `<tr>
-            <td>${d.courses?.code || 'N/A'}</td>
-            <td><a href="${d.file_url}" target="_blank">📄 View</a></td>
-            <td><span class="badge ${badge}">${d.status}</span></td>
-            <td>${new Date(d.upload_date).toLocaleString()}</td>
-        </tr>`;
-    });
-    html += '</tbody></table></div>';
-    container.innerHTML = html;
-}
-
-// ============================================================
-// 11. RECITATION (Fixed & Auto-Selected Active Class)
-// ============================================================
-async function checkRecitationAvailability() {
-    const statusDiv = document.getElementById('recitationStatus');
-    const formContainer = document.getElementById('recitationFormContainer');
-    const now = new Date();
-    const dayOfWeek = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][now.getDay()];
-    const currentTime = now.getHours() * 60 + now.getMinutes();
-
-    if (enrolledCourses.length === 0) {
-        statusDiv.innerHTML = '<div class="empty-state">You are not enrolled in any courses.</div>';
-        formContainer.style.display = 'none';
-        return;
-    }
-    const courseIds = enrolledCourses.map(c => c.id);
-    const { data: sections } = await supabase
-        .from('sections')
-        .select('id, course_id')
-        .in('course_id', courseIds);
-    if (!sections || sections.length === 0) {
-        statusDiv.innerHTML = '<div class="empty-state">No class schedules found.</div>';
-        formContainer.style.display = 'none';
-        return;
-    }
-    const sectionIds = sections.map(s => s.id);
-    const { data: schedules, error } = await supabase
-        .from('schedules')
-        .select('*, sections(course_id, courses(code, name))')
-        .in('section_id', sectionIds)
-        .eq('day_of_week', dayOfWeek);
-    if (error) { console.error(error); return; }
-
-    let active = false;
-    let activeCourse = null;
-    if (schedules) {
-        for (const s of schedules) {
-            const startMin = timeToMinutes(s.start_time);
-            const endMin = timeToMinutes(s.end_time);
-            if (currentTime >= startMin - 30 && currentTime <= endMin + 30) {
-                active = true;
-                activeCourse = s.sections?.courses;
-                break;
-            }
-        }
-    }
-
-    const targetCourse = activeCourse || enrolledCourses[0];
-
-    statusDiv.innerHTML = `<div style="background:#d1fae5;padding:1rem;border-radius:8px;color:#065f46;">
-        ✅ Recitation Logger active. Current Course: <strong>${targetCourse?.code || ''} - ${targetCourse?.name || ''}</strong>
-    </div>`;
-    formContainer.style.display = 'block';
-
-    const recitCourseSelect = document.getElementById('recitCourse');
-    renderSelect(recitCourseSelect, enrolledCourses, 'id', c => `${c.code} - ${c.name}`);
-    
-    // Auto-select and lock the current active course so students don't need to select it again
-    if (targetCourse) {
-        recitCourseSelect.value = targetCourse.id;
-    }
-
-    document.getElementById('recitDate').value = now.toISOString().split('T')[0];
-    document.getElementById('recitTime').value = now.toTimeString().slice(0,5);
-}
-
-document.getElementById('recitationForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const courseId = document.getElementById('recitCourse').value;
-    const date = document.getElementById('recitDate').value;
-    const time = document.getElementById('recitTime').value;
-    const rating = parseInt(document.getElementById('recitRating').value);
-
-    if (!courseId) { alert('Select a course.'); return; }
-
-    const { data: schedules } = await supabase
-        .from('schedules')
-        .select('id')
-        .eq('day_of_week', new Date(date).toLocaleString('en', { weekday: 'long' }));
-    let scheduleId = schedules && schedules.length > 0 ? schedules[0].id : null;
-
-    const { error } = await supabase
-        .from('recitations')
-        .insert({
-            student_id: currentUser.id,
-            course_id: courseId,
-            schedule_id: scheduleId,
-            date: date,
-            time: time,
-            rating: rating
-        });
-
-    if (error) { alert('Error logging recitation: ' + error.message); return; }
-    alert('🎤 Recitation recorded successfully!');
-    await loadRecitationHistory();
-    document.getElementById('recitDate').value = new Date().toISOString().split('T')[0];
-    document.getElementById('recitTime').value = new Date().toTimeString().slice(0,5);
-});
-
-async function loadRecitationHistory() {
-    const container = document.getElementById('recitationHistory');
-    if (enrolledCourses.length === 0) {
-        container.innerHTML = '<div class="empty-state">No recitations.</div>';
-        return;
-    }
-    const courseIds = enrolledCourses.map(c => c.id);
-    const { data, error } = await supabase
-        .from('recitations')
-        .select('*, courses(code, name)')
-        .eq('student_id', currentUser.id)
-        .in('course_id', courseIds)
-        .order('recorded_at', { ascending: false });
-    if (error) { console.error(error); return; }
-    if (!data || data.length === 0) {
-        container.innerHTML = '<div class="empty-state">No recitations logged yet.</div>';
-        return;
-    }
-    let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Date</th><th>Time</th><th>Rating</th><th>Logged At</th></tr></thead><tbody>';
-    data.forEach(r => {
-        html += `<tr>
-            <td>${r.courses?.code || 'N/A'}</td>
-            <td>${r.date}</td>
-            <td>${r.time}</td>
-            <td><span class="badge badge-info">${r.rating || 3} / 5</span></td>
-            <td>${new Date(r.recorded_at).toLocaleString()}</td>
-        </tr>`;
-    });
-    html += '</tbody></table></div>';
-    container.innerHTML = html;
-}
-
-// ============================================================
-// 12. DASHBOARD STATS & RECENT ACTIVITY
-// ============================================================
-async function loadDashboardStats() {
-    document.getElementById('dashCourses').textContent = enrolledCourses.length;
-
-    if (enrolledCourses.length > 0) {
-        const courseIds = enrolledCourses.map(c => c.id);
-        const { data: assess } = await supabase
-            .from('assessments')
-            .select('id')
-            .in('course_id', courseIds)
-            .gte('date', new Date().toISOString())
-            .lt('date', new Date(Date.now() + 7 * 86400000).toISOString());
-        document.getElementById('dashAssessments').textContent = assess?.length || 0;
-    }
-
-    const presentEl = document.getElementById('presentCount');
-    const absentEl = document.getElementById('absentCount');
-    document.getElementById('dashPresent').textContent = presentEl ? presentEl.textContent : '0';
-    document.getElementById('dashAbsent').textContent = absentEl ? absentEl.textContent : '0';
-}
-
-async function loadRecentActivity() {
-    const container = document.getElementById('recentActivity');
-    const activities = [];
-
-    if (enrolledCourses.length > 0) {
-        const courseIds = enrolledCourses.map(c => c.id);
-        const { data: recits } = await supabase
-            .from('recitations')
-            .select('recorded_at, courses(code), rating')
-            .eq('student_id', currentUser.id)
-            .in('course_id', courseIds)
-            .order('recorded_at', { ascending: false })
-            .limit(3);
-        if (recits) {
-            recits.forEach(r => {
-                activities.push({
-                    text: `🎤 Recitation logged for ${r.courses?.code || 'N/A'} (Rating: ${r.rating || 3}/5)`,
-                    time: new Date(r.recorded_at).toLocaleString()
-                });
-            });
-        }
-
-        const { data: excuses } = await supabase
-            .from('excuse_letters')
-            .select('upload_date, courses(code), status')
-            .eq('student_id', currentUser.id)
-            .in('course_id', courseIds)
-            .order('upload_date', { ascending: false })
-            .limit(3);
-        if (excuses) {
-            excuses.forEach(e => {
-                const emoji = e.status === 'approved' ? '✅' : e.status === 'rejected' ? '❌' : '⏳';
-                activities.push({
-                    text: `${emoji} Excuse letter for ${e.courses?.code || 'N/A'} (${e.status})`,
-                    time: new Date(e.upload_date).toLocaleString()
-                });
-            });
-        }
-    }
-
-    if (activities.length === 0) {
-        container.innerHTML = '<div class="empty-state">No recent activity.</div>';
-        return;
-    }
-
-    activities.sort((a, b) => new Date(b.time) - new Date(a.time));
-    const top = activities.slice(0, 5);
-
-    let html = '<ul style="list-style:none;padding:0;">';
-    top.forEach(a => {
-        html += `<li style="padding:0.5rem 0;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;">
-            <span>${a.text}</span>
-            <span style="color:#94a3b8;font-size:0.75rem;">${a.time}</span>
-        </li>`;
-    });
-    html += '</ul>';
-    container.innerHTML = html;
-}
-
-// ============================================================
-// 13. NAVIGATION
-// ============================================================
-document.querySelectorAll('.nav-item').forEach(item => {
-    item.addEventListener('click', async function() {
-        if (this.id === 'logoutBtn') return;
-        
-        if (activeExam) {
-            alert('You must submit your assessment before navigating away.');
+async function loadAttendanceSessions() {
+    const container = document.getElementById('attendanceSessionsList');
+    try {
+        const sectionIds = (await supabase.from('sections').select('id').in('course_id', instructorCourses.map(c => c.id))).data?.map(s => s.id) || [];
+        const { data: sessions, error } = await supabase
+            .from('attendance_sessions')
+            .select('*')
+            .in('section_id', sectionIds)
+            .order('date', { ascending: false });
+        if (error) throw error;
+        if (!sessions || sessions.length === 0) {
+            container.innerHTML = '<div class="empty-state"><p>No sessions yet.</p></div>';
             return;
         }
+        let html = '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Start</th><th>End</th><th>Code</th><th>QR Code</th><th>Expires</th><th>Actions</th></tr></thead><tbody>';
+        for (const s of sessions) {
+            const qrUrl = getQRCodeUrl(s.code);
+            html += `<tr>
+                <td>${s.date}</td>
+                <td>${s.start_time}</td>
+                <td>${s.end_time}</td>
+                <td>${s.code}</td>
+                <td class="qr-code"><img src="${qrUrl}" alt="QR Code" /></td>
+                <td>${s.expires_at ? new Date(s.expires_at).toLocaleString() : '-'}</td>
+                <td>
+                    <button class="btn btn-danger btn-sm" onclick="deleteAttendanceSession('${s.id}')">🗑️</button>
+                </td>
+            </tr>`;
+        }
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+    } catch (err) {
+        container.innerHTML = '<div class="empty-state"><p>Error loading sessions.</p></div>';
+    }
+}
 
-        const target = this.dataset.section;
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        this.classList.add('active');
-        document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-        document.getElementById(`section-${target}`).classList.add('active');
+async function loadManualSessions() {
+    const select = document.getElementById('manualSessionSelect');
+    try {
+        const sectionIds = (await supabase.from('sections').select('id').in('course_id', instructorCourses.map(c => c.id))).data?.map(s => s.id) || [];
+        const { data: sessions } = await supabase
+            .from('attendance_sessions')
+            .select('id, date, start_time, end_time')
+            .in('section_id', sectionIds)
+            .order('date', { ascending: false });
+        select.innerHTML = '<option value="">Choose a session...</option>';
+        if (sessions) {
+            for (const s of sessions) {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = `${s.date} ${s.start_time}-${s.end_time}`;
+                select.appendChild(opt);
+            }
+        }
+    } catch (err) {}
+}
 
-        if (target === 'attendance') { await loadAttendance(); await loadExcuseHistory(); }
-        if (target === 'recitation') { await checkRecitationAvailability(); await loadRecitationHistory(); }
-        if (target === 'grades') await loadGrades();
-        if (target === 'assessments') await loadAssessments();
-        if (target === 'activities') await loadActivities();
-        if (target === 'dashboard') { await loadDashboardStats(); await loadRecentActivity(); }
-    });
-});
+window.openMarkAttendanceModal = async function() {
+    const sessionId = document.getElementById('manualSessionSelect').value;
+    if (!sessionId) { alert('Please select a session.'); return; }
+    currentManualSessionId = sessionId;
+    const { data: session } = await supabase.from('attendance_sessions').select('*').eq('id', sessionId).single();
+    if (!session) return;
 
-// Logout
-document.getElementById('logoutBtn').addEventListener('click', async function() {
-    if (activeExam) {
-        alert('You must submit your assessment before signing out.');
+    const sessionEndDateTime = new Date(`${session.date}T${session.end_time}`);
+    const now = new Date();
+    const isPastEnd = now > sessionEndDateTime;
+
+    document.getElementById('markAttendanceInfo').innerHTML = `
+        <p><strong>Session:</strong> ${session.date} ${session.start_time} - ${session.end_time}</p>
+        ${isPastEnd ? '<p style="color:#ef4444;"><strong>⚠️ This session has ended. Editing is no longer allowed.</strong></p>' : ''}
+    `;
+
+    const { data: section } = await supabase.from('sections').select('course_id').eq('id', session.section_id).single();
+    if (!section) return;
+    const { data: enrollments } = await supabase
+        .from('course_enrollments')
+        .select('student_id')
+        .eq('course_id', section.course_id);
+    const studentIds = enrollments?.map(e => e.student_id) || [];
+    const { data: records } = await supabase
+        .from('attendance_records')
+        .select('student_id, status')
+        .eq('session_id', sessionId);
+    const recordMap = {};
+    if (records) {
+        for (const r of records) {
+            recordMap[r.student_id] = r.status;
+        }
+    }
+    const { data: students } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .in('id', studentIds);
+
+    const statusOptions = ['present', 'late', 'absent', 'excused'];
+    const statusLabels = { 'present': 'Present', 'late': 'Late', 'absent': 'Absent', 'excused': 'Absent with Valid Reason' };
+
+    let html = '';
+    for (const sid of studentIds) {
+        const s = students?.find(p => p.id === sid);
+        const name = s ? `${s.first_name} ${s.last_name}` : sid;
+        const currentStatus = recordMap[sid] || 'absent';
+        html += `<tr>
+            <td>${name}</td>
+            <td><span class="badge badge-${currentStatus === 'present' ? 'approved' : currentStatus === 'late' ? 'pending' : 'rejected'}">${statusLabels[currentStatus] || currentStatus}</span></td>
+            <td>
+                <select class="att-status-select" data-student="${sid}" ${isPastEnd ? 'disabled' : ''}>
+                    ${statusOptions.map(opt => `<option value="${opt}" ${currentStatus === opt ? 'selected' : ''}>${statusLabels[opt]}</option>`).join('')}
+                </select>
+            </td>
+            <td>${isPastEnd ? '🔒' : `<button class="btn btn-outline btn-sm" onclick="markSingleAttendance('${sid}', this)">Update</button>`}</td>
+        </tr>`;
+    }
+    document.getElementById('markAttendanceBody').innerHTML = html;
+    document.getElementById('saveManualAttendanceBtn').disabled = isPastEnd;
+    document.getElementById('markAttendanceModal').classList.add('active');
+};
+
+window.closeMarkAttendanceModal = function() {
+    document.getElementById('markAttendanceModal').classList.remove('active');
+};
+
+window.markSingleAttendance = async function(studentId, btn) {
+    const select = btn.closest('tr').querySelector('.att-status-select');
+    const status = select.value;
+    const sessionId = currentManualSessionId;
+    if (!sessionId) return;
+    await supabase
+        .from('attendance_records')
+        .upsert({ session_id: sessionId, student_id: studentId, status: status }, { onConflict: 'session_id,student_id' });
+    await openMarkAttendanceModal();
+};
+
+window.saveManualAttendance = async function() {
+    const sessionId = currentManualSessionId;
+    if (!sessionId) return;
+    const selects = document.querySelectorAll('#markAttendanceBody .att-status-select:not([disabled])');
+    const updates = [];
+    for (const sel of selects) {
+        updates.push({ session_id: sessionId, student_id: sel.dataset.student, status: sel.value });
+    }
+    for (const u of updates) {
+        await supabase.from('attendance_records').upsert(u, { onConflict: 'session_id,student_id' });
+    }
+    alert('All attendance records saved!');
+    await loadAttendanceSessions();
+    closeMarkAttendanceModal();
+};
+
+window.deleteAttendanceSession = async function(sessionId) {
+    if (!confirm('Delete this session and all attendance records?')) return;
+    await supabase.from('attendance_sessions').delete().eq('id', sessionId);
+    await loadAttendanceSessions();
+    await loadManualSessions();
+};
+
+// ------------------------------------------------------------
+// 12. ASSESSMENTS
+// ------------------------------------------------------------
+window.createNewAssessment = function() {
+    document.getElementById('assessmentForm').reset();
+    document.getElementById('assessTitle').value = '';
+    document.getElementById('assessDesc').value = '';
+    document.getElementById('assessDate').value = '';
+    document.getElementById('assessDuration').value = 60;
+    document.getElementById('assessMaxScore').value = 100;
+    document.getElementById('assessPassing').value = 60;
+    document.getElementById('assessPeriod').value = 'prelim';
+    document.getElementById('assessRandomize').checked = false;
+    document.getElementById('assessShuffleOptions').checked = false;
+    document.getElementById('assessShowAnswers').checked = false;
+    document.getElementById('assessAI').value = 'none';
+    document.getElementById('questionList').innerHTML = '<div class="empty-state">No questions added yet.</div>';
+    currentDraftAssessmentId = null;
+    isEditingPublished = false;
+    document.getElementById('publishAssessmentBtn').textContent = '🚀 Publish Assessment';
+    window._currentQuestions = [];
+    switchSection('assessments');
+    goToStep(1);
+};
+
+async function ensureDraftExists() {
+    if (currentDraftAssessmentId) return currentDraftAssessmentId;
+
+    const title = document.getElementById('assessTitle').value.trim() || 'Untitled Draft';
+    const desc = document.getElementById('assessDesc').value.trim();
+    const type = document.getElementById('assessType').value;
+    const period = document.getElementById('assessPeriod').value || 'prelim';
+    const duration = parseInt(document.getElementById('assessDuration').value) || 60;
+    const maxScore = parseFloat(document.getElementById('assessMaxScore').value) || 100;
+    const date = document.getElementById('assessDate').value || null;
+    const questionsToShow = parseInt(document.getElementById('assessShow').value) || null;
+    const randomize = document.getElementById('assessRandomize').checked;
+    const ai = document.getElementById('assessAI').value;
+    const shuffleOptions = document.getElementById('assessShuffleOptions').checked;
+    const showAnswers = document.getElementById('assessShowAnswers').checked;
+    const passing = parseInt(document.getElementById('assessPassing').value) || 60;
+
+    const courseSelect = document.getElementById('assessCourses');
+    const selectedCourseIds = Array.from(courseSelect.selectedOptions).map(opt => opt.value);
+    const courseId = selectedCourseIds.length > 0 ? selectedCourseIds[0] : null;
+
+    let typeId = null;
+    if (courseId) {
+        const { data: existingType } = await supabase
+            .from('assessment_types')
+            .select('id')
+            .eq('course_id', courseId)
+            .eq('name', type)
+            .maybeSingle();
+        if (existingType) {
+            typeId = existingType.id;
+        } else {
+            const defaultWeight = (type === 'Quizzes and activities') ? 15 : (type === 'Major Exam' ? 50 : 25);
+            const { data: newType } = await supabase
+                .from('assessment_types')
+                .insert({ course_id: courseId, name: type, weight: defaultWeight })
+                .select()
+                .single();
+            if (newType) typeId = newType.id;
+        }
+    }
+
+    const { data: draft, error } = await supabase
+        .from('assessments')
+        .insert({
+            title: title,
+            description: desc,
+            assessment_type_id: typeId,
+            period: period,
+            max_score: maxScore,
+            duration_minute: duration,
+            date: date,
+            randomize_ques: randomize,
+            questions_to_show: questionsToShow,
+            shuffle_options: shuffleOptions,
+            show_answers: showAnswers,
+            passing_score: passing,
+            ai_grading: ai,
+            course_id: courseId,
+            is_published: false
+        })
+        .select()
+        .single();
+
+    if (error) {
+        alert('Error creating draft: ' + error.message);
+        return null;
+    }
+
+    currentDraftAssessmentId = draft.id;
+    await loadDraftAssessments();
+    return currentDraftAssessmentId;
+}
+
+async function saveQuestionToDB(questionData, questionId = null) {
+    const draftId = await ensureDraftExists();
+    if (!draftId) return null;
+
+    const payload = {
+        assessment_id: draftId,
+        question: questionData.question,
+        type: questionData.type,
+        points: questionData.points,
+        options: questionData.options || null,
+        correct_answer: questionData.correct !== undefined && questionData.correct !== null ? questionData.correct : null
+    };
+
+    if (questionId) {
+        await supabase.from('assessment_questions').update(payload).eq('id', questionId);
+    } else {
+        await supabase.from('assessment_questions').insert(payload);
+    }
+    await loadQuestionsForDraft(draftId);
+}
+
+async function loadQuestionsForDraft(assessmentId) {
+    if (!assessmentId) return;
+    const { data: questions } = await supabase
+        .from('assessment_questions')
+        .select('*')
+        .eq('assessment_id', assessmentId)
+        .order('id', { ascending: true });
+    const container = document.getElementById('questionList');
+    if (!questions || questions.length === 0) {
+        container.innerHTML = '<div class="empty-state">No questions added yet.</div>';
         return;
     }
-    await signOut();
-    window.location.href = 'index.html';
+    let html = '';
+    questions.forEach((q, idx) => {
+        html += `<div class="question-item">
+            <span class="q-text">${idx+1}. ${q.question} (${q.type}, ${q.points} pts)</span>
+            <div class="q-actions">
+                <button class="btn btn-outline btn-sm" onclick="editQuestionDB('${q.id}')">✏️</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteQuestionDB('${q.id}')">🗑️</button>
+            </div>
+        </div>`;
+    });
+    container.innerHTML = html;
+    window._currentQuestions = questions;
+}
+
+window.deleteQuestionDB = async function(questionId) {
+    if (!confirm('Delete this question?')) return;
+    await supabase.from('assessment_questions').delete().eq('id', questionId);
+    if (currentDraftAssessmentId) await loadQuestionsForDraft(currentDraftAssessmentId);
+};
+
+window.editQuestionDB = async function(questionId) {
+    const { data: q } = await supabase.from('assessment_questions').select('*').eq('id', questionId).single();
+    if (!q) return;
+    document.getElementById('modalTitle').textContent = 'Edit Question';
+    document.getElementById('qText').value = q.question;
+    document.getElementById('qType').value = q.type;
+    document.getElementById('qPoints').value = q.points;
+    if (q.options && q.options.length) {
+        let opts = q.options.map((o, i) => (i === q.correct_answer ? `*${o}` : o)).join('\n');
+        document.getElementById('qOptions').value = opts;
+    } else {
+        document.getElementById('qOptions').value = '';
+    }
+    toggleOptions();
+    document.getElementById('questionEditorForm').dataset.editId = questionId;
+    document.getElementById('questionModal').classList.add('active');
+};
+
+window.clearAllQuestions = async function() {
+    if (!currentDraftAssessmentId) return;
+    if (!confirm('Delete all questions for this draft?')) return;
+    await supabase.from('assessment_questions').delete().eq('assessment_id', currentDraftAssessmentId);
+    await loadQuestionsForDraft(currentDraftAssessmentId);
+};
+
+window.openQuestionEditor = function() {
+    document.getElementById('modalTitle').textContent = 'Add Question';
+    document.getElementById('questionEditorForm').reset();
+    document.getElementById('qText').value = '';
+    document.getElementById('qOptions').value = '';
+    document.getElementById('qType').value = 'mc';
+    toggleOptions();
+    delete document.getElementById('questionEditorForm').dataset.editId;
+    document.getElementById('questionModal').classList.add('active');
+};
+
+window.closeQuestionEditor = function() {
+    document.getElementById('questionModal').classList.remove('active');
+};
+
+window.toggleOptions = function() {
+    const type = document.getElementById('qType').value;
+    const group = document.getElementById('optionsGroup');
+    if (type === 'essay' || type === 'fill') { group.style.display = 'none'; } else { group.style.display = 'block'; }
+};
+
+window.importFromBank = async function() {
+    const firstCourse = document.getElementById('assessCourses').value;
+    if (!firstCourse) { alert('Please select at least one course first.'); return; }
+    const { data: bank } = await supabase.from('question_bank').select('*').eq('course_id', firstCourse);
+    if (!bank || bank.length === 0) { alert('No questions in the bank.'); return; }
+    for (const b of bank) {
+        await saveQuestionToDB({
+            question: b.question,
+            type: b.type,
+            points: 1,
+            options: b.options || null,
+            correct: b.correct_answer !== undefined ? b.correct_answer : null
+        });
+    }
+    alert('Imported ' + bank.length + ' questions.');
+};
+
+window.uploadQuestions = function() {
+    document.getElementById('jsonFileInput').click();
+};
+
+window.handleFileUpload = async function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            let content = e.target.result;
+            let jsonData = file.name.endsWith('.js') ? eval(content.match(/const\s+QUESTION_BANK\s*=\s*(\[[\s\S]*?\]);/)[1]) : JSON.parse(content);
+            const imported = jsonData.map(q => ({ question: q.question || q.text || '', type: q.type || 'mc', options: q.options || null, correct: q.correct !== undefined ? q.correct : (q.answer !== undefined ? q.answer : null), points: q.points || 1 })).filter(q => q.question.trim() !== '');
+            for (const q of imported) await saveQuestionToDB(q);
+            alert('Imported ' + imported.length + ' questions.');
+        } catch (err) { alert('Error parsing file: ' + err.message); }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+};
+
+window.saveDraft = async function() {
+    if (isEditingPublished) {
+        await updatePublishedAssessment();
+        return;
+    }
+    if (!currentDraftAssessmentId) {
+        const draftId = await ensureDraftExists();
+        if (!draftId) return;
+    }
+    const title = document.getElementById('assessTitle').value.trim() || 'Untitled Draft';
+    const desc = document.getElementById('assessDesc').value.trim();
+    const type = document.getElementById('assessType').value;
+    const period = document.getElementById('assessPeriod').value || 'prelim';
+    const duration = parseInt(document.getElementById('assessDuration').value) || 60;
+    const maxScore = parseFloat(document.getElementById('assessMaxScore').value) || 100;
+    const date = document.getElementById('assessDate').value || null;
+    const questionsToShow = parseInt(document.getElementById('assessShow').value) || null;
+    const randomize = document.getElementById('assessRandomize').checked;
+    const ai = document.getElementById('assessAI').value;
+    const shuffleOptions = document.getElementById('assessShuffleOptions').checked;
+    const showAnswers = document.getElementById('assessShowAnswers').checked;
+    const passing = parseInt(document.getElementById('assessPassing').value) || 60;
+
+    const courseSelect = document.getElementById('assessCourses');
+    const selectedCourseIds = Array.from(courseSelect.selectedOptions).map(opt => opt.value);
+    const courseId = selectedCourseIds.length > 0 ? selectedCourseIds[0] : null;
+
+    let typeId = null;
+    if (courseId) {
+        const { data: existingType } = await supabase
+            .from('assessment_types')
+            .select('id')
+            .eq('course_id', courseId)
+            .eq('name', type)
+            .maybeSingle();
+        if (existingType) {
+            typeId = existingType.id;
+        } else {
+            const defaultWeight = (type === 'Quizzes and activities') ? 15 : (type === 'Major Exam' ? 50 : 25);
+            const { data: newType } = await supabase
+                .from('assessment_types')
+                .insert({ course_id: courseId, name: type, weight: defaultWeight })
+                .select()
+                .single();
+            if (newType) typeId = newType.id;
+        }
+    }
+
+    await supabase
+        .from('assessments')
+        .update({
+            title,
+            description: desc,
+            assessment_type_id: typeId,
+            period: period,
+            max_score: maxScore,
+            duration_minute: duration,
+            date: date,
+            randomize_ques: randomize,
+            questions_to_show: questionsToShow,
+            shuffle_options: shuffleOptions,
+            show_answers: showAnswers,
+            passing_score: passing,
+            ai_grading: ai,
+            course_id: courseId
+        })
+        .eq('id', currentDraftAssessmentId);
+
+    alert('Draft saved successfully.');
+    await loadDraftAssessments();
+};
+
+// ------------------------------------------------------------
+// 13. PUBLISHED ASSESSMENTS LIST
+// ------------------------------------------------------------
+async function loadAssessmentsList() {
+    const container = document.getElementById('assessmentsList');
+    try {
+        const { data: assessments, error } = await supabase
+            .from('assessments')
+            .select('*, courses (code, name), assessment_types (name)')
+            .eq('is_published', true)
+            .in('course_id', instructorCourses.map(c => c.id))
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        if (!assessments || assessments.length === 0) {
+            container.innerHTML = '<div class="empty-state"><p>No published assessments yet.</p></div>';
+            return;
+        }
+        let html = '<div class="table-wrap"><table><thead><tr><th>Title</th><th>Course</th><th>Period</th><th>Type</th><th>Max Score</th><th>Date</th><th>Actions</th></tr></thead><tbody>';
+        for (const a of assessments) {
+            let displayDate = 'N/A';
+            if (a.date) {
+                try {
+                    const d = new Date(a.date);
+                    displayDate = d.toLocaleString('en-PH', { timeZone: 'Asia/Manila' });
+                } catch (e) {
+                    displayDate = a.date;
+                }
+            }
+            const typeName = a.assessment_types?.name || 'N/A';
+            const periodBadge = a.period ? `<span class="badge badge-period">${a.period}</span>` : '-';
+            html += `<tr>
+                <td>${a.title}</td>
+                <td>${a.courses?.code || 'N/A'}</td>
+                <td>${periodBadge}</td>
+                <td>${typeName}</td>
+                <td>${a.max_score}</td>
+                <td>${displayDate}</td>
+                <td>
+                    <button class="btn btn-outline btn-sm edit-assessment-btn" data-assessment-id="${a.id}">✏️ Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteAssessment('${a.id}')">🗑️</button>
+                </td>
+            </tr>`;
+        }
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+    } catch (err) {
+        container.innerHTML = '<div class="empty-state"><p>Error loading assessments.</p></div>';
+    }
+}
+
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.edit-assessment-btn');
+    if (btn) {
+        const assessmentId = btn.dataset.assessmentId;
+        loadPublishedAssessment(assessmentId);
+    }
 });
 
-// ============================================================
-// 14. START
-// ============================================================
-init();
+window.loadPublishedAssessment = async function(assessmentId) {
+    try {
+        const { data: assessment, error } = await supabase
+            .from('assessments')
+            .select('*')
+            .eq('id', assessmentId)
+            .single();
+        if (error) return;
 
+        document.getElementById('editAssessId').value = assessment.id;
+        document.getElementById('editAssessTitle').value = assessment.title || '';
+        document.getElementById('editAssessDesc').value = assessment.description || '';
+        document.getElementById('editAssessPeriod').value = assessment.period || 'prelim';
+
+        if (assessment.assessment_type_id) {
+            const { data: type } = await supabase
+                .from('assessment_types')
+                .select('name')
+                .eq('id', assessment.assessment_type_id)
+                .single();
+            if (type) document.getElementById('editAssessType').value = type.name;
+        }
+
+        document.getElementById('editAssessDuration').value = assessment.duration_minute || 60;
+        document.getElementById('editAssessMaxScore').value = assessment.max_score || 100;
+        document.getElementById('editAssessPassing').value = assessment.passing_score || 60;
+        document.getElementById('editAssessDate').value = toPhilippineTime(assessment.date);
+        document.getElementById('editAssessShow').value = assessment.questions_to_show || '';
+        document.getElementById('editAssessRandomize').checked = assessment.randomize_ques || false;
+        document.getElementById('editAssessShuffleOptions').checked = assessment.shuffle_options || false;
+        document.getElementById('editAssessShowAnswers').checked = assessment.show_answers || false;
+
+        if (assessment.course_id) {
+            const select = document.getElementById('editAssessCourse');
+            Array.from(select.options).forEach(opt => {
+                opt.selected = (opt.value === assessment.course_id);
+            });
+        }
+
+        document.getElementById('editAssessmentModal').classList.add('active');
+    } catch (err) {}
+};
+
+window.closeEditAssessmentModal = function() {
+    document.getElementById('editAssessmentModal').classList.remove('active');
+};
+
+window.deleteAssessment = async function(assessmentId) {
+    if (!confirm('Delete this assessment and all questions?')) return;
+    await supabase.from('assessments').delete().eq('id', assessmentId);
+    await loadAssessmentsList();
+    await updateStats();
+};
+
+document.getElementById('editAssessmentForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const id = document.getElementById('editAssessId').value;
+    const title = document.getElementById('editAssessTitle').value.trim();
+    const desc = document.getElementById('editAssessDesc').value.trim();
+    const courseId = document.getElementById('editAssessCourse').value;
+    const type = document.getElementById('editAssessType').value;
+    const period = document.getElementById('editAssessPeriod').value || 'prelim';
+    const duration = parseInt(document.getElementById('editAssessDuration').value) || 60;
+    const maxScore = parseFloat(document.getElementById('editAssessMaxScore').value) || 100;
+    const passing = parseInt(document.getElementById('editAssessPassing').value) || 60;
+    const phTime = document.getElementById('editAssessDate').value;
+    const utcDate = toUTC(phTime);
+    const questionsToShow = parseInt(document.getElementById('editAssessShow').value) || null;
+    const randomize = document.getElementById('editAssessRandomize').checked;
+    const shuffleOptions = document.getElementById('editAssessShuffleOptions').checked;
+    const showAnswers = document.getElementById('editAssessShowAnswers').checked;
+
+    let typeId = null;
+    if (courseId) {
+        const { data: existingType } = await supabase
+            .from('assessment_types')
+            .select('id')
+            .eq('course_id', courseId)
+            .eq('name', type)
+            .maybeSingle();
+        if (existingType) {
+            typeId = existingType.id;
+        } else {
+            const defaultWeight = (type === 'Quizzes and activities') ? 15 : (type === 'Major Exam' ? 50 : 25);
+            const { data: newType } = await supabase
+                .from('assessment_types')
+                .insert({ course_id: courseId, name: type, weight: defaultWeight })
+                .select()
+                .single();
+            if (newType) typeId = newType.id;
+        }
+    }
+
+    await supabase
+        .from('assessments')
+        .update({
+            title,
+            description: desc,
+            assessment_type_id: typeId,
+            period: period,
+            max_score: maxScore,
+            duration_minute: duration,
+            date: utcDate,
+            randomize_ques: randomize,
+            questions_to_show: questionsToShow,
+            shuffle_options: shuffleOptions,
+            show_answers: showAnswers,
+            passing_score: passing,
+            course_id: courseId
+        })
+        .eq('id', id);
+
+    alert('Assessment updated successfully!');
+    closeEditAssessmentModal();
+    await loadAssessmentsList();
+    await updateStats();
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const publishBtn = document.getElementById('publishAssessmentBtn');
+    if (publishBtn) {
+        publishBtn.addEventListener('click', async function() {
+            if (isEditingPublished) {
+                await updatePublishedAssessment();
+                return;
+            }
+            if (!currentDraftAssessmentId) {
+                alert('No draft to publish. Please create an assessment first.');
+                return;
+            }
+            await saveDraft();
+            await supabase
+                .from('assessments')
+                .update({ is_published: true })
+                .eq('id', currentDraftAssessmentId);
+            alert('Assessment published!');
+            currentDraftAssessmentId = null;
+            document.getElementById('assessmentForm').reset();
+            document.getElementById('questionList').innerHTML = '<div class="empty-state">No questions added yet.</div>';
+            await loadAssessmentsList();
+            await loadDraftAssessments();
+            await updateStats();
+            goToStep(1);
+        });
+    }
+});
+
+async function loadDraftAssessments() {
+    const container = document.getElementById('draftAssessmentsList');
+    try {
+        const { data: drafts, error } = await supabase
+            .from('assessments')
+            .select('id, title, course_id, created_at, duration_minute')
+            .eq('is_published', false)
+            .in('course_id', instructorCourses.map(c => c.id))
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        if (!drafts || drafts.length === 0) {
+            container.innerHTML = '<div class="empty-state"><p>No drafts.</p></div>';
+            return;
+        }
+        let html = '<div class="table-wrap"><table><thead><tr><th>Title</th><th>Course</th><th>Created</th><th>Actions</th></tr></thead><tbody>';
+        for (const d of drafts) {
+            const course = instructorCourses.find(c => c.id === d.course_id);
+            const courseName = course ? `${course.code} - ${course.name}` : 'No course';
+            html += `<tr>
+                <td>${d.title}</td>
+                <td>${courseName}</td>
+                <td>${new Date(d.created_at).toLocaleString()}</td>
+                <td>
+                    <button class="btn btn-outline btn-sm" onclick="loadDraft('${d.id}')">✏️ Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteDraft('${d.id}')">🗑️</button>
+                </td>
+            </tr>`;
+        }
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+    } catch (err) {
+        container.innerHTML = '<div class="empty-state"><p>Error loading drafts.</p></div>';
+    }
+}
+
+window.loadDraft = async function(draftId) {
+    const { data: draft } = await supabase
+        .from('assessments')
+        .select('*')
+        .eq('id', draftId)
+        .single();
+    if (!draft) return;
+    currentDraftAssessmentId = draftId;
+    isEditingPublished = false;
+    document.getElementById('publishAssessmentBtn').textContent = '🚀 Publish Assessment';
+
+    document.getElementById('assessTitle').value = draft.title || '';
+    document.getElementById('assessDesc').value = draft.description || '';
+    document.getElementById('assessPeriod').value = draft.period || 'prelim';
+    if (draft.assessment_type_id) {
+        const { data: type } = await supabase
+            .from('assessment_types')
+            .select('name')
+            .eq('id', draft.assessment_type_id)
+            .single();
+        if (type) document.getElementById('assessType').value = type.name;
+    }
+    document.getElementById('assessDuration').value = draft.duration_minute || 60;
+    document.getElementById('assessMaxScore').value = draft.max_score || 100;
+    document.getElementById('assessDate').value = draft.date || '';
+    document.getElementById('assessShow').value = draft.questions_to_show || '';
+    document.getElementById('assessRandomize').checked = draft.randomize_ques || false;
+    document.getElementById('assessAI').value = draft.ai_grading || 'none';
+    document.getElementById('assessShuffleOptions').checked = draft.shuffle_options || false;
+    document.getElementById('assessShowAnswers').checked = draft.show_answers || false;
+    document.getElementById('assessPassing').value = draft.passing_score || 60;
+
+    if (draft.course_id) {
+        const select = document.getElementById('assessCourses');
+        Array.from(select.options).forEach(opt => {
+            opt.selected = (opt.value === draft.course_id);
+        });
+    }
+
+    await loadQuestionsForDraft(draftId);
+    switchSection('assessments');
+    goToStep(1);
+};
+
+window.deleteDraft = async function(draftId) {
+    if (!confirm('Delete this draft and all its questions?')) return;
+    await supabase.from('assessments').delete().eq('id', draftId);
+    if (currentDraftAssessmentId === draftId) {
+        currentDraftAssessmentId = null;
+        document.getElementById('assessmentForm').reset();
+        document.getElementById('questionList').innerHTML = '<div class="empty-state">No questions added yet.</div>';
+    }
+    await loadDraftAssessments();
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    const questionForm = document.getElementById('questionEditorForm');
+    if (questionForm) {
+        questionForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const text = document.getElementById('qText').value.trim();
+            const type = document.getElementById('qType').value;
+            const points = parseInt(document.getElementById('qPoints').value) || 1;
+            const optionsRaw = document.getElementById('qOptions').value;
+            const editId = this.dataset.editId || null;
+
+            if (!text) return;
+
+            let options = null;
+            let correct = null;
+            if (type === 'mc' || type === 'tf') {
+                const lines = optionsRaw.split('\n').map(s => s.trim()).filter(s => s !== '');
+                if (lines.length === 0) return;
+                options = [];
+                let foundCorrect = false;
+                for (let line of lines) {
+                    if (line.startsWith('*')) {
+                        options.push(line.slice(1).trim());
+                        if (!foundCorrect) {
+                            correct = options.length - 1;
+                            foundCorrect = true;
+                        }
+                    } else {
+                        options.push(line);
+                    }
+                }
+                if (!foundCorrect && options.length > 0) correct = 0;
+            }
+
+            await saveQuestionToDB({ question: text, type: type, points: points, options: options, correct: correct }, editId);
+            delete this.dataset.editId;
+            closeQuestionEditor();
+        });
+    }
+});
+
+window.goToStep = function(step) {
+    document.querySelectorAll('.step').forEach(el => { el.style.display = 'none'; el.classList.remove('active'); });
+    const target = document.querySelector(`.step[data-step="${step}"]`);
+    if (target) { target.style.display = 'block'; target.classList.add('active'); }
+};
+
+// ------------------------------------------------------------
+// 17. GRADEBOOK
+// ------------------------------------------------------------
+async function loadGradebook() {
+    const courseId = document.getElementById('manualCourseSelect').value;
+    const container = document.getElementById('gradebookContainer');
+    if (!courseId) {
+        container.innerHTML = '<div class="empty-state"><p>Select a course to view grades.</p></div>';
+        return;
+    }
+    try {
+        const { data: enrollments } = await supabase
+            .from('course_enrollments')
+            .select('student_id')
+            .eq('course_id', courseId);
+        const studentIds = enrollments?.map(e => e.student_id) || [];
+        const { data: grades } = await supabase
+            .from('grades')
+            .select('student_id, assessment_id, score, max_score, assessments(title, assessment_types(name))')
+            .eq('course_id', courseId)
+            .in('student_id', studentIds);
+        const { data: students } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name')
+            .in('id', studentIds);
+
+        let html = '<div class="table-wrap"><table><thead><tr><th>Student</th>';
+        const assessmentMap = {};
+        if (grades) {
+            for (const g of grades) {
+                const key = g.assessment_id;
+                if (!assessmentMap[key]) assessmentMap[key] = g.assessments?.title || 'Assessment';
+            }
+        }
+        const assessIds = Object.keys(assessmentMap);
+        for (const id of assessIds) html += `<th>${assessmentMap[id]}</th>`;
+        html += '<th>Average</th></tr></thead><tbody>';
+        for (const sid of studentIds) {
+            const s = students?.find(p => p.id === sid);
+            const name = s ? `${s.first_name} ${s.last_name}` : sid;
+            html += `<tr><td>${name}</td>`;
+            let totalPct = 0, count = 0;
+            for (const aid of assessIds) {
+                const g = grades?.find(g => g.student_id === sid && g.assessment_id === aid);
+                if (g) {
+                    const pct = (g.score / g.max_score) * 100;
+                    html += `<td>${pct.toFixed(1)}%</td>`;
+                    totalPct += pct;
+                    count++;
+                } else {
+                    html += `<td>-</td>`;
+                }
+            }
+            const avg = count > 0 ? (totalPct / count) : 0;
+            html += `<td><strong>${avg.toFixed(1)}%</strong></td>`;
+            html += '</tr>';
+        }
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+    } catch (err) {
+        container.innerHTML = '<div class="empty-state"><p>Error loading grades.</p></div>';
+    }
+}
+
+// ------------------------------------------------------------
+// 18. WEIGHTS (Locked to Exact Syllabus Criteria)
+// ------------------------------------------------------------
+async function loadWeightsInputs() {
+    const courseId = document.getElementById('weightsCourse').value;
+    const container = document.getElementById('weightsInputs');
+    if (!courseId) {
+        container.innerHTML = '<div class="empty-state"><p>Select a course to manage weights.</p></div>';
+        return;
+    }
+    container.innerHTML = '<div class="empty-state"><p>Loading percentage weights...</p></div>';
+    try {
+        let { data: types, error } = await supabase
+            .from('assessment_types')
+            .select('id, name, weight')
+            .eq('course_id', courseId)
+            .order('name', { ascending: true });
+        if (error) throw error;
+
+        if (!types || types.length === 0) {
+            const defaultTypes = [
+                { course_id: courseId, name: 'Quizzes and activities', weight: 15 },
+                { course_id: courseId, name: 'Case analysis, Recitation, and reflection briefs', weight: 25 },
+                { course_id: courseId, name: 'Attendance and Others', weight: 10 },
+                { course_id: courseId, name: 'Major Exam', weight: 50 }
+            ];
+            const { data: createdTypes, error: seedError } = await supabase
+                .from('assessment_types')
+                .insert(defaultTypes)
+                .select('id, name, weight');
+            if (seedError) throw seedError;
+            types = createdTypes || [];
+        }
+
+        let html = '<div style="margin-bottom: 1rem; padding: 0.75rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem;"><strong>Assessment Scheme:</strong> Modify percentage weights below. Criteria labels remain fixed.</div>';
+        let totalWeight = 0;
+        for (const t of types) {
+            const w = parseFloat(t.weight) || 0;
+            totalWeight += w;
+            html += `<div class="form-group" style="margin-bottom:0.75rem;">
+                <label style="display:flex; justify-content:space-between; font-weight:600;">
+                    <span>${t.name}</span>
+                    <span class="text-muted">${w}%</span>
+                </label>
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <input type="number" step="0.01" min="0" max="100" value="${w}" data-type-id="${t.id}" class="weight-input" style="flex:1;" />
+                    <span style="font-weight:600; color:#475569;">%</span>
+                </div>
+            </div>`;
+        }
+        html += `<div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #e2e8f0; display:flex; justify-content:space-between; font-weight:700;">
+            <span>Total Weight:</span>
+            <span id="weightsTotalDisplay" style="color: ${totalWeight === 100 ? '#16a34a' : '#d97706'};">${totalWeight}%</span>
+        </div>`;
+        container.innerHTML = html;
+
+        container.querySelectorAll('.weight-input').forEach(input => {
+            input.addEventListener('input', () => {
+                let sum = 0;
+                container.querySelectorAll('.weight-input').forEach(inp => {
+                    sum += parseFloat(inp.value) || 0;
+                });
+                const totalEl = document.getElementById('weightsTotalDisplay');
+                if (totalEl) {
+                    totalEl.textContent = `${sum}%`;
+                    totalEl.style.color = sum === 100 ? '#16a34a' : '#d97706';
+                }
+            });
+        });
+    } catch (err) {
+        container.innerHTML = '<div class="empty-state"><p>Error loading weights: ' + err.message + '</p></div>';
+    }
+}
+
+document.getElementById('weightsCourse')?.addEventListener('change', () => {
+    loadWeightsInputs();
+});
+
+document.getElementById('weightsForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const inputs = document.querySelectorAll('#weightsInputs .weight-input');
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+    try {
+        for (const inp of inputs) {
+            const typeId = inp.dataset.typeId;
+            const weight = parseFloat(inp.value) || 0;
+            const { error } = await supabase.from('assessment_types').update({ weight }).eq('id', typeId);
+            if (error) throw error;
+        }
+        alert('Weights saved successfully!');
+        await loadWeightsInputs();
+    } catch (err) {
+        alert('Error saving weights: ' + err.message);
+    } finally {
+        if (submitBtn) submitBtn.disabled = false;
+    }
+});
+
+// ------------------------------------------------------------
+// 19. INTERVENTIONS
+// ------------------------------------------------------------
+async function loadInterventions() {
+    const container = document.getElementById('interventionHistory');
+    try {
+        const { data: interventions, error } = await supabase
+            .from('interventions')
+            .select('*, profiles(first_name, last_name)')
+            .in('course_id', instructorCourses.map(c => c.id))
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        if (!interventions || interventions.length === 0) {
+            container.innerHTML = '<div class="empty-state"><p>No interventions recorded.</p></div>';
+            return;
+        }
+        let html = '<div class="table-wrap"><table><thead><tr><th>Student</th><th>Type</th><th>Adjustment</th><th>Description</th><th>Actions</th></tr></thead><tbody>';
+        for (const iv of interventions) {
+            const name = iv.profiles ? `${iv.profiles.first_name} ${iv.profiles.last_name}` : 'Unknown';
+            html += `<tr>
+                <td>${name}</td>
+                <td>${iv.type}</td>
+                <td>${iv.adjustment_value}</td>
+                <td>${iv.description || '-'}</td>
+                <td><button class="btn btn-danger btn-sm" onclick="deleteIntervention('${iv.id}')">🗑️</button></td>
+            </tr>`;
+        }
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+    } catch (err) {
+        container.innerHTML = '<div class="empty-state"><p>Error loading interventions.</p></div>';
+    }
+}
+
+window.deleteIntervention = async function(interventionId) {
+    if (!confirm('Delete this intervention?')) return;
+    await supabase.from('interventions').delete().eq('id', interventionId);
+    await loadInterventions();
+};
+
+async function loadStudentsForIntervention() {
+    const courseId = document.getElementById('intervCourse').value;
+    const studentSelect = document.getElementById('intervStudent');
+    if (!courseId) {
+        studentSelect.innerHTML = '<option value="">Select course first</option>';
+        return;
+    }
+    const { data: enrollments } = await supabase
+        .from('course_enrollments')
+        .select('student_id')
+        .eq('course_id', courseId);
+    const studentIds = enrollments?.map(e => e.student_id) || [];
+    const { data: students } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .in('id', studentIds);
+    renderSelect(studentSelect, students, 'id', s => `${s.first_name} ${s.last_name}`);
+}
+
+// ------------------------------------------------------------
+// 20. COMPUTE PERIOD GRADE (Integrates All 5 Supabase Tables)
+// ------------------------------------------------------------
+document.getElementById('computeForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const courseId = document.getElementById('computeCourse').value;
+    const period = document.getElementById('computePeriod').value;
+    const lockPeriod = document.getElementById('lockPeriod').checked;
+
+    if (!courseId) { alert('Select a course.'); return; }
+
+    const { data: existingLock } = await supabase
+        .from('period_grades')
+        .select('locked')
+        .eq('course_id', courseId)
+        .eq('period', period)
+        .maybeSingle();
+    if (existingLock && existingLock.locked) {
+        alert('This period is locked. Unlock to recompute.');
+        return;
+    }
+
+    const { data: enrollments } = await supabase
+        .from('course_enrollments')
+        .select('student_id')
+        .eq('course_id', courseId);
+    if (!enrollments || enrollments.length === 0) {
+        document.getElementById('computedGradesResult').innerHTML = '<div class="empty-state"><p>No students enrolled.</p></div>';
+        return;
+    }
+    const studentIds = enrollments.map(e => e.student_id);
+
+    // 1. Fetch Assessment Types & Map Category Names
+    const { data: types } = await supabase
+        .from('assessment_types')
+        .select('id, name, weight')
+        .eq('course_id', courseId);
+    const typeMap = {};
+    const weightMap = {};
+    types?.forEach(t => {
+        typeMap[t.id] = t.name;
+        weightMap[t.name] = parseFloat(t.weight) || 0;
+    });
+
+    const wQuiz = (weightMap['Quizzes and activities'] !== undefined) ? weightMap['Quizzes and activities'] / 100 : 0.15;
+    const wCase = (weightMap['Case analysis, Recitation, and reflection briefs'] !== undefined) ? weightMap['Case analysis, Recitation, and reflection briefs'] / 100 : 0.25;
+    const wAtt  = (weightMap['Attendance and Others'] !== undefined) ? weightMap['Attendance and Others'] / 100 : 0.10;
+    const wExam = (weightMap['Major Exam'] !== undefined) ? weightMap['Major Exam'] / 100 : 0.50;
+
+    // 2. Fetch Period-Specific Assessments
+    const { data: assessments } = await supabase
+        .from('assessments')
+        .select('id, assessment_type_id, max_score, title')
+        .eq('course_id', courseId)
+        .eq('period', period)
+        .eq('is_published', true);
+
+    const assessmentIds = assessments?.map(a => a.id) || [];
+
+    // 3. Fetch Student Grades from `grades` Table
+    const { data: grades } = await supabase
+        .from('grades')
+        .select('student_id, assessment_id, score, max_score, percentage')
+        .in('assessment_id', assessmentIds)
+        .in('student_id', studentIds);
+
+    // 4. Fetch Manual Grades from `manual_grades` Table
+    const { data: manualGrades } = await supabase
+        .from('manual_grades')
+        .select('student_id, assessment_type_id, score, max_score')
+        .eq('course_id', courseId)
+        .in('student_id', studentIds);
+
+    // 5. Fetch Recitation Ratings from `recitations` Table
+    const { data: recitations } = await supabase
+        .from('recitations')
+        .select('student_id, rating')
+        .eq('course_id', courseId)
+        .in('student_id', studentIds);
+
+    // 6. Fetch Attendance Records from `attendance_records` Table
+    const { data: section } = await supabase
+        .from('sections')
+        .select('id')
+        .eq('course_id', courseId)
+        .single();
+
+    const { data: sessions } = await supabase
+        .from('attendance_sessions')
+        .select('id')
+        .eq('section_id', section?.id || null);
+    const sessionIds = sessions?.map(s => s.id) || [];
+    const { data: allRecords } = await supabase
+        .from('attendance_records')
+        .select('student_id, status')
+        .in('session_id', sessionIds)
+        .in('student_id', studentIds);
+
+    // 7. Fetch Interventions from `interventions` Table
+    const { data: interventions } = await supabase
+        .from('interventions')
+        .select('student_id, adjustment_value')
+        .eq('course_id', courseId)
+        .in('student_id', studentIds);
+
+    let html = '<div class="table-wrap"><table><thead><tr><th>Student</th>';
+    html += `<th>Quizzes & Activities (${(wQuiz*100).toFixed(0)}%)</th>`;
+    html += `<th>Case, Recitation & Briefs (${(wCase*100).toFixed(0)}%)</th>`;
+    html += `<th>Attendance & Others (${(wAtt*100).toFixed(0)}%)</th>`;
+    html += `<th>Major Exam (${(wExam*100).toFixed(0)}%)</th>`;
+    html += '<th>Intervention</th><th>Period Grade</th><th>Locked</th></tr></thead><tbody>';
+
+    for (const sid of studentIds) {
+        const { data: student } = await supabase
+            .from('profiles')
+            .select('first_name, last_name')
+            .eq('id', sid)
+            .single();
+        const name = student ? `${student.first_name} ${student.last_name}` : sid;
+
+        // Categorize assessments by Syllabus Component
+        const quizAssessments = assessments?.filter(a => typeMap[a.assessment_type_id] === 'Quizzes and activities') || [];
+        const caseAssessments = assessments?.filter(a => typeMap[a.assessment_type_id] === 'Case analysis, Recitation, and reflection briefs') || [];
+        const examAssessments = assessments?.filter(a => typeMap[a.assessment_type_id] === 'Major Exam') || [];
+
+        // Combine standard grades and manual grades for Quizzes and activities
+        const quizScores = [];
+        grades?.filter(g => g.student_id === sid && quizAssessments.some(a => a.id === g.assessment_id)).forEach(g => {
+            const max = g.max_score || 100;
+            quizScores.push((g.score / max) * 100);
+        });
+        manualGrades?.filter(g => g.student_id === sid && typeMap[g.assessment_type_id] === 'Quizzes and activities').forEach(g => {
+            const max = g.max_score || 100;
+            quizScores.push((g.score / max) * 100);
+        });
+
+        // Combine standard grades, manual grades, and recitation ratings for Case analysis, Recitation, and reflection briefs
+        const caseScores = [];
+        grades?.filter(g => g.student_id === sid && caseAssessments.some(a => a.id === g.assessment_id)).forEach(g => {
+            const max = g.max_score || 100;
+            caseScores.push((g.score / max) * 100);
+        });
+        manualGrades?.filter(g => g.student_id === sid && typeMap[g.assessment_type_id] === 'Case analysis, Recitation, and reflection briefs').forEach(g => {
+            const max = g.max_score || 100;
+            caseScores.push((g.score / max) * 100);
+        });
+        recitations?.filter(r => r.student_id === sid && r.rating !== null && r.rating !== undefined).forEach(r => {
+            caseScores.push(Number(r.rating) * 10); // Converts 1-10 recitation rating to percentage
+        });
+
+        // Combine standard grades and manual grades for Major Exam
+        const examScores = [];
+        grades?.filter(g => g.student_id === sid && examAssessments.some(a => a.id === g.assessment_id)).forEach(g => {
+            const max = g.max_score || 100;
+            examScores.push((g.score / max) * 100);
+        });
+        manualGrades?.filter(g => g.student_id === sid && typeMap[g.assessment_type_id] === 'Major Exam').forEach(g => {
+            const max = g.max_score || 100;
+            examScores.push((g.score / max) * 100);
+        });
+
+        const calcAvg = (arr) => {
+            if (!arr || arr.length === 0) return 0;
+            const sum = arr.reduce((acc, val) => acc + val, 0);
+            return sum / arr.length;
+        };
+
+        const quizAvg = calcAvg(quizScores);
+        const caseAvg = calcAvg(caseScores);
+        const examAvg = calcAvg(examScores);
+
+        // Attendance Percentage Computation
+        const studentRecords = allRecords?.filter(r => r.student_id === sid) || [];
+        const totalSessions = sessionIds.length;
+        const presentCount = studentRecords.filter(r => r.status === 'present').length;
+        const attendancePct = totalSessions > 0 ? (presentCount / totalSessions) * 100 : 0;
+
+        // Calculate Adjustment Value from Interventions
+        let interventionAdjustment = 0;
+        interventions?.filter(iv => iv.student_id === sid).forEach(iv => {
+            interventionAdjustment += parseFloat(iv.adjustment_value) || 0;
+        });
+
+        // Weighted Sum + Interventions
+        const periodGrade = (quizAvg * wQuiz) + (caseAvg * wCase) + (attendancePct * wAtt) + (examAvg * wExam) + interventionAdjustment;
+
+        await supabase
+            .from('period_grades')
+            .upsert({
+                student_id: sid,
+                course_id: courseId,
+                period: period,
+                grade: periodGrade,
+                locked: lockPeriod,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'student_id,course_id,period' });
+
+        html += `<tr>
+            <td>${name}</td>
+            <td>${quizAvg.toFixed(2)}%</td>
+            <td>${caseAvg.toFixed(2)}%</td>
+            <td>${attendancePct.toFixed(2)}%</td>
+            <td>${examAvg.toFixed(2)}%</td>
+            <td>${interventionAdjustment >= 0 ? '+' : ''}${interventionAdjustment.toFixed(2)}</td>
+            <td><strong>${periodGrade.toFixed(2)}%</strong></td>
+            <td>${lockPeriod ? '🔒 Locked' : 'Unlocked'}</td>
+        </tr>`;
+    }
+    html += '</tbody></table></div>';
+    document.getElementById('computedGradesResult').innerHTML = html;
+    alert(lockPeriod ? 'Period grades computed and locked!' : 'Period grades computed.');
+});
+
+// ------------------------------------------------------------
+// 21. FINAL GRADE
+// ------------------------------------------------------------
+document.getElementById('finalForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const courseId = document.getElementById('finalCourse').value;
+    if (!courseId) { alert('Select a course.'); return; }
+
+    const { data: enrollments } = await supabase
+        .from('course_enrollments')
+        .select('student_id')
+        .eq('course_id', courseId);
+    const studentIds = enrollments?.map(e => e.student_id) || [];
+
+    const { data: periodGrades } = await supabase
+        .from('period_grades')
+        .select('student_id, period, grade')
+        .eq('course_id', courseId)
+        .in('student_id', studentIds);
+
+    let html = '<div class="table-wrap"><table><thead><tr><th>Student</th><th>Prelim (25%)</th><th>Midterm (25%)</th><th>Semi-Final (25%)</th><th>Final (25%)</th><th>Final Grade</th></tr></thead><tbody>';
+    for (const sid of studentIds) {
+        const { data: student } = await supabase
+            .from('profiles')
+            .select('first_name, last_name')
+            .eq('id', sid)
+            .single();
+        const name = student ? `${student.first_name} ${student.last_name}` : sid;
+
+        const prelim = periodGrades?.find(p => p.student_id === sid && p.period === 'prelim')?.grade || 0;
+        const midterm = periodGrades?.find(p => p.student_id === sid && p.period === 'midterm')?.grade || 0;
+        const semifinal = periodGrades?.find(p => p.student_id === sid && p.period === 'semifinal')?.grade || 0;
+        const final = periodGrades?.find(p => p.student_id === sid && p.period === 'final')?.grade || 0;
+        const finalGrade = (prelim + midterm + semifinal + final) / 4;
+
+        await supabase
+            .from('final_ratings')
+            .upsert({
+                student_id: sid,
+                course_id: courseId,
+                final_grade: finalGrade,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'student_id,course_id' });
+
+        html += `<tr>
+            <td>${name}</td>
+            <td>${prelim.toFixed(2)}%</td>
+            <td>${midterm.toFixed(2)}%</td>
+            <td>${semifinal.toFixed(2)}%</td>
+            <td>${final.toFixed(2)}%</td>
+            <td><strong>${finalGrade.toFixed(2)}%</strong></td>
+        </tr>`;
+    }
+    html += '</tbody></table></div>';
+    document.getElementById('finalResult').innerHTML = html;
+});
+
+// ------------------------------------------------------------
+// 22. STARTUP & GLOBAL LISTENERS
+// ------------------------------------------------------------
+document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+    if (confirm("Sign out of NCF Learning Tracking System?")) {
+        await signOut();
+        window.location.href = 'index.html';
+    }
+});
+
+window.addEventListener('click', (e) => {
+    if (e.target.classList.contains('modal')) {
+        e.target.classList.remove('active');
+    }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    setupNavigation();
+    init();
+});
 </script>
 </body>
 </html>
