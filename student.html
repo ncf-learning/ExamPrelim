@@ -373,6 +373,17 @@
         <!-- ==================== ATTENDANCE ==================== -->
         <section id="section-attendance" class="page-section">
             <div class="page-header"><h1>Attendance <small>Track your presence and submit excuses</small></h1></div>
+            <!-- Class Attendance Check-In Card (Strictly Available Only When Class is in Session) -->
+            <div class="card">
+                <div class="card-header"><h3>📅 Class Attendance Check-In</h3></div>
+                <div id="attendanceCheckInStatus" class="empty-state">Checking class schedule...</div>
+                <div id="attendanceCheckInFormContainer" style="display:none; margin-top:1rem;">
+                    <form id="attendanceCheckInForm" class="form-grid">
+                        <div class="form-group full"><label>Active Class in Session (Auto-Selected)</label><select id="attendCourseSelect" disabled></select></div>
+                        <div class="form-group full"><button type="submit" class="btn btn-success recite-btn">📅 Check In Present</button></div>
+                    </form>
+                </div>
+            </div>
             <div class="stats-grid">
                 <div class="stat-card"><div class="number" id="totalSessions">0</div><div class="label">Total Sessions</div></div>
                 <div class="stat-card"><div class="number" id="presentCount">0</div><div class="label">Present</div></div>
@@ -530,6 +541,7 @@ async function init() {
         await loadExcuseHistory();
         await loadRecitationHistory();
         await checkRecitationAvailability();
+        await checkAttendanceAvailability();
         await loadDashboardStats();
         await loadDashboardPeriodGrades();
         await loadRecentActivity();
@@ -1375,8 +1387,145 @@ document.getElementById('detailedCourseSelect')?.addEventListener('change', load
 document.getElementById('detailedPeriodSelect')?.addEventListener('change', loadDetailedCriteriaGrades);
 
 // ============================================================
-// 10. ATTENDANCE + EXCUSE LETTERS
+// 10. ATTENDANCE + EXCUSE LETTERS & SCHEDULE CHECK-IN
 // ============================================================
+async function checkAttendanceAvailability() {
+    const statusDiv = document.getElementById('attendanceCheckInStatus');
+    const formContainer = document.getElementById('attendanceCheckInFormContainer');
+    const now = new Date();
+    const dayOfWeek = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][now.getDay()];
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+
+    if (enrolledCourses.length === 0) {
+        statusDiv.innerHTML = '<div class="empty-state">You are not enrolled in any courses.</div>';
+        formContainer.style.display = 'none';
+        return;
+    }
+    const courseIds = enrolledCourses.map(c => c.id);
+    const { data: sections } = await supabase
+        .from('sections')
+        .select('id, course_id')
+        .in('course_id', courseIds);
+    if (!sections || sections.length === 0) {
+        statusDiv.innerHTML = '<div class="empty-state">No class schedules found.</div>';
+        formContainer.style.display = 'none';
+        return;
+    }
+    const sectionIds = sections.map(s => s.id);
+    const { data: schedules, error } = await supabase
+        .from('schedules')
+        .select('*, sections(id, course_id, courses(code, name))')
+        .in('section_id', sectionIds)
+        .eq('day_of_week', dayOfWeek);
+    if (error) { console.error(error); return; }
+
+    let active = false;
+    let activeCourse = null;
+    let activeSectionId = null;
+    let activeSchedule = null;
+    if (schedules) {
+        for (const s of schedules) {
+            const startMin = timeToMinutes(s.start_time);
+            const endMin = timeToMinutes(s.end_time);
+            // Strictly check if class is in session right now based on schedule
+            if (currentTime >= startMin && currentTime <= endMin) {
+                active = true;
+                activeCourse = s.sections?.courses;
+                activeSectionId = s.section_id || s.sections?.id;
+                activeSchedule = s;
+                break;
+            }
+        }
+    }
+
+    if (!active || !activeCourse) {
+        statusDiv.innerHTML = `<div style="background:#fee2e2;padding:1rem;border-radius:8px;color:#991b1b;border:1px solid #f87171;">
+            ❌ <strong>Class Not in Session</strong><br>Attendance check-in is only allowed when your class is currently in session based on your schedule.
+        </div>`;
+        formContainer.style.display = 'none';
+        return;
+    }
+
+    statusDiv.innerHTML = `<div style="background:#d1fae5;padding:1rem;border-radius:8px;color:#065f46;border:1px solid #34d399;">
+        ✅ <strong>Class in Session</strong><br>Attendance Check-In is open for: <strong>${activeCourse.code} – ${activeCourse.name}</strong>
+    </div>`;
+    formContainer.style.display = 'block';
+
+    const attendCourseSelect = document.getElementById('attendCourseSelect');
+    attendCourseSelect.innerHTML = `<option value="${activeCourse.id}" data-section="${activeSectionId}" data-start="${activeSchedule.start_time}" data-end="${activeSchedule.end_time}">${activeCourse.code} – ${activeCourse.name}</option>`;
+    attendCourseSelect.value = activeCourse.id;
+    attendCourseSelect.disabled = true;
+}
+
+document.getElementById('attendanceCheckInForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const attendCourseSelect = document.getElementById('attendCourseSelect');
+    const courseId = attendCourseSelect.value;
+    const selectedOpt = attendCourseSelect.options[0];
+    const sectionId = selectedOpt?.dataset?.section;
+    const startTime = selectedOpt?.dataset?.start || '00:00:00';
+    const endTime = selectedOpt?.dataset?.end || '23:59:59';
+
+    const now = new Date();
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+    const startMin = timeToMinutes(startTime);
+    const endMin = timeToMinutes(endTime);
+
+    if (currentTime < startMin || currentTime > endMin) {
+        alert('❌ Attendance check-in is only allowed while class is in session based on your schedule.');
+        await checkAttendanceAvailability();
+        return;
+    }
+
+    const todayStr = now.toISOString().split('T')[0];
+
+    // Ensure attendance session exists for today
+    let { data: sessionData, error: sessErr } = await supabase
+        .from('attendance_sessions')
+        .select('id')
+        .eq('section_id', sectionId)
+        .eq('date', todayStr)
+        .maybeSingle();
+
+    let sessionId = sessionData?.id;
+    if (!sessionId) {
+        const { data: newSess, error: createSessErr } = await supabase
+            .from('attendance_sessions')
+            .insert({
+                section_id: sectionId,
+                date: todayStr,
+                start_time: startTime,
+                end_time: endTime
+            })
+            .select('id')
+            .single();
+        if (createSessErr) {
+            alert('Error preparing attendance session: ' + createSessErr.message);
+            return;
+        }
+        sessionId = newSess.id;
+    }
+
+    // Record attendance
+    const { error: attErr } = await supabase
+        .from('attendance_records')
+        .upsert({
+            session_id: sessionId,
+            student_id: currentUser.id,
+            status: 'present',
+            recorded_at: new Date().toISOString()
+        }, { onConflict: 'session_id,student_id' });
+
+    if (attErr) {
+        alert('Error checking in attendance: ' + attErr.message);
+        return;
+    }
+
+    alert('✅ Attendance checked in successfully as PRESENT!');
+    await loadAttendance();
+    await checkAttendanceAvailability();
+});
+
 async function loadAttendance() {
     if (enrolledCourses.length === 0) {
         document.getElementById('attendanceRecords').innerHTML = '<div class="empty-state">No courses.</div>';
@@ -1513,7 +1662,7 @@ async function loadExcuseHistory() {
 }
 
 // ============================================================
-// 11. RECITATION
+// 11. RECITATION (STRICT SCHEDULE ENFORCEMENT)
 // ============================================================
 async function checkRecitationAvailability() {
     const statusDiv = document.getElementById('recitationStatus');
@@ -1551,7 +1700,8 @@ async function checkRecitationAvailability() {
         for (const s of schedules) {
             const startMin = timeToMinutes(s.start_time);
             const endMin = timeToMinutes(s.end_time);
-            if (currentTime >= startMin - 30 && currentTime <= endMin + 30) {
+            // Strictly check if class is in session right now based on schedule
+            if (currentTime >= startMin && currentTime <= endMin) {
                 active = true;
                 activeCourse = s.sections?.courses;
                 break;
@@ -1559,18 +1709,23 @@ async function checkRecitationAvailability() {
         }
     }
 
-    const targetCourse = activeCourse || enrolledCourses[0];
+    if (!active || !activeCourse) {
+        statusDiv.innerHTML = `<div style="background:#fee2e2;padding:1rem;border-radius:8px;color:#991b1b;border:1px solid #f87171;">
+            ❌ <strong>Class Not in Session</strong><br>Recitation logging is only allowed when your class is currently in session based on your schedule.
+        </div>`;
+        formContainer.style.display = 'none';
+        return;
+    }
 
-    statusDiv.innerHTML = `<div style="background:#d1fae5;padding:1rem;border-radius:8px;color:#065f46;">
-        ✅ Recitation Logger active. Current Course: <strong>${targetCourse?.code || ''} – ${targetCourse?.name || ''}</strong>
+    statusDiv.innerHTML = `<div style="background:#d1fae5;padding:1rem;border-radius:8px;color:#065f46;border:1px solid #34d399;">
+        ✅ <strong>Class in Session</strong><br>Recitation Logger is active for: <strong>${activeCourse.code} – ${activeCourse.name}</strong>
     </div>`;
     formContainer.style.display = 'block';
 
     const recitCourseSelect = document.getElementById('recitCourse');
-    renderSelect(recitCourseSelect, enrolledCourses, 'id', c => `${c.code} – ${c.name}`);
-    if (targetCourse) {
-        recitCourseSelect.value = targetCourse.id;
-    }
+    recitCourseSelect.innerHTML = `<option value="${activeCourse.id}">${activeCourse.code} – ${activeCourse.name}</option>`;
+    recitCourseSelect.value = activeCourse.id;
+    recitCourseSelect.disabled = true;
 
     document.getElementById('recitDate').value = now.toISOString().split('T')[0];
     document.getElementById('recitTime').value = now.toTimeString().slice(0,5);
@@ -1585,11 +1740,34 @@ document.getElementById('recitationForm').addEventListener('submit', async (e) =
 
     if (!courseId) { alert('Select a course.'); return; }
 
+    const now = new Date();
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+    const dayOfWeek = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][now.getDay()];
+
     const { data: schedules } = await supabase
         .from('schedules')
-        .select('id')
-        .eq('day_of_week', new Date(date).toLocaleString('en', { weekday: 'long' }));
-    let scheduleId = schedules && schedules.length > 0 ? schedules[0].id : null;
+        .select('id, start_time, end_time')
+        .eq('day_of_week', dayOfWeek);
+
+    let active = false;
+    let scheduleId = null;
+    if (schedules) {
+        for (const s of schedules) {
+            const startMin = timeToMinutes(s.start_time);
+            const endMin = timeToMinutes(s.end_time);
+            if (currentTime >= startMin && currentTime <= endMin) {
+                active = true;
+                scheduleId = s.id;
+                break;
+            }
+        }
+    }
+
+    if (!active || !scheduleId) {
+        alert('❌ Recitation can only be recorded while class is currently in session based on schedule.');
+        await checkRecitationAvailability();
+        return;
+    }
 
     const { error } = await supabase
         .from('recitations')
@@ -1741,7 +1919,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
         document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
         document.getElementById(`section-${target}`).classList.add('active');
 
-        if (target === 'attendance') { await loadAttendance(); await loadExcuseHistory(); }
+        if (target === 'attendance') { await checkAttendanceAvailability(); await loadAttendance(); await loadExcuseHistory(); }
         if (target === 'recitation') { await checkRecitationAvailability(); await loadRecitationHistory(); }
         if (target === 'grades') await loadGrades();
         if (target === 'assessments') await loadAssessments();
