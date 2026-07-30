@@ -718,7 +718,7 @@ async function loadAssessments() {
 
     const takenMap = new Map();
     taken?.forEach(g => takenMap.set(String(g.assessment_id).toLowerCase(), g.score));
-    answered?.forEach(a => { if (!takenMap.has(String(a.assessment_id).toLowerCase())) takenMap.set(String(a.assessment_id).toLowerCase(), 0); });
+    answered?.forEach(a => { if (!takenMap.has(String(a.assessment_id).toLowerCase()))) takenMap.set(String(a.assessment_id).toLowerCase(), 0); });
 
     const contestMap = new Map();
     contests?.forEach(c => contestMap.set(c.assessment_id, c));
@@ -1815,47 +1815,75 @@ async function checkRecitationAvailability() {
     const statusDiv = document.getElementById('recitationStatus');
     const formContainer = document.getElementById('recitationFormContainer');
     const now = new Date();
-    const dayOfWeek = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][now.getDay()];
-    const currentTime = now.getHours() * 60 + now.getMinutes();
+    const todayStr = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
 
     if (enrolledCourses.length === 0) {
         statusDiv.innerHTML = '<div class="empty-state">You are not enrolled in any courses.</div>';
         formContainer.style.display = 'none';
         return;
     }
+
     const courseIds = enrolledCourses.map(c => c.id);
     const { data: sections } = await supabase
         .from('sections')
         .select('id, course_id')
         .in('course_id', courseIds);
+
     if (!sections || sections.length === 0) {
         statusDiv.innerHTML = '<div class="empty-state">No class schedules found.</div>';
         formContainer.style.display = 'none';
         return;
     }
+
     const sectionIds = sections.map(s => s.id);
-    const { data: schedules, error } = await supabase
-        .from('schedules')
-        .select('*, sections(course_id, courses(code, name))')
+    
+    const { data: sessions, error: sessErr } = await supabase
+        .from('attendance_sessions')
+        .select('id, section_id')
         .in('section_id', sectionIds)
-        .eq('day_of_week', dayOfWeek);
-    if (error) { console.error(error); return; }
+        .eq('date', todayStr);
+        
+    if (sessErr) { console.error(sessErr); return; }
+
+    if (!sessions || sessions.length === 0) {
+        statusDiv.innerHTML = '<div class="empty-state">No active class session today.</div>';
+        formContainer.style.display = 'none';
+        return;
+    }
+
+    const sessionIds = sessions.map(s => s.id);
+    
+    const { data: attendanceRecords, error: attErr } = await supabase
+        .from('attendance_records')
+        .select('session_id, status')
+        .in('session_id', sessionIds)
+        .eq('student_id', currentUser.id)
+        .eq('status', 'present');
+
+    if (attErr) { console.error(attErr); return; }
 
     let active = false;
-    let activeCourse = null;
-    if (schedules) {
-        for (const s of schedules) {
-            const startMin = timeToMinutes(s.start_time);
-            const endMin = timeToMinutes(s.end_time);
-            if (currentTime >= startMin - 30 && currentTime <= endMin + 30) {
+    let activeCourseId = null;
+
+    if (attendanceRecords && attendanceRecords.length > 0) {
+        const presentSessionId = attendanceRecords[0].session_id;
+        const activeSession = sessions.find(s => s.id === presentSessionId);
+        if (activeSession) {
+            const activeSection = sections.find(s => s.id === activeSession.section_id);
+            if (activeSection) {
                 active = true;
-                activeCourse = s.sections?.courses;
-                break;
+                activeCourseId = activeSection.course_id;
             }
         }
     }
 
-    const targetCourse = activeCourse || enrolledCourses[0];
+    if (!active) {
+        statusDiv.innerHTML = '<div class="empty-state">You must be marked Present in an active class session today to log recitation.</div>';
+        formContainer.style.display = 'none';
+        return;
+    }
+
+    const targetCourse = enrolledCourses.find(c => c.id === activeCourseId) || enrolledCourses[0];
 
     statusDiv.innerHTML = `<div style="background:#d1fae5;padding:1rem;border-radius:8px;color:#065f46;">
         ✅ Recitation Logger active. Current Course: <strong>${targetCourse?.code || ''} – ${targetCourse?.name || ''}</strong>
@@ -1868,7 +1896,7 @@ async function checkRecitationAvailability() {
         recitCourseSelect.value = targetCourse.id;
     }
 
-    document.getElementById('recitDate').value = now.toISOString().split('T')[0];
+    document.getElementById('recitDate').value = todayStr;
     document.getElementById('recitTime').value = now.toTimeString().slice(0,5);
 }
 
