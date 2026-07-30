@@ -1433,7 +1433,7 @@ window.saveDraft = async function() {
 };
 
 // ------------------------------------------------------------
-// 12. PUBLISHED ASSESSMENTS LIST (with edit button)
+// 12. PUBLISHED ASSESSMENTS LIST (with edit button - FIXED)
 // ------------------------------------------------------------
 async function loadAssessmentsList() {
     const container = document.getElementById('assessmentsList');
@@ -1451,6 +1451,7 @@ async function loadAssessmentsList() {
         }
         let html = '<div class="table-wrap"><table><thead><tr><th>Title</th><th>Course</th><th>Type</th><th>Max Score</th><th>Date</th><th>Actions</th></tr></thead><tbody>';
         for (const a of assessments) {
+            // Use `onclick="loadPublishedAssessment('${a.id}')"` - function is globally exposed via window
             html += `<tr>
                 <td>${a.title}</td>
                 <td>${a.courses?.code || 'N/A'}</td>
@@ -1458,7 +1459,7 @@ async function loadAssessmentsList() {
                 <td>${a.max_score}</td>
                 <td>${new Date(a.date).toLocaleString()}</td>
                 <td>
-                    <button class="btn btn-outline btn-sm" onclick="window.loadPublishedAssessment('${a.id}')">✏️ Edit</button>
+                    <button class="btn btn-outline btn-sm" onclick="loadPublishedAssessment('${a.id}')">✏️ Edit</button>
                     <button class="btn btn-danger btn-sm" onclick="deleteAssessment('${a.id}')">🗑️</button>
                 </td>
             </tr>`;
@@ -1481,7 +1482,7 @@ window.deleteAssessment = async function(assessmentId) {
 };
 
 // ------------------------------------------------------------
-// 13. LOAD PUBLISHED ASSESSMENT FOR EDITING (FIXED - globally exposed)
+// 13. LOAD PUBLISHED ASSESSMENT FOR EDITING - GLOBALLY EXPOSED
 // ------------------------------------------------------------
 window.loadPublishedAssessment = async function(assessmentId) {
     console.log('loadPublishedAssessment called with ID:', assessmentId);
