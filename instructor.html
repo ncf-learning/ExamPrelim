@@ -210,7 +210,7 @@
             <div class="card"><div class="card-header"><h3>Current Schedules</h3></div><div id="scheduleList"><div class="empty-state"><p>No schedules set.</p></div></div></div>
         </section>
 
-        <!-- ===== ASSESSMENTS (DRAFT SUPPORT – AUTO-CREATE) ===== -->
+        <!-- ===== ASSESSMENTS ===== -->
         <section id="section-assessments" class="page-section">
             <div class="page-header">
                 <h1>Assessments <small>Build professional exams</small></h1>
@@ -428,6 +428,33 @@
             <div class="form-group full" id="optionsGroup"><label>Options (put <code>*</code> before the correct answer, one per line)</label><textarea id="qOptions" rows="4" placeholder="Option 1&#10;*Option 2 (correct)&#10;Option 3"></textarea><span class="text-muted text-sm">Example: Option A<br>*Option B (correct)</span></div>
             <div class="form-group"><label>Points</label><input type="number" id="qPoints" value="1" min="1" /></div>
             <div class="form-group full" style="display:flex; gap:0.5rem; margin-top:0.5rem;"><button type="submit" class="btn btn-primary">💾 Save Question</button><button type="button" class="btn btn-outline" onclick="closeQuestionEditor()">Cancel</button></div>
+        </form>
+    </div>
+</div>
+
+<!-- ================= ADDED: EDIT ASSESSMENT POPUP MODAL ================= -->
+<div class="modal" id="editAssessmentModal">
+    <div class="modal-content">
+        <button class="close" onclick="closeEditAssessmentModal()">✕</button>
+        <h3>Edit Published Assessment</h3>
+        <form id="editAssessmentForm" class="form-grid" style="margin-top:1rem;">
+            <input type="hidden" id="editAssessId" />
+            <div class="form-group full"><label>Title</label><input type="text" id="editAssessTitle" required /></div>
+            <div class="form-group full"><label>Description</label><textarea id="editAssessDesc" rows="2"></textarea></div>
+            <div class="form-group full"><label>Course</label><select id="editAssessCourse" required><option value="">Select course...</option></select></div>
+            <div class="form-group"><label>Type</label><select id="editAssessType"><option>Quiz</option><option>Exam</option><option>Project</option></select></div>
+            <div class="form-group"><label>Duration (min)</label><input type="number" id="editAssessDuration" min="1" /></div>
+            <div class="form-group"><label>Max Score</label><input type="number" id="editAssessMaxScore" min="1" /></div>
+            <div class="form-group"><label>Passing Score (%)</label><input type="number" id="editAssessPassing" min="0" max="100" /></div>
+            <div class="form-group"><label>Date & Time</label><input type="datetime-local" id="editAssessDate" required /></div>
+            <div class="form-group"><label>Questions to show</label><input type="number" id="editAssessShow" placeholder="Leave blank to show all" min="1" /></div>
+            <div class="form-group"><label>Randomise questions per student?</label><input type="checkbox" id="editAssessRandomize" /></div>
+            <div class="form-group"><label>Shuffle options per question?</label><input type="checkbox" id="editAssessShuffleOptions" /></div>
+            <div class="form-group"><label>Show correct answers after submission?</label><input type="checkbox" id="editAssessShowAnswers" /></div>
+            <div class="form-group full" style="margin-top:1rem; display:flex; gap:0.5rem;">
+                <button type="submit" class="btn btn-primary">💾 Update Assessment</button>
+                <button type="button" class="btn btn-outline" onclick="closeEditAssessmentModal()">Cancel</button>
+            </div>
         </form>
     </div>
 </div>
@@ -714,7 +741,8 @@ async function updateStats() {
 async function populateCourseSelects() {
     const selectIds = [
         'attCourse', 'scheduleCourse', 'assessCourses', 'weightsCourse',
-        'computeCourse', 'finalCourse', 'reportCourse', 'intervCourse', 'enrollCourse'
+        'computeCourse', 'finalCourse', 'reportCourse', 'intervCourse', 'enrollCourse',
+        'editAssessCourse'
     ];
     for (const id of selectIds) {
         const el = document.getElementById(id);
@@ -1410,9 +1438,9 @@ async function loadAssessmentsList() {
             html += `<tr>
                 <td>${a.title}</td>
                 <td>${a.courses?.code || 'N/A'}</td>
-                <td>${a.assessment_type_id}</td>
+                <td>${a.assessment_type_id || 'N/A'}</td>
                 <td>${a.max_score}</td>
-                <td>${new Date(a.date).toLocaleString()}</td>
+                <td>${a.date ? new Date(a.date).toLocaleString() : 'N/A'}</td>
                 <td>
                     <button class="btn btn-outline btn-sm edit-assessment-btn" data-assessment-id="${a.id}">✏️ Edit</button>
                     <button class="btn btn-danger btn-sm" onclick="deleteAssessment('${a.id}')">🗑️</button>
@@ -1436,6 +1464,7 @@ document.addEventListener('click', function(e) {
     }
 });
 
+// ========= REPLACED/FIXED: LOAD INTO DEDICATED POPUP MODAL =========
 window.loadPublishedAssessment = async function(assessmentId) {
     console.log('loadPublishedAssessment called with ID:', assessmentId);
     try {
@@ -1447,66 +1476,44 @@ window.loadPublishedAssessment = async function(assessmentId) {
         if (error) { alert('Error loading assessment: ' + error.message); return; }
         console.log('Assessment loaded:', assessment);
 
-        document.getElementById('assessTitle').value = assessment.title || '';
-        document.getElementById('assessDesc').value = assessment.description || '';
+        document.getElementById('editAssessId').value = assessment.id;
+        document.getElementById('editAssessTitle').value = assessment.title || '';
+        document.getElementById('editAssessDesc').value = assessment.description || '';
+
         if (assessment.assessment_type_id) {
             const { data: type } = await supabase
                 .from('assessment_types')
                 .select('name')
                 .eq('id', assessment.assessment_type_id)
                 .single();
-            if (type) document.getElementById('assessType').value = type.name;
+            if (type) document.getElementById('editAssessType').value = type.name;
         }
-        document.getElementById('assessDuration').value = assessment.duration_minute || 60;
-        document.getElementById('assessMaxScore').value = assessment.max_score || 100;
-        document.getElementById('assessDate').value = assessment.date || '';
-        document.getElementById('assessShow').value = assessment.questions_to_show || '';
-        document.getElementById('assessRandomize').checked = assessment.randomize_ques || false;
-        document.getElementById('assessAI').value = assessment.ai_grading || 'none';
-        document.getElementById('assessShuffleOptions').checked = assessment.shuffle_options || false;
-        document.getElementById('assessShowAnswers').checked = assessment.show_answers || false;
-        document.getElementById('assessPassing').value = assessment.passing_score || 60;
+
+        document.getElementById('editAssessDuration').value = assessment.duration_minute || 60;
+        document.getElementById('editAssessMaxScore').value = assessment.max_score || 100;
+        document.getElementById('editAssessPassing').value = assessment.passing_score || 60;
+        document.getElementById('editAssessDate').value = assessment.date ? assessment.date.slice(0, 16) : '';
+        document.getElementById('editAssessShow').value = assessment.questions_to_show || '';
+        document.getElementById('editAssessRandomize').checked = assessment.randomize_ques || false;
+        document.getElementById('editAssessShuffleOptions').checked = assessment.shuffle_options || false;
+        document.getElementById('editAssessShowAnswers').checked = assessment.show_answers || false;
 
         if (assessment.course_id) {
-            const select = document.getElementById('assessCourses');
+            const select = document.getElementById('editAssessCourse');
             Array.from(select.options).forEach(opt => {
                 opt.selected = (opt.value === assessment.course_id);
             });
         }
 
-        const { data: questions, error: qError } = await supabase
-            .from('assessment_questions')
-            .select('*')
-            .eq('assessment_id', assessmentId)
-            .order('id', { ascending: true });
-        if (qError) { alert('Error loading questions: ' + qError.message); return; }
-        const container = document.getElementById('questionList');
-        if (!questions || questions.length === 0) {
-            container.innerHTML = '<div class="empty-state">No questions added yet.</div>';
-        } else {
-            let html = '';
-            questions.forEach((q, idx) => {
-                html += `<div class="question-item">
-                    <span class="q-text">${idx+1}. ${q.question} (${q.type}, ${q.points} pts)</span>
-                    <div class="q-actions">
-                        <button class="btn btn-outline btn-sm" onclick="editQuestionDB('${q.id}')">✏️</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteQuestionDB('${q.id}')">🗑️</button>
-                    </div>
-                </div>`;
-            });
-            container.innerHTML = html;
-        }
-
-        currentDraftAssessmentId = assessmentId;
-        isEditingPublished = true;
-        document.getElementById('publishAssessmentBtn').textContent = '🔄 Update Assessment';
-        switchSection('assessments');
-        goToStep(1);
-        console.log('Assessment loaded for editing.');
+        document.getElementById('editAssessmentModal').classList.add('active');
     } catch (err) {
         console.error('Error in loadPublishedAssessment:', err);
         alert('Error loading assessment: ' + err.message);
     }
+};
+
+window.closeEditAssessmentModal = function() {
+    document.getElementById('editAssessmentModal').classList.remove('active');
 };
 
 window.deleteAssessment = async function(assessmentId) {
@@ -1518,27 +1525,22 @@ window.deleteAssessment = async function(assessmentId) {
     await updateStats();
 };
 
-async function updatePublishedAssessment() {
-    if (!currentDraftAssessmentId) {
-        alert('No assessment to update.');
-        return;
-    }
-    const title = document.getElementById('assessTitle').value.trim() || 'Untitled Assessment';
-    const desc = document.getElementById('assessDesc').value.trim();
-    const type = document.getElementById('assessType').value;
-    const duration = parseInt(document.getElementById('assessDuration').value) || 60;
-    const maxScore = parseFloat(document.getElementById('assessMaxScore').value) || 100;
-    const date = document.getElementById('assessDate').value || null;
-    const questionsToShow = parseInt(document.getElementById('assessShow').value) || null;
-    const randomize = document.getElementById('assessRandomize').checked;
-    const ai = document.getElementById('assessAI').value;
-    const shuffleOptions = document.getElementById('assessShuffleOptions').checked;
-    const showAnswers = document.getElementById('assessShowAnswers').checked;
-    const passing = parseInt(document.getElementById('assessPassing').value) || 60;
-
-    const courseSelect = document.getElementById('assessCourses');
-    const selectedCourseIds = Array.from(courseSelect.selectedOptions).map(opt => opt.value);
-    const courseId = selectedCourseIds.length > 0 ? selectedCourseIds[0] : null;
+// ========= ADDED: HANDLE ASSESSMENT MODAL FORM UPDATES =========
+document.getElementById('editAssessmentForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const id = document.getElementById('editAssessId').value;
+    const title = document.getElementById('editAssessTitle').value.trim();
+    const desc = document.getElementById('editAssessDesc').value.trim();
+    const courseId = document.getElementById('editAssessCourse').value;
+    const type = document.getElementById('editAssessType').value;
+    const duration = parseInt(document.getElementById('editAssessDuration').value) || 60;
+    const maxScore = parseFloat(document.getElementById('editAssessMaxScore').value) || 100;
+    const passing = parseInt(document.getElementById('editAssessPassing').value) || 60;
+    const date = document.getElementById('editAssessDate').value || null;
+    const questionsToShow = parseInt(document.getElementById('editAssessShow').value) || null;
+    const randomize = document.getElementById('editAssessRandomize').checked;
+    const shuffleOptions = document.getElementById('editAssessShuffleOptions').checked;
+    const showAnswers = document.getElementById('editAssessShowAnswers').checked;
 
     let typeId = null;
     if (courseId) {
@@ -1574,10 +1576,9 @@ async function updatePublishedAssessment() {
             shuffle_options: shuffleOptions,
             show_answers: showAnswers,
             passing_score: passing,
-            ai_grading: ai,
             course_id: courseId
         })
-        .eq('id', currentDraftAssessmentId);
+        .eq('id', id);
 
     if (error) {
         alert('Error updating assessment: ' + error.message);
@@ -1585,16 +1586,10 @@ async function updatePublishedAssessment() {
     }
 
     alert('Assessment updated successfully!');
-    isEditingPublished = false;
-    document.getElementById('publishAssessmentBtn').textContent = '🚀 Publish Assessment';
-    currentDraftAssessmentId = null;
+    closeEditAssessmentModal();
     await loadAssessmentsList();
-    await loadDraftAssessments();
     await updateStats();
-    document.getElementById('assessmentForm').reset();
-    document.getElementById('questionList').innerHTML = '<div class="empty-state">No questions added yet.</div>';
-    goToStep(1);
-}
+});
 
 document.addEventListener('DOMContentLoaded', function() {
     const publishBtn = document.getElementById('publishAssessmentBtn');
@@ -2106,12 +2101,9 @@ document.getElementById('logoutBtn').addEventListener('click', async function() 
 });
 
 // --- ADD COURSE FIX ---
-// The function is now globally accessible via `window.addCourse`
-// and also called directly from the button's onclick attribute.
 window.addCourse = async function() {
     console.log('Add Course button clicked.');
     try {
-        // Check if user is logged in
         if (!currentUser) {
             alert('You must be logged in to add a course.');
             return;
@@ -2143,7 +2135,6 @@ window.addCourse = async function() {
     }
 };
 
-// Also attach via event listener (backup)
 document.getElementById('addCourseBtn')?.addEventListener('click', window.addCourse);
 
 // ------------------------------------------------------------
