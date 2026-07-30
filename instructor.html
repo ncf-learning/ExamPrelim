@@ -1458,7 +1458,7 @@ async function loadAssessmentsList() {
                 <td>${a.max_score}</td>
                 <td>${new Date(a.date).toLocaleString()}</td>
                 <td>
-                    <button class="btn btn-outline btn-sm" onclick="loadPublishedAssessment('${a.id}')">✏️ Edit</button>
+                    <button class="btn btn-outline btn-sm" onclick="window.loadPublishedAssessment('${a.id}')">✏️ Edit</button>
                     <button class="btn btn-danger btn-sm" onclick="deleteAssessment('${a.id}')">🗑️</button>
                 </td>
             </tr>`;
@@ -1481,7 +1481,7 @@ window.deleteAssessment = async function(assessmentId) {
 };
 
 // ------------------------------------------------------------
-// 13. LOAD PUBLISHED ASSESSMENT FOR EDITING (FIXED)
+// 13. LOAD PUBLISHED ASSESSMENT FOR EDITING (FIXED - globally exposed)
 // ------------------------------------------------------------
 window.loadPublishedAssessment = async function(assessmentId) {
     console.log('loadPublishedAssessment called with ID:', assessmentId);
