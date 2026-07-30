@@ -483,8 +483,6 @@ const PH_TIMEZONE = 'Asia/Manila';
 function toPhilippineTime(utcDateStr) {
     if (!utcDateStr) return '';
     const date = new Date(utcDateStr);
-    // Format as YYYY-MM-DDTHH:mm in local time (browser will handle timezone display)
-    // But we want to force Philippine Time display
     const phTime = new Date(date.toLocaleString('en-US', { timeZone: PH_TIMEZONE }));
     const year = phTime.getFullYear();
     const month = String(phTime.getMonth() + 1).padStart(2, '0');
@@ -496,14 +494,10 @@ function toPhilippineTime(utcDateStr) {
 
 function toUTC(phTimeStr) {
     if (!phTimeStr) return null;
-    // phTimeStr is in format YYYY-MM-DDTHH:mm (local time)
-    // We need to interpret it as Philippine Time and convert to UTC
     const [datePart, timePart] = phTimeStr.split('T');
     const [year, month, day] = datePart.split('-').map(Number);
     const [hours, minutes] = timePart.split(':').map(Number);
-    // Create date as Philippine Time
     const phDate = new Date(Date.UTC(year, month - 1, day, hours - 8, minutes));
-    // Return as ISO string (UTC)
     return phDate.toISOString();
 }
 
@@ -1449,14 +1443,15 @@ window.saveDraft = async function() {
 };
 
 // ------------------------------------------------------------
-// 13. PUBLISHED ASSESSMENTS LIST
+// 13. PUBLISHED ASSESSMENTS LIST (FIXED: show type name)
 // ------------------------------------------------------------
 async function loadAssessmentsList() {
     const container = document.getElementById('assessmentsList');
     try {
+        // Join with assessment_types to get the type name
         const { data: assessments, error } = await supabase
             .from('assessments')
-            .select('*, courses (code, name)')
+            .select('*, courses (code, name), assessment_types (name)')
             .eq('is_published', true)
             .in('course_id', instructorCourses.map(c => c.id))
             .order('created_at', { ascending: false });
@@ -1467,7 +1462,6 @@ async function loadAssessmentsList() {
         }
         let html = '<div class="table-wrap"><table><thead><tr><th>Title</th><th>Course</th><th>Type</th><th>Max Score</th><th>Date</th><th>Actions</th></tr></thead><tbody>';
         for (const a of assessments) {
-            // Display date in Philippine Time
             let displayDate = 'N/A';
             if (a.date) {
                 try {
@@ -1477,10 +1471,11 @@ async function loadAssessmentsList() {
                     displayDate = a.date;
                 }
             }
+            const typeName = a.assessment_types?.name || 'N/A';
             html += `<tr>
                 <td>${a.title}</td>
                 <td>${a.courses?.code || 'N/A'}</td>
-                <td>${a.assessment_type_id || 'N/A'}</td>
+                <td>${typeName}</td>
                 <td>${a.max_score}</td>
                 <td>${displayDate}</td>
                 <td>
@@ -1535,7 +1530,6 @@ window.loadPublishedAssessment = async function(assessmentId) {
         document.getElementById('editAssessMaxScore').value = assessment.max_score || 100;
         document.getElementById('editAssessPassing').value = assessment.passing_score || 60;
 
-        // ---- FIX: Convert UTC to Philippine Time for display ----
         document.getElementById('editAssessDate').value = toPhilippineTime(assessment.date);
 
         document.getElementById('editAssessShow').value = assessment.questions_to_show || '';
@@ -1581,7 +1575,6 @@ document.getElementById('editAssessmentForm').addEventListener('submit', async f
     const duration = parseInt(document.getElementById('editAssessDuration').value) || 60;
     const maxScore = parseFloat(document.getElementById('editAssessMaxScore').value) || 100;
     const passing = parseInt(document.getElementById('editAssessPassing').value) || 60;
-    // Convert from Philippine Time to UTC before storing
     const phTime = document.getElementById('editAssessDate').value;
     const utcDate = toUTC(phTime);
     const questionsToShow = parseInt(document.getElementById('editAssessShow').value) || null;
