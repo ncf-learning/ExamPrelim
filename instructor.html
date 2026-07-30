@@ -305,7 +305,13 @@
         <section id="section-gradebook" class="page-section">
             <div class="page-header"><div><h1>Gradebook <small>Spreadsheet view</small></h1></div></div>
             <div class="card">
-                <div class="card-header"><h3>Grades</h3><button class="btn btn-outline btn-sm" id="exportGrades">📥 Export CSV</button></div>
+                <div class="card-header">
+                    <h3>Grades</h3>
+                    <div style="display:flex; gap:0.5rem; align-items:center;">
+                        <button class="btn btn-outline btn-sm" onclick="loadGradebook()">🔄 Refresh</button>
+                        <button class="btn btn-outline btn-sm" id="exportGrades">📥 Export CSV</button>
+                    </div>
+                </div>
                 <div class="form-group" style="margin-bottom:1rem;"><label>Select Course</label><select id="manualCourseSelect"><option value="">Choose a course...</option></select></div>
                 <div id="gradebookContainer"><div class="empty-state"><p>Select a course to view grades.</p></div></div>
             </div>
@@ -895,7 +901,6 @@ window.resolveContest = async function(contestId, studentId, assessmentId, newSt
         .update({ status: newStatus, resolved_at: new Date().toISOString() })
         .eq('id', contestId);
 
-    // If approved, clear the zero grade so the student can start the test again
     if (newStatus === 'approved') {
         await supabase.from('grades').delete().eq('student_id', studentId).eq('assessment_id', assessmentId);
         await supabase.from('student_answers').delete().eq('student_id', studentId).eq('assessment_id', assessmentId);
@@ -1315,7 +1320,7 @@ async function ensureDraftExists() {
     const title = document.getElementById('assessTitle').value.trim() || 'Untitled Draft';
     const desc = document.getElementById('assessDesc').value.trim();
     const type = document.getElementById('assessType').value;
-    const period = document.getElementById('assessPeriod').value || 'prelim';
+    const period = (document.getElementById('assessPeriod').value || 'prelim').toLowerCase();
     const duration = parseInt(document.getElementById('assessDuration').value) || 60;
     const maxScore = parseFloat(document.getElementById('assessMaxScore').value) || 100;
     const date = document.getElementById('assessDate').value || null;
@@ -1535,7 +1540,7 @@ window.saveDraft = async function() {
     const title = document.getElementById('assessTitle').value.trim() || 'Untitled Draft';
     const desc = document.getElementById('assessDesc').value.trim();
     const type = document.getElementById('assessType').value;
-    const period = document.getElementById('assessPeriod').value || 'prelim';
+    const period = (document.getElementById('assessPeriod').value || 'prelim').toLowerCase();
     const duration = parseInt(document.getElementById('assessDuration').value) || 60;
     const maxScore = parseFloat(document.getElementById('assessMaxScore').value) || 100;
     const date = document.getElementById('assessDate').value || null;
@@ -1727,7 +1732,7 @@ window.loadPublishedAssessment = async function(assessmentId) {
         document.getElementById('editAssessId').value = assessment.id;
         document.getElementById('editAssessTitle').value = assessment.title || '';
         document.getElementById('editAssessDesc').value = assessment.description || '';
-        document.getElementById('editAssessPeriod').value = assessment.period || 'prelim';
+        document.getElementById('editAssessPeriod').value = (assessment.period || 'prelim').toLowerCase();
 
         if (assessment.assessment_type_id) {
             const { data: type } = await supabase
@@ -1778,7 +1783,7 @@ document.getElementById('editAssessmentForm').addEventListener('submit', async f
     const desc = document.getElementById('editAssessDesc').value.trim();
     const courseId = document.getElementById('editAssessCourse').value;
     const type = document.getElementById('editAssessType').value;
-    const period = document.getElementById('editAssessPeriod').value || 'prelim';
+    const period = (document.getElementById('editAssessPeriod').value || 'prelim').toLowerCase();
     const duration = parseInt(document.getElementById('editAssessDuration').value) || 60;
     const maxScore = parseFloat(document.getElementById('editAssessMaxScore').value) || 100;
     const passing = parseInt(document.getElementById('editAssessPassing').value) || 60;
@@ -1915,7 +1920,7 @@ window.loadDraft = async function(draftId) {
 
     document.getElementById('assessTitle').value = draft.title || '';
     document.getElementById('assessDesc').value = draft.description || '';
-    document.getElementById('assessPeriod').value = draft.period || 'prelim';
+    document.getElementById('assessPeriod').value = (draft.period || 'prelim').toLowerCase();
     if (draft.assessment_type_id) {
         const { data: type } = await supabase
             .from('assessment_types')
@@ -2051,7 +2056,7 @@ async function loadGradebook() {
             for (const aid of assessIds) {
                 const g = grades?.find(g => g.student_id === sid && g.assessment_id === aid);
                 if (g) {
-                    const pct = (g.score / g.max_score) * 100;
+                    const pct = (Number(g.score) / Number(g.max_score || 1)) * 100;
                     html += `<td>${pct.toFixed(1)}%</td>`;
                     totalPct += pct;
                     count++;
@@ -2247,7 +2252,7 @@ document.getElementById('computeCourse')?.addEventListener('change', async funct
 document.getElementById('computeForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const courseId = document.getElementById('computeCourse').value;
-    const period = document.getElementById('computePeriod').value;
+    const period = (document.getElementById('computePeriod').value || 'prelim').toLowerCase();
     const lockPeriod = document.getElementById('lockPeriod').checked;
 
     if (!courseId) { alert('Select a course.'); return; }
@@ -2278,14 +2283,15 @@ document.getElementById('computeForm').addEventListener('submit', async function
     const wAtt  = (weightMap['Attendance and Others'] !== undefined) ? weightMap['Attendance and Others'] / 100 : 0.10;
     const wExam = (weightMap['Major Exam'] !== undefined) ? weightMap['Major Exam'] / 100 : 0.50;
 
-    const { data: assessments } = await supabase
+    // CASE-INSENSITIVE PERIOD MATCHING
+    const { data: allAssessments } = await supabase
         .from('assessments')
-        .select('id, assessment_type_id, max_score, title')
+        .select('id, assessment_type_id, max_score, title, period, assessment_types(name)')
         .eq('course_id', courseId)
-        .eq('period', period)
         .eq('is_published', true);
 
-    const assessmentIds = assessments?.map(a => a.id) || [];
+    const assessments = (allAssessments || []).filter(a => (a.period || 'prelim').trim().toLowerCase() === period);
+    const assessmentIds = assessments.map(a => a.id);
 
     const { data: grades } = await supabase
         .from('grades')
@@ -2295,7 +2301,7 @@ document.getElementById('computeForm').addEventListener('submit', async function
 
     const { data: manualGrades } = await supabase
         .from('manual_grades')
-        .select('student_id, assessment_type_id, score, max_score')
+        .select('student_id, assessment_type_id, score, max_score, notes')
         .eq('course_id', courseId)
         .in('student_id', studentIds);
 
@@ -2343,41 +2349,46 @@ document.getElementById('computeForm').addEventListener('submit', async function
             .single();
         const name = student ? `${student.first_name} ${student.last_name}` : sid;
 
-        const quizAssessments = assessments?.filter(a => typeMap[a.assessment_type_id] === 'Quizzes and activities') || [];
-        const caseAssessments = assessments?.filter(a => typeMap[a.assessment_type_id] === 'Case analysis, Recitation, and reflection briefs') || [];
-        const examAssessments = assessments?.filter(a => typeMap[a.assessment_type_id] === 'Major Exam') || [];
-
+        // FLEXIBLE CATEGORY AND TITLE KEYWORD MATCHING
         const quizScores = [];
-        grades?.filter(g => g.student_id === sid && quizAssessments.some(a => a.id === g.assessment_id)).forEach(g => {
-            const max = g.max_score || 100;
-            quizScores.push((g.score / max) * 100);
-        });
-        manualGrades?.filter(g => g.student_id === sid && typeMap[g.assessment_type_id] === 'Quizzes and activities').forEach(g => {
-            const max = g.max_score || 100;
-            quizScores.push((g.score / max) * 100);
-        });
-
         const caseScores = [];
-        grades?.filter(g => g.student_id === sid && caseAssessments.some(a => a.id === g.assessment_id)).forEach(g => {
-            const max = g.max_score || 100;
-            caseScores.push((g.score / max) * 100);
-        });
-        manualGrades?.filter(g => g.student_id === sid && typeMap[g.assessment_type_id] === 'Case analysis, Recitation, and reflection briefs').forEach(g => {
-            const max = g.max_score || 100;
-            caseScores.push((g.score / max) * 100);
-        });
-        recitations?.filter(r => r.student_id === sid && r.rating !== null && r.rating !== undefined).forEach(r => {
-            caseScores.push(Number(r.rating) * 10);
+        const examScores = [];
+
+        grades?.filter(g => g.student_id === sid).forEach(g => {
+            const a = assessments.find(as => as.id === g.assessment_id);
+            if (!a) return;
+            const cat = (a.assessment_types?.name || typeMap[a.assessment_type_id] || '').trim().toLowerCase();
+            const titleLower = (a.title || '').trim().toLowerCase();
+            const max = Number(g.max_score || a.max_score || 100);
+            const score = Number(g.score || 0);
+            const pct = max > 0 ? (score / max) * 100 : 0;
+
+            if (cat.includes('exam') || cat.includes('major') || titleLower.includes('exam') || titleLower.includes('major')) {
+                examScores.push(pct);
+            } else if (cat.includes('case') || cat.includes('recitation') || cat.includes('reflection') || titleLower.includes('case') || titleLower.includes('recit')) {
+                caseScores.push(pct);
+            } else {
+                quizScores.push(pct);
+            }
         });
 
-        const examScores = [];
-        grades?.filter(g => g.student_id === sid && examAssessments.some(a => a.id === g.assessment_id)).forEach(g => {
-            const max = g.max_score || 100;
-            examScores.push((g.score / max) * 100);
+        manualGrades?.filter(mg => mg.student_id === sid).forEach(mg => {
+            const cat = (typeMap[mg.assessment_type_id] || '').trim().toLowerCase();
+            const max = Number(mg.max_score || 100);
+            const score = Number(mg.score || 0);
+            const pct = max > 0 ? (score / max) * 100 : 0;
+
+            if (cat.includes('exam') || cat.includes('major')) {
+                examScores.push(pct);
+            } else if (cat.includes('case') || cat.includes('recitation') || cat.includes('reflection')) {
+                caseScores.push(pct);
+            } else {
+                quizScores.push(pct);
+            }
         });
-        manualGrades?.filter(g => g.student_id === sid && typeMap[g.assessment_type_id] === 'Major Exam').forEach(g => {
-            const max = g.max_score || 100;
-            examScores.push((g.score / max) * 100);
+
+        recitations?.filter(r => r.student_id === sid && r.rating !== null && r.rating !== undefined).forEach(r => {
+            caseScores.push(Number(r.rating) * 20); // 5 points max -> 100% scale
         });
 
         const calcAvg = (arr) => {
@@ -2408,7 +2419,7 @@ document.getElementById('computeForm').addEventListener('submit', async function
                 student_id: sid,
                 course_id: courseId,
                 period: period,
-                grade: periodGrade,
+                grade: Number(periodGrade.toFixed(2)),
                 locked: lockPeriod,
                 updated_at: new Date().toISOString()
             }, { onConflict: 'student_id,course_id,period' });
@@ -2427,7 +2438,6 @@ document.getElementById('computeForm').addEventListener('submit', async function
     html += '</tbody></table></div>';
     document.getElementById('computedGradesResult').innerHTML = html;
 
-    // IF LOCKING: ADVANCE COURSE ACTIVE PERIOD TO NEXT PERIOD
     if (lockPeriod) {
         const nextPeriodMap = { 'prelim': 'midterm', 'midterm': 'semifinal', 'semifinal': 'final', 'final': 'final' };
         const newActivePeriod = nextPeriodMap[period] || period;
@@ -2476,10 +2486,10 @@ document.getElementById('finalForm').addEventListener('submit', async function(e
             .single();
         const name = student ? `${student.first_name} ${student.last_name}` : sid;
 
-        const prelim = periodGrades?.find(p => p.student_id === sid && p.period === 'prelim')?.grade || 0;
-        const midterm = periodGrades?.find(p => p.student_id === sid && p.period === 'midterm')?.grade || 0;
-        const semifinal = periodGrades?.find(p => p.student_id === sid && p.period === 'semifinal')?.grade || 0;
-        const final = periodGrades?.find(p => p.student_id === sid && p.period === 'final')?.grade || 0;
+        const prelim = Number(periodGrades?.find(p => p.student_id === sid && (p.period || 'prelim').toLowerCase() === 'prelim')?.grade || 0);
+        const midterm = Number(periodGrades?.find(p => p.student_id === sid && (p.period || '').toLowerCase() === 'midterm')?.grade || 0);
+        const semifinal = Number(periodGrades?.find(p => p.student_id === sid && (p.period || '').toLowerCase() === 'semifinal')?.grade || 0);
+        const final = Number(periodGrades?.find(p => p.student_id === sid && (p.period || '').toLowerCase() === 'final')?.grade || 0);
         const finalGrade = (prelim + midterm + semifinal + final) / 4;
 
         await supabase
@@ -2487,7 +2497,7 @@ document.getElementById('finalForm').addEventListener('submit', async function(e
             .upsert({
                 student_id: sid,
                 course_id: courseId,
-                final_grade: finalGrade,
+                final_grade: Number(finalGrade.toFixed(2)),
                 updated_at: new Date().toISOString()
             }, { onConflict: 'student_id,course_id' });
 
@@ -2510,7 +2520,7 @@ document.getElementById('finalForm').addEventListener('submit', async function(e
 window.generateFormalLetterReport = async function() {
     const courseId = document.getElementById('reportCourse').value;
     const reportType = document.getElementById('reportType').value;
-    const reportPeriod = document.getElementById('reportPeriod').value;
+    const reportPeriod = (document.getElementById('reportPeriod').value || 'prelim').toLowerCase();
     const container = document.getElementById('reportOutput');
 
     if (!courseId) {
@@ -2595,7 +2605,7 @@ window.generateFormalLetterReport = async function() {
         let includeStudent = true;
 
         if (reportType === 'gradesheet_period') {
-            const pg = pGrades?.find(p => p.student_id === sid && p.period === reportPeriod);
+            const pg = pGrades?.find(p => p.student_id === sid && (p.period || 'prelim').toLowerCase() === reportPeriod);
             ratingDisplay = pg ? `${Number(pg.grade).toFixed(2)}%` : 'No Grade';
         } else if (reportType === 'final_rating') {
             const fg = fGrades?.find(f => f.student_id === sid);
