@@ -717,8 +717,8 @@ async function loadAssessments() {
         .eq('student_id', currentUser.id);
 
     const takenMap = new Map();
-    taken?.forEach(g => takenMap.set(g.assessment_id, g.score));
-    answered?.forEach(a => { if (!takenMap.has(a.assessment_id)) takenMap.set(a.assessment_id, 0); });
+    taken?.forEach(g => takenMap.set(String(g.assessment_id).toLowerCase(), g.score));
+    answered?.forEach(a => { if (!takenMap.has(String(a.assessment_id).toLowerCase())) takenMap.set(String(a.assessment_id).toLowerCase(), 0); });
 
     const contestMap = new Map();
     contests?.forEach(c => contestMap.set(c.assessment_id, c));
@@ -735,17 +735,18 @@ async function loadAssessments() {
         const endDate = a.end_date ? new Date(a.end_date) : new Date(assessDate.getTime() + (durationMin * 60 * 1000) + (24 * 3600 * 1000));
 
         const contest = contestMap.get(a.id);
-        const isCompleted = takenMap.has(a.id);
-        const score = takenMap.get(a.id);
+        const isCompleted = takenMap.has(String(a.id).toLowerCase());
+        const score = takenMap.get(String(a.id).toLowerCase());
 
-        if (contest && contest.status === 'approved') {
+        // STRICT ORDER OF CHECKING: Once completed, NEVER place in availableList
+        if (isCompleted) {
+            takenList.push({ ...a, contest, score });
+        } else if (contest && contest.status === 'approved') {
             if (now >= startDate && now <= endDate) {
                 availableList.push({ ...a, contest });
             } else {
                 takenList.push({ ...a, contest, score });
             }
-        } else if (isCompleted) {
-            takenList.push({ ...a, contest, score });
         } else if (now >= startDate && now <= endDate) {
             availableList.push({ ...a, contest });
         } else if (now > endDate) {
@@ -1084,6 +1085,8 @@ function triggerAntiCheatViolation(reason) {
 window.submitAssessment = async function(isViolation = false) {
     if (!activeExam || (!isViolation && isSubmittingExam)) return;
     isSubmittingExam = true;
+    const submitBtns = document.querySelectorAll('.exam-header button');
+    submitBtns.forEach(btn => btn.disabled = true);
 
     document.removeEventListener("visibilitychange", handleAntiCheatVisibility);
     window.removeEventListener("blur", handleAntiCheatBlur);
@@ -1091,6 +1094,7 @@ window.submitAssessment = async function(isViolation = false) {
 
     if (!isViolation && !confirm("Are you sure you want to submit your assessment? You cannot re-take it after submission.")) {
         isSubmittingExam = false;
+        submitBtns.forEach(btn => btn.disabled = false);
         document.addEventListener("visibilitychange", handleAntiCheatVisibility);
         window.addEventListener("blur", handleAntiCheatBlur);
         return;
@@ -1157,7 +1161,6 @@ window.submitAssessment = async function(isViolation = false) {
             }
         }
 
-        // SAVE SCORE SAFELY TO student_answers (USING score COLUMN)
         submissionEntries.push({
             student_id: currentUser.id,
             assessment_id: assessmentId,
@@ -1206,6 +1209,7 @@ window.submitAssessment = async function(isViolation = false) {
     activeExam = null;
     activeExamQuestions = [];
     document.getElementById('appBody').classList.remove('exam-mode');
+    submitBtns.forEach(btn => btn.disabled = false);
 
     if (!isViolation) {
         alert("Assessment submitted successfully! Showing item ratings and AI grading results.");
@@ -1278,7 +1282,6 @@ window.viewAssessmentRatings = async function(assessmentId, assessmentTitle) {
         .eq('assessment_id', assessmentId)
         .order('id', { ascending: true });
 
-    // READ score COLUMN SAFELY FROM student_answers
     const { data: answers } = await supabase
         .from('student_answers')
         .select('question_id, answer, score')
@@ -1445,7 +1448,6 @@ async function loadDetailedCriteriaGrades() {
         const typeMap = {};
         types?.forEach(t => { typeMap[t.id] = t.name; });
 
-        // FETCH ALL ASSESSMENTS AND MATCH PERIOD & CATEGORY SAFELY
         const { data: assessments } = await supabase
             .from('assessments')
             .select('id, title, assessment_type_id, max_score, period, assessment_types(name)')
@@ -1498,7 +1500,6 @@ async function loadDetailedCriteriaGrades() {
             const pct = maxVal > 0 ? (scoreVal / maxVal) * 100 : 0;
             const entry = { label: assess.title, score: scoreVal, max: maxVal, pct };
 
-            // MATCH TITLE OR CATEGORY SO MAJOR EXAM IS NEVER MISSED
             if (categoryName.includes('exam') || categoryName.includes('major') || titleLower.includes('exam') || titleLower.includes('major')) {
                 examScores.push(entry);
             } else if (categoryName.includes('case') || categoryName.includes('recitation') || categoryName.includes('reflection') || titleLower.includes('case') || titleLower.includes('recit')) {
