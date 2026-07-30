@@ -356,7 +356,7 @@
                 <div id="recitationStatus" class="empty-state">Checking class schedule...</div>
                 <div id="recitationFormContainer" style="display:none; margin-top:1rem;">
                     <form id="recitationForm" class="form-grid">
-                        <div class="form-group full"><label>Course</label><select id="recitCourse" required></select></div>
+                        <div class="form-group full"><label>Course (Auto-Selected Active Class)</label><select id="recitCourse" required></select></div>
                         <div class="form-group"><label>Date</label><input type="date" id="recitDate" required /></div>
                         <div class="form-group"><label>Time</label><input type="time" id="recitTime" required /></div>
                         <div class="form-group"><label>Recitation Rating (1-5)</label><select id="recitRating" required><option value="5">5 - Excellent</option><option value="4">4 - Very Good</option><option value="3" selected>3 - Satisfactory</option><option value="2">2 - Fair</option><option value="1">1 - Poor</option></select></div>
@@ -669,7 +669,6 @@ function renderAssessmentList(containerId, assessments, isTaken) {
 // ============================================================
 
 window.startAssessment = async function(assessmentId) {
-    // 1. Strict single-attempt check via DB
     const { data: existingGrade } = await supabase
         .from('grades')
         .select('id')
@@ -832,7 +831,6 @@ window.submitAssessment = async function(isViolation = false) {
             }
         }
 
-        // Rule: Only submit questions with answers
         if (hasAnswered) {
             submissionEntries.push({
                 student_id: currentUser.id,
@@ -1079,28 +1077,67 @@ async function loadExcuseHistory() {
 }
 
 // ============================================================
-// 11. RECITATION (Unlimited logging per day + Rating 1-5)
+// 11. RECITATION (Fixed & Auto-Selected Active Class)
 // ============================================================
 async function checkRecitationAvailability() {
     const statusDiv = document.getElementById('recitationStatus');
     const formContainer = document.getElementById('recitationFormContainer');
+    const now = new Date();
+    const dayOfWeek = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][now.getDay()];
+    const currentTime = now.getHours() * 60 + now.getMinutes();
 
     if (enrolledCourses.length === 0) {
         statusDiv.innerHTML = '<div class="empty-state">You are not enrolled in any courses.</div>';
         formContainer.style.display = 'none';
         return;
     }
+    const courseIds = enrolledCourses.map(c => c.id);
+    const { data: sections } = await supabase
+        .from('sections')
+        .select('id, course_id')
+        .in('course_id', courseIds);
+    if (!sections || sections.length === 0) {
+        statusDiv.innerHTML = '<div class="empty-state">No class schedules found.</div>';
+        formContainer.style.display = 'none';
+        return;
+    }
+    const sectionIds = sections.map(s => s.id);
+    const { data: schedules, error } = await supabase
+        .from('schedules')
+        .select('*, sections(course_id, courses(code, name))')
+        .in('section_id', sectionIds)
+        .eq('day_of_week', dayOfWeek);
+    if (error) { console.error(error); return; }
 
-    // Students can log anytime until class has ended (or freely anytime during active enrollment per instructions)
+    let active = false;
+    let activeCourse = null;
+    if (schedules) {
+        for (const s of schedules) {
+            const startMin = timeToMinutes(s.start_time);
+            const endMin = timeToMinutes(s.end_time);
+            if (currentTime >= startMin - 30 && currentTime <= endMin + 30) {
+                active = true;
+                activeCourse = s.sections?.courses;
+                break;
+            }
+        }
+    }
+
+    const targetCourse = activeCourse || enrolledCourses[0];
+
     statusDiv.innerHTML = `<div style="background:#d1fae5;padding:1rem;border-radius:8px;color:#065f46;">
-        ✅ Recitation Logger is active. You can log multiple participations per class session.
+        ✅ Recitation Logger active. Current Course: <strong>${targetCourse?.code || ''} - ${targetCourse?.name || ''}</strong>
     </div>`;
     formContainer.style.display = 'block';
 
     const recitCourseSelect = document.getElementById('recitCourse');
     renderSelect(recitCourseSelect, enrolledCourses, 'id', c => `${c.code} - ${c.name}`);
     
-    const now = new Date();
+    // Auto-select and lock the current active course so students don't need to select it again
+    if (targetCourse) {
+        recitCourseSelect.value = targetCourse.id;
+    }
+
     document.getElementById('recitDate').value = now.toISOString().split('T')[0];
     document.getElementById('recitTime').value = now.toTimeString().slice(0,5);
 }
@@ -1134,7 +1171,6 @@ document.getElementById('recitationForm').addEventListener('submit', async (e) =
     if (error) { alert('Error logging recitation: ' + error.message); return; }
     alert('🎤 Recitation recorded successfully!');
     await loadRecitationHistory();
-    document.getElementById('recitationForm').reset();
     document.getElementById('recitDate').value = new Date().toISOString().split('T')[0];
     document.getElementById('recitTime').value = new Date().toTimeString().slice(0,5);
 });
