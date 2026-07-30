@@ -718,7 +718,6 @@ async function loadAssessments() {
 
     const takenMap = new Map();
     taken?.forEach(g => takenMap.set(g.assessment_id, g.score));
-    // Check if student has ANY submitted answer for an assessment
     answered?.forEach(a => { if (!takenMap.has(a.assessment_id)) takenMap.set(a.assessment_id, 0); });
 
     const contestMap = new Map();
@@ -746,7 +745,6 @@ async function loadAssessments() {
                 takenList.push({ ...a, contest, score });
             }
         } else if (isCompleted) {
-            // Strictly push to takenList so no retake is ever permitted
             takenList.push({ ...a, contest, score });
         } else if (now >= startDate && now <= endDate) {
             availableList.push({ ...a, contest });
@@ -872,7 +870,6 @@ async function gradeEssayWithAI(questionText, answerText, maxPoints) {
     const aWordsLower = cleanAnswer.toLowerCase();
     const words = cleanAnswer.split(/\s+/).length;
 
-    // 1. Strict zero-tolerance for evasive / dismissive / gibberish phrases
     const evasivePatterns = [
         "idk", "i don't know", "dont know", "do not know", "no idea", "nothing", 
         "none of the", "na", "n/a", "not sure", "forgot", "pass", "skip"
@@ -885,14 +882,12 @@ async function gradeEssayWithAI(questionText, answerText, maxPoints) {
         };
     }
 
-    // 2. Remove stopwords to isolate core prompt concepts
     const promptStopwords = ["what", "why", "how", "discuss", "explain", "describe", "define", "about", "state", "list", "give", "briefly", "elaborate", "analyze", "compare", "contrast"];
     const qWords = questionText.toLowerCase()
         .replace(/[^a-z0-9 ]/g, '')
         .split(/\s+/)
         .filter(w => w.length > 3 && !promptStopwords.includes(w));
 
-    // 3. Count matching core topic keywords in student response
     let relevanceHits = 0;
     qWords.forEach(qw => {
         if (aWordsLower.includes(qw) || (qw.length > 4 && aWordsLower.includes(qw.slice(0, -1)))) {
@@ -900,9 +895,8 @@ async function gradeEssayWithAI(questionText, answerText, maxPoints) {
         }
     });
 
-    // 4. Strict Penalty: If prompt has clear keywords and student matched NONE
     if (qWords.length > 0 && relevanceHits === 0) {
-        const maxOffTopicScore = Math.round(maxPoints * 0.1); // Cap at 10% max
+        const maxOffTopicScore = Math.round(maxPoints * 0.1);
         return { 
             score: maxOffTopicScore, 
             ratingLabel: "Poor (Off-Topic)", 
@@ -910,9 +904,8 @@ async function gradeEssayWithAI(questionText, answerText, maxPoints) {
         };
     }
 
-    // 5. Calculate balanced score based on keyword relevance & depth
     const relevanceRatio = qWords.length > 0 ? Math.min(1, relevanceHits / qWords.length) : 0.7;
-    const lengthRatio = Math.min(1, words / 25); // ~25 words for full depth
+    const lengthRatio = Math.min(1, words / 25);
 
     const rawPercentage = (relevanceRatio * 0.70) + (lengthRatio * 0.30);
     let awarded = Math.round(rawPercentage * maxPoints * 10) / 10;
@@ -942,7 +935,6 @@ window.startAssessment = async function(assessmentId) {
     const isRetakeApproved = contest && contest.status === 'approved';
 
     if (!isRetakeApproved) {
-        // STRICT DOUBLE-CHECK: Check both grades and student_answers tables
         const { data: existingGrade } = await supabase
             .from('grades')
             .select('id')
@@ -1147,7 +1139,6 @@ window.submitAssessment = async function(isViolation = false) {
                 ratingText = `0 / ${qPoints} pts (No Answer)`;
             }
         } else {
-            // STRICT ESSAY / TEXT AUTOMATIC AI GRADING
             totalExamPoints += qPoints;
             const textInput = document.querySelector(`[name="q_${q.id}"]`);
             if (textInput && textInput.value.trim() !== '') {
@@ -1166,13 +1157,14 @@ window.submitAssessment = async function(isViolation = false) {
             }
         }
 
+        // SAVE SCORE SAFELY TO student_answers (USING score COLUMN)
         submissionEntries.push({
             student_id: currentUser.id,
             assessment_id: assessmentId,
             question_id: q.id,
             answer: studentAnswerStr || '',
             is_correct: isCorrect,
-            points_awarded: Number(awardedPoints)
+            score: Number(awardedPoints)
         });
 
         itemRatingsDisplayList.push({
@@ -1206,7 +1198,7 @@ window.submitAssessment = async function(isViolation = false) {
         course_id: courseId,
         score: Number(isViolation ? 0 : finalScore.toFixed(2)),
         max_score: Number(examMaxScore),
-        period: activeExam.period || 'prelim',
+        period: (activeExam.period || 'prelim').toLowerCase(),
         percentage: Number(((finalScore / examMaxScore) * 100).toFixed(2))
     });
 
@@ -1229,7 +1221,6 @@ window.submitAssessment = async function(isViolation = false) {
     switchSection('assessments');
 };
 
-// Open and render Item Ratings Modal
 window.openItemRatingsModal = function(title, itemList, finalScore, maxScore) {
     document.getElementById('itemRatingsModalTitle').textContent = `📊 Score & Item Ratings — ${title}`;
     const container = document.getElementById('itemRatingsContentContainer');
@@ -1275,7 +1266,6 @@ window.closeItemRatingsModal = function() {
     document.getElementById('itemRatingsModal').classList.remove('active');
 };
 
-// View ratings on any previously completed assessment
 window.viewAssessmentRatings = async function(assessmentId, assessmentTitle) {
     const container = document.getElementById('itemRatingsContentContainer');
     document.getElementById('itemRatingsModalTitle').textContent = `📊 Item Ratings — ${assessmentTitle}`;
@@ -1288,9 +1278,10 @@ window.viewAssessmentRatings = async function(assessmentId, assessmentTitle) {
         .eq('assessment_id', assessmentId)
         .order('id', { ascending: true });
 
+    // READ score COLUMN SAFELY FROM student_answers
     const { data: answers } = await supabase
         .from('student_answers')
-        .select('question_id, answer, points_awarded')
+        .select('question_id, answer, score')
         .eq('assessment_id', assessmentId)
         .eq('student_id', currentUser.id);
 
@@ -1303,7 +1294,7 @@ window.viewAssessmentRatings = async function(assessmentId, assessmentTitle) {
 
     const displayList = (questions || []).map(q => {
         const ans = (answers || []).find(a => a.question_id === q.id);
-        const awarded = Number(ans?.points_awarded || 0);
+        const awarded = Number(ans?.score || 0);
         const qMax = Number(q.points || 1);
         const pct = (awarded / qMax) * 100;
         const gradingMethod = q.type === 'essay' ? 'AI Graded' : 'Auto-Graded';
@@ -1349,8 +1340,8 @@ async function loadDashboardPeriodGrades() {
     let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Active Period</th><th>Current Period Grade</th><th>Status</th></tr></thead><tbody>';
     
     for (const c of enrolledCourses) {
-        const activePeriod = c.active_period || 'prelim';
-        const pGrade = periodGrades?.find(g => g.course_id === c.id && g.period === activePeriod);
+        const activePeriod = (c.active_period || 'prelim').toLowerCase();
+        const pGrade = periodGrades?.find(g => g.course_id === c.id && (g.period || 'prelim').toLowerCase() === activePeriod);
         const gradeValue = pGrade ? `${Number(pGrade.grade).toFixed(2)}%` : 'Not Computed';
         const isLocked = pGrade?.locked;
         const lockBadge = isLocked 
@@ -1397,12 +1388,13 @@ async function loadGrades() {
         pGrades.forEach(g => {
             const key = g.course_id;
             if (!byCourse[key]) byCourse[key] = { course: g.courses, periods: {} };
-            byCourse[key].periods[g.period] = g;
+            const pKey = (g.period || 'prelim').toLowerCase();
+            byCourse[key].periods[pKey] = g;
         });
         let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Active Period</th><th>Prelim</th><th>Midterm</th><th>Semi‑Final</th><th>Final</th></tr></thead><tbody>';
         for (const key in byCourse) {
             const item = byCourse[key];
-            const activeP = item.course?.active_period || 'prelim';
+            const activeP = (item.course?.active_period || 'prelim').toLowerCase();
             const formatGrade = (pg) => pg ? `${Number(pg.grade).toFixed(2)}% ${pg.locked ? '🔒' : ''}` : '-';
 
             html += `<tr>
@@ -1435,7 +1427,7 @@ async function loadGrades() {
 
 async function loadDetailedCriteriaGrades() {
     const courseId = document.getElementById('detailedCourseSelect')?.value;
-    const period = document.getElementById('detailedPeriodSelect')?.value || 'prelim';
+    const period = (document.getElementById('detailedPeriodSelect')?.value || 'prelim').toLowerCase();
     const container = document.getElementById('detailedCriteriaContainer');
     if (!container) return;
 
@@ -1453,14 +1445,14 @@ async function loadDetailedCriteriaGrades() {
         const typeMap = {};
         types?.forEach(t => { typeMap[t.id] = t.name; });
 
-        // CASE-INSENSITIVE OR FLEXIBLE PERIOD QUERY
+        // FETCH ALL ASSESSMENTS AND MATCH PERIOD & CATEGORY SAFELY
         const { data: assessments } = await supabase
             .from('assessments')
-            .select('id, title, assessment_type_id, max_score, period')
+            .select('id, title, assessment_type_id, max_score, period, assessment_types(name)')
             .eq('course_id', courseId);
 
         const periodAssessments = (assessments || []).filter(a => {
-            return (a.period || 'prelim').toLowerCase() === period.toLowerCase();
+            return (a.period || 'prelim').trim().toLowerCase() === period;
         });
 
         const assessIds = periodAssessments.map(a => a.id);
@@ -1499,28 +1491,37 @@ async function loadDetailedCriteriaGrades() {
         grades?.forEach(g => {
             const assess = periodAssessments.find(a => a.id === g.assessment_id);
             if (!assess) return;
-            const categoryName = (typeMap[assess.assessment_type_id] || '').trim().toLowerCase();
-            const maxVal = Number(g.max_score || 100);
+            const categoryName = (assess.assessment_types?.name || typeMap[assess.assessment_type_id] || '').trim().toLowerCase();
+            const titleLower = (assess.title || '').trim().toLowerCase();
+            const maxVal = Number(g.max_score || assess.max_score || 100);
             const scoreVal = Number(g.score || 0);
-            const pct = (scoreVal / maxVal) * 100;
+            const pct = maxVal > 0 ? (scoreVal / maxVal) * 100 : 0;
             const entry = { label: assess.title, score: scoreVal, max: maxVal, pct };
 
-            // FLEXIBLE KEYWORD MATCHING TO CATCH SLIGHT VARIATIONS
-            if (categoryName.includes('quiz') || categoryName.includes('activit')) quizScores.push(entry);
-            else if (categoryName.includes('case') || categoryName.includes('recitation') || categoryName.includes('reflection')) caseScores.push(entry);
-            else if (categoryName.includes('exam') || categoryName.includes('major')) examScores.push(entry);
+            // MATCH TITLE OR CATEGORY SO MAJOR EXAM IS NEVER MISSED
+            if (categoryName.includes('exam') || categoryName.includes('major') || titleLower.includes('exam') || titleLower.includes('major')) {
+                examScores.push(entry);
+            } else if (categoryName.includes('case') || categoryName.includes('recitation') || categoryName.includes('reflection') || titleLower.includes('case') || titleLower.includes('recit')) {
+                caseScores.push(entry);
+            } else {
+                quizScores.push(entry);
+            }
         });
 
         manualGrades?.forEach(mg => {
             const categoryName = (typeMap[mg.assessment_type_id] || '').trim().toLowerCase();
             const maxVal = Number(mg.max_score || 100);
             const scoreVal = Number(mg.score || 0);
-            const pct = (scoreVal / maxVal) * 100;
+            const pct = maxVal > 0 ? (scoreVal / maxVal) * 100 : 0;
             const entry = { label: mg.notes || 'Manual Entry', score: scoreVal, max: maxVal, pct };
 
-            if (categoryName.includes('quiz') || categoryName.includes('activit')) quizScores.push(entry);
-            else if (categoryName.includes('case') || categoryName.includes('recitation') || categoryName.includes('reflection')) caseScores.push(entry);
-            else if (categoryName.includes('exam') || categoryName.includes('major')) examScores.push(entry);
+            if (categoryName.includes('exam') || categoryName.includes('major')) {
+                examScores.push(entry);
+            } else if (categoryName.includes('case') || categoryName.includes('recitation') || categoryName.includes('reflection')) {
+                caseScores.push(entry);
+            } else {
+                quizScores.push(entry);
+            }
         });
 
         recitations?.forEach((r, idx) => {
