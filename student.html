@@ -717,8 +717,8 @@ async function loadAssessments() {
         .eq('student_id', currentUser.id);
 
     const takenMap = new Map();
-    taken?.forEach(g => takenMap.set(g.assessment_id, g.score));
-    answered?.forEach(a => { if (!takenMap.has(a.assessment_id)) takenMap.set(a.assessment_id, 0); });
+    taken?.forEach(g => takenMap.set(String(g.assessment_id).toLowerCase(), g.score));
+    answered?.forEach(a => { if (!takenMap.has(String(a.assessment_id).toLowerCase())) takenMap.set(String(a.assessment_id).toLowerCase(), 0); });
 
     const contestMap = new Map();
     contests?.forEach(c => contestMap.set(c.assessment_id, c));
@@ -735,10 +735,9 @@ async function loadAssessments() {
         const endDate = a.end_date ? new Date(a.end_date) : new Date(assessDate.getTime() + (durationMin * 60 * 1000) + (24 * 3600 * 1000));
 
         const contest = contestMap.get(a.id);
-        const isCompleted = takenMap.has(a.id);
-        const score = takenMap.get(a.id);
+        const isCompleted = takenMap.has(String(a.id).toLowerCase());
+        const score = takenMap.get(String(a.id).toLowerCase());
 
-        // STRICT SINGLE-ATTEMPT ENFORCEMENT: Once taken, it MUST go to Taken! Never Available!
         if (isCompleted && (!contest || contest.status !== 'approved')) {
             takenList.push({ ...a, contest, score });
         } else if (contest && contest.status === 'approved') {
@@ -1094,6 +1093,8 @@ function triggerAntiCheatViolation(reason) {
 window.submitAssessment = async function(isViolation = false) {
     if (!activeExam || (!isViolation && isSubmittingExam)) return;
     isSubmittingExam = true;
+    const submitBtns = document.querySelectorAll('.exam-header button');
+    submitBtns.forEach(btn => btn.disabled = true);
 
     document.removeEventListener("visibilitychange", handleAntiCheatVisibility);
     window.removeEventListener("blur", handleAntiCheatBlur);
@@ -1101,6 +1102,7 @@ window.submitAssessment = async function(isViolation = false) {
 
     if (!isViolation && !confirm("Are you sure you want to submit your assessment? You cannot re-take it after submission.")) {
         isSubmittingExam = false;
+        submitBtns.forEach(btn => btn.disabled = false);
         document.addEventListener("visibilitychange", handleAntiCheatVisibility);
         window.addEventListener("blur", handleAntiCheatBlur);
         return;
@@ -1149,7 +1151,6 @@ window.submitAssessment = async function(isViolation = false) {
                 ratingText = `0 / ${qPoints} pts (No Answer)`;
             }
         } else {
-            // STRICT ESSAY / TEXT AUTOMATIC AI GRADING
             totalExamPoints += qPoints;
             const textInput = document.querySelector(`[name="q_${q.id}"]`);
             if (textInput && textInput.value.trim() !== '') {
@@ -1212,7 +1213,9 @@ window.submitAssessment = async function(isViolation = false) {
         assessment_id: assessmentId,
         course_id: courseId,
         score: Number(isViolation ? 0 : finalScore.toFixed(2)),
-        max_score: Number(examMaxScore)
+        max_score: Number(examMaxScore),
+        period: (activeExam.period || 'prelim').toLowerCase(),
+        percentage: Number(((finalScore / examMaxScore) * 100).toFixed(2))
     });
     if (gradeErr) {
         console.error("grades insert error:", gradeErr);
@@ -1224,6 +1227,7 @@ window.submitAssessment = async function(isViolation = false) {
     activeExam = null;
     activeExamQuestions = [];
     document.getElementById('appBody').classList.remove('exam-mode');
+    submitBtns.forEach(btn => btn.disabled = false);
 
     if (!isViolation) {
         alert("Assessment submitted successfully! Showing item ratings and AI grading results.");
