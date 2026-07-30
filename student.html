@@ -202,7 +202,7 @@
     <!-- MAIN CONTENT -->
     <main class="main" id="mainContent">
 
-        <!-- ==================== DASHBOARD (Main Menu) ==================== -->
+        <!-- ==================== DASHBOARD ==================== -->
         <section id="section-dashboard" class="page-section active">
             <div class="page-header">
                 <h1>Dashboard <small>Welcome to your learning hub</small></h1>
@@ -214,6 +214,15 @@
                 <div class="stat-card"><span class="icon">📋</span><div class="number" id="dashAssessments">0</div><div class="label">Upcoming Assessments</div></div>
                 <div class="stat-card"><span class="icon">✅</span><div class="number" id="dashPresent">0</div><div class="label">Present</div></div>
                 <div class="stat-card"><span class="icon">❌</span><div class="number" id="dashAbsent">0</div><div class="label">Absent</div></div>
+            </div>
+
+            <!-- Current Period Grade Overview -->
+            <div class="card" style="border-left: 4px solid #3b82f6;">
+                <div class="card-header">
+                    <h3>🏆 Current Period Grades</h3>
+                    <span class="badge badge-info">Active Period Controlled by Instructor</span>
+                </div>
+                <div id="dashPeriodGradesContainer"><div class="empty-state">Loading period grades...</div></div>
             </div>
 
             <!-- Quick Menu Cards -->
@@ -257,7 +266,7 @@
             </div>
         </section>
 
-        <!-- ==================== PROFILE (Aligned with Image 1) ==================== -->
+        <!-- ==================== PROFILE ==================== -->
         <section id="section-profile" class="page-section">
             <div class="page-header"><h1>My Profile <small>View and update your student information</small></h1></div>
             <div class="card">
@@ -288,9 +297,11 @@
             </div>
         </section>
 
-        <!-- ==================== ASSESSMENTS (Images 2-3 Schema) ==================== -->
+        <!-- ==================== ASSESSMENTS ==================== -->
         <section id="section-assessments" class="page-section">
-            <div class="page-header"><h1>Assessments <small>Take exams and view results</small></h1></div>
+            <div class="page-header">
+                <h1>Assessments <small>Take exams, view results, and contest cheating flags</small></h1>
+            </div>
             <div class="card">
                 <div class="tabs" id="assessmentTabs">
                     <div class="tab active" data-tab="taken">📋 Taken</div>
@@ -305,7 +316,6 @@
 
         <!-- ==================== EXAM TAKING SECTION ==================== -->
         <section id="section-exam" class="page-section">
-            <!-- Anti-Cheat Container -->
             <div class="noselect" oncontextmenu="return false;" oncopy="return false;" oncut="return false;" onpaste="return false;">
                 <div class="exam-header">
                     <div>
@@ -323,7 +333,7 @@
             </div>
         </section>
 
-        <!-- ==================== GRADES (With Detailed Criteria Breakdown) ==================== -->
+        <!-- ==================== GRADES ==================== -->
         <section id="section-grades" class="page-section">
             <div class="page-header"><h1>Grades <small>Your academic performance</small></h1></div>
             
@@ -346,7 +356,10 @@
 
             <!-- PERIOD SUMMARY GRADES -->
             <div class="card">
-                <div class="card-header"><h3>Period Grades Summary</h3></div>
+                <div class="card-header">
+                    <h3>Period Grades Summary</h3>
+                    <span class="badge badge-period">Current period remains locked until instructor advances</span>
+                </div>
                 <div id="gradesContainer"><div class="empty-state">Loading...</div></div>
             </div>
 
@@ -383,7 +396,7 @@
             </div>
         </section>
 
-        <!-- ==================== RECITATION (Image 4 Schema) ==================== -->
+        <!-- ==================== RECITATION ==================== -->
         <section id="section-recitation" class="page-section">
             <div class="page-header"><h1>Recitation Logger <small>Log your class participation</small></h1></div>
             <div class="card">
@@ -408,6 +421,29 @@
     </main>
 </div>
 
+<!-- ==================== CHEATING CONTESTATION MODAL ==================== -->
+<div class="modal" id="contestModal">
+    <div class="modal-content">
+        <button class="close" onclick="closeContestModal()">✕</button>
+        <h3>🚨 Contest Anti-Cheat Violation</h3>
+        <p style="font-size:0.875rem; color:#64748b; margin: 0.5rem 0 1.25rem;">
+            If you were flagged for tab switching or window defocusing by mistake (e.g., system alert, hardware popup), please explain your reason below. Your instructor will review this to approve or deny a retake.
+        </p>
+        <form id="contestForm" class="form-grid">
+            <input type="hidden" id="contestAssessmentId" />
+            <input type="hidden" id="contestCourseId" />
+            <div class="form-group full">
+                <label>Reason for Contestation</label>
+                <textarea id="contestReason" rows="4" placeholder="Explain the circumstances clearly..." required></textarea>
+            </div>
+            <div class="form-group full" style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:0.5rem;">
+                <button type="submit" class="btn btn-primary">Submit Contest Request</button>
+                <button type="button" class="btn btn-outline" onclick="closeContestModal()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script type="module">
 // ============================================================
 // 1. IMPORTS
@@ -426,7 +462,7 @@ let today = new Date();
 let activeExam = null;
 let activeExamQuestions = [];
 let examTimerInterval = null;
-let isSubmittingExam = false; // Locks execution to prevent infinite loops
+let isSubmittingExam = false;
 
 // ============================================================
 // 3. UTILITY
@@ -495,6 +531,7 @@ async function init() {
         await loadRecitationHistory();
         await checkRecitationAvailability();
         await loadDashboardStats();
+        await loadDashboardPeriodGrades();
         await loadRecentActivity();
 
         console.log('✅ Student dashboard ready.');
@@ -522,7 +559,7 @@ async function loadEnrolledCourses() {
 
     const { data: courses, error: e2 } = await supabase
         .from('courses')
-        .select('id, code, name')
+        .select('id, code, name, active_period')
         .in('id', courseIds);
     if (e2) { console.error('Error fetching courses:', e2); return; }
     enrolledCourses = courses || [];
@@ -534,12 +571,12 @@ async function loadEnrolledCourses() {
     }
     let html = '<ul style="list-style:none;padding:0;">';
     enrolledCourses.forEach(c => {
-        html += `<li style="padding:0.5rem 0;border-bottom:1px solid #f1f5f9;">📘 <strong>${c.code}</strong> – ${c.name}</li>`;
+        const periodLabel = c.active_period ? `<span class="badge badge-info" style="margin-left:0.5rem;">Period: ${c.active_period.toUpperCase()}</span>` : '';
+        html += `<li style="padding:0.5rem 0;border-bottom:1px solid #f1f5f9;">📘 <strong>${c.code}</strong> – ${c.name} ${periodLabel}</li>`;
     });
     html += '</ul>';
     container.innerHTML = html;
 
-    // Populate course dropdown in Detailed Grades view
     const detailedSelect = document.getElementById('detailedCourseSelect');
     if (detailedSelect) {
         renderSelect(detailedSelect, enrolledCourses, 'id', c => `${c.code} – ${c.name}`);
@@ -547,7 +584,7 @@ async function loadEnrolledCourses() {
 }
 
 // ============================================================
-// 6. PROFILE (Aligned with Image 1: student_id, section, phone, address)
+// 6. PROFILE
 // ============================================================
 async function loadProfileData() {
     document.getElementById('profileEmail').value = currentProfile.email || currentUser.email;
@@ -628,7 +665,7 @@ async function loadActivities() {
 }
 
 // ============================================================
-// 8. ASSESSMENTS (Images 2-3 Schema with Time-Frame Evaluation)
+// 8. ASSESSMENTS & CONTESTATION STATE
 // ============================================================
 async function loadAssessments() {
     if (enrolledCourses.length === 0) {
@@ -649,7 +686,7 @@ async function loadAssessments() {
 
     const { data: taken } = await supabase
         .from('grades') 
-        .select('assessment_id')
+        .select('assessment_id, score')
         .eq('student_id', currentUser.id);
     
     const { data: answered } = await supabase
@@ -657,10 +694,18 @@ async function loadAssessments() {
         .select('assessment_id')
         .eq('student_id', currentUser.id);
 
-    const takenIds = new Set([
-        ...(taken?.map(a => a.assessment_id) || []),
-        ...(answered?.map(a => a.assessment_id) || [])
-    ]);
+    // Fetch any cheating contests
+    const { data: contests } = await supabase
+        .from('cheating_contests')
+        .select('assessment_id, status, reason')
+        .eq('student_id', currentUser.id);
+
+    const takenMap = new Map();
+    taken?.forEach(g => takenMap.set(g.assessment_id, g.score));
+    answered?.forEach(a => { if (!takenMap.has(a.assessment_id)) takenMap.set(a.assessment_id, 0); });
+
+    const contestMap = new Map();
+    contests?.forEach(c => contestMap.set(c.assessment_id, c));
 
     const now = new Date();
     const takenList = [];
@@ -670,19 +715,28 @@ async function loadAssessments() {
     for (const a of allAssessments) {
         const assessDate = new Date(a.date);
         const durationMin = a.duration_minute || a.duration_minutes || 60;
-        
-        // Evaluate Available From / Until Time-Frame if set by instructor
         const startDate = a.start_date ? new Date(a.start_date) : assessDate;
         const endDate = a.end_date ? new Date(a.end_date) : new Date(assessDate.getTime() + (durationMin * 60 * 1000) + (24 * 3600 * 1000));
 
-        if (takenIds.has(a.id)) {
-            takenList.push(a);
+        const contest = contestMap.get(a.id);
+        const isCompleted = takenMap.has(a.id);
+        const score = takenMap.get(a.id);
+
+        if (contest && contest.status === 'approved') {
+            // Instructor allowed a retake!
+            if (now >= startDate && now <= endDate) {
+                availableList.push({ ...a, contest });
+            } else {
+                takenList.push({ ...a, contest, score });
+            }
+        } else if (isCompleted) {
+            takenList.push({ ...a, contest, score });
         } else if (now >= startDate && now <= endDate) {
-            availableList.push(a);
+            availableList.push({ ...a, contest });
         } else if (now > endDate) {
-            takenList.push(a);
+            takenList.push({ ...a, contest, score });
         } else {
-            futureList.push(a);
+            futureList.push({ ...a, contest });
         }
     }
 
@@ -722,10 +776,24 @@ function renderAssessmentList(containerId, assessments, isTaken) {
             <td>${a.assessment_types?.name || 'N/A'}</td>
             <td>${windowStr}</td>
             <td>${a.max_score}</td>`;
+
         if (isTaken) {
-            html += `<td><span class="badge badge-success">Completed</span></td>`;
+            let statusBadge = `<span class="badge badge-success">Completed</span>`;
+            let contestBtn = '';
+            if (a.score === 0) {
+                if (a.contest) {
+                    const cStatus = a.contest.status;
+                    const cColor = cStatus === 'approved' ? 'approved' : cStatus === 'rejected' ? 'rejected' : 'pending';
+                    statusBadge = `<span class="badge badge-${cColor}">Contest: ${cStatus.toUpperCase()}</span>`;
+                } else {
+                    statusBadge = `<span class="badge badge-danger">Violation Flagged (0 pts)</span>`;
+                    contestBtn = `<button class="btn btn-warning btn-sm" style="margin-left:0.5rem;" onclick="openContestModal('${a.id}', '${a.course_id}')">🚨 Contest</button>`;
+                }
+            }
+            html += `<td>${statusBadge} ${contestBtn}</td>`;
         } else if (containerId === 'availableAssessments') {
-            html += `<td><button class="btn btn-primary btn-sm" onclick="startAssessment('${a.id}')">✏️ Take Test</button></td>`;
+            let retakeNotice = a.contest?.status === 'approved' ? `<span class="badge badge-approved" style="margin-bottom:0.25rem;display:block;">Retake Approved</span>` : '';
+            html += `<td>${retakeNotice}<button class="btn btn-primary btn-sm" onclick="startAssessment('${a.id}')">✏️ Take Test</button></td>`;
         } else {
             html += `<td><span class="badge badge-info">Scheduled</span></td>`;
         }
@@ -736,20 +804,71 @@ function renderAssessmentList(containerId, assessments, isTaken) {
 }
 
 // ============================================================
-// 8.5 TAKING THE EXAM & ANTI-CHEAT SYSTEM (Infinite Loop Fixed)
+// 8.5 CHEATING PREVENTION CONTESTATION FUNCTIONS
+// ============================================================
+window.openContestModal = function(assessmentId, courseId) {
+    document.getElementById('contestAssessmentId').value = assessmentId;
+    document.getElementById('contestCourseId').value = courseId;
+    document.getElementById('contestReason').value = '';
+    document.getElementById('contestModal').classList.add('active');
+};
+
+window.closeContestModal = function() {
+    document.getElementById('contestModal').classList.remove('active');
+};
+
+document.getElementById('contestForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const assessmentId = document.getElementById('contestAssessmentId').value;
+    const courseId = document.getElementById('contestCourseId').value;
+    const reason = document.getElementById('contestReason').value.trim();
+    if (!reason) { alert('Please enter a reason.'); return; }
+
+    const { error } = await supabase.from('cheating_contests').upsert({
+        student_id: currentUser.id,
+        assessment_id: assessmentId,
+        course_id: courseId,
+        reason: reason,
+        status: 'pending',
+        created_at: new Date().toISOString()
+    }, { onConflict: 'student_id,assessment_id' });
+
+    if (error) {
+        alert('Error submitting contest request: ' + error.message);
+        return;
+    }
+    alert('✅ Your contest request has been submitted to your instructor for review.');
+    closeContestModal();
+    await loadAssessments();
+});
+
+// ============================================================
+// 8.6 EXAM TAKING & ANTI-CHEAT SYSTEM
 // ============================================================
 window.startAssessment = async function(assessmentId) {
-    const { data: existingGrade } = await supabase
-        .from('grades')
-        .select('id')
+    // Check if there's an approved contestation allowing a retake
+    const { data: contest } = await supabase
+        .from('cheating_contests')
+        .select('status')
         .eq('student_id', currentUser.id)
         .eq('assessment_id', assessmentId)
         .maybeSingle();
 
-    if (existingGrade) {
-        alert("You have already taken this assessment. You cannot re-take it.");
-        await loadAssessments();
-        return;
+    const isRetakeApproved = contest && contest.status === 'approved';
+
+    if (!isRetakeApproved) {
+        const { data: existingGrade } = await supabase
+            .from('grades')
+            .select('id')
+            .eq('student_id', currentUser.id)
+            .eq('assessment_id', assessmentId)
+            .maybeSingle();
+
+        if (existingGrade) {
+            alert("You have already taken this assessment. You cannot re-take it.");
+            await loadAssessments();
+            return;
+        }
     }
 
     if (!confirm("WARNING: Starting this assessment will enable Anti-Cheat mode. \n\nYou can only take this assessment ONCE. \nLeaving the tab or window will automatically submit your answers.\n\nAre you ready?")) {
@@ -774,7 +893,7 @@ window.startAssessment = async function(assessmentId) {
 
     activeExam = assessment;
     activeExamQuestions = assessment.randomize_ques ? questions.sort(() => Math.random() - 0.5) : questions;
-    isSubmittingExam = false; // Unlock flag on exam start
+    isSubmittingExam = false;
 
     document.getElementById('appBody').classList.add('exam-mode');
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
@@ -857,12 +976,11 @@ function triggerAntiCheatViolation(reason) {
     if (!activeExam || isSubmittingExam) return;
     isSubmittingExam = true;
 
-    // Remove listeners BEFORE calling alert() so focus loss does not loop
     document.removeEventListener("visibilitychange", handleAntiCheatVisibility);
     window.removeEventListener("blur", handleAntiCheatBlur);
     if (examTimerInterval) clearInterval(examTimerInterval);
 
-    alert(`🚨 SECURITY VIOLATION 🚨\n\n${reason}\n\nYour exam has been locked and submitted.`);
+    alert(`🚨 SECURITY VIOLATION 🚨\n\n${reason}\n\nYour exam has been locked and submitted with a score of 0. You may contest this violation from the Assessments tab.`);
     submitAssessment(true);
 }
 
@@ -882,6 +1000,7 @@ window.submitAssessment = async function(isViolation = false) {
     }
     
     const assessmentId = activeExam.id;
+    const courseId = activeExam.course_id;
     let earnedPoints = 0;
     let autoGradableMax = 0;
 
@@ -932,20 +1051,22 @@ window.submitAssessment = async function(isViolation = false) {
     });
 
     if (submissionEntries.length > 0) {
+        await supabase.from('student_answers').delete().eq('student_id', currentUser.id).eq('assessment_id', assessmentId);
         await supabase.from('student_answers').insert(submissionEntries);
     }
 
     let finalScore = isViolation ? 0 : earnedPoints;
     let examMaxScore = activeExam.max_score || 100;
     
-    if (autoGradableMax > 0) {
+    if (autoGradableMax > 0 && !isViolation) {
         finalScore = (finalScore / autoGradableMax) * examMaxScore; 
     }
 
+    await supabase.from('grades').delete().eq('student_id', currentUser.id).eq('assessment_id', assessmentId);
     await supabase.from('grades').insert({
         student_id: currentUser.id,
         assessment_id: assessmentId,
-        course_id: activeExam.course_id,
+        course_id: courseId,
         score: isViolation ? 0 : finalScore,
         max_score: examMaxScore,
         period: activeExam.period || 'prelim',
@@ -958,6 +1079,11 @@ window.submitAssessment = async function(isViolation = false) {
 
     if (!isViolation) {
         alert("Assessment submitted successfully!");
+    } else {
+        // Automatically open contest modal after violation alert
+        setTimeout(() => {
+            openContestModal(assessmentId, courseId);
+        }, 300);
     }
     
     isSubmittingExam = false;
@@ -966,8 +1092,51 @@ window.submitAssessment = async function(isViolation = false) {
 };
 
 // ============================================================
-// 9. GRADES & DETAILED CRITERIA BREAKDOWN
+// 9. DASHBOARD CURRENT PERIOD GRADES & GRADES BREAKDOWN
 // ============================================================
+async function loadDashboardPeriodGrades() {
+    const container = document.getElementById('dashPeriodGradesContainer');
+    if (enrolledCourses.length === 0) {
+        container.innerHTML = '<div class="empty-state">No enrolled courses.</div>';
+        return;
+    }
+
+    const courseIds = enrolledCourses.map(c => c.id);
+    const { data: periodGrades, error } = await supabase
+        .from('period_grades')
+        .select('*, courses(code, name, active_period)')
+        .in('course_id', courseIds)
+        .eq('student_id', currentUser.id);
+
+    if (error) {
+        console.error('Error fetching period grades:', error);
+        container.innerHTML = '<div class="empty-state">Error loading period grades.</div>';
+        return;
+    }
+
+    let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Active Period</th><th>Current Period Grade</th><th>Status</th></tr></thead><tbody>';
+    
+    for (const c of enrolledCourses) {
+        const activePeriod = c.active_period || 'prelim';
+        const pGrade = periodGrades?.find(g => g.course_id === c.id && g.period === activePeriod);
+        const gradeValue = pGrade ? `${Number(pGrade.grade).toFixed(2)}%` : 'Not Computed';
+        const isLocked = pGrade?.locked;
+        const lockBadge = isLocked 
+            ? '<span class="badge badge-approved">🔒 LOCKED (OFFICIAL)</span>' 
+            : '<span class="badge badge-warning">⏳ UNLOCKED (IN PROGRESS)</span>';
+
+        html += `<tr>
+            <td><strong>${c.code}</strong> – ${c.name}</td>
+            <td><span class="badge badge-info" style="text-transform:uppercase;">${activePeriod}</span></td>
+            <td style="font-size:1.1rem; font-weight:700; color:#1e293b;">${gradeValue}</td>
+            <td>${lockBadge}</td>
+        </tr>`;
+    }
+
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
 async function loadGrades() {
     if (enrolledCourses.length === 0) {
         document.getElementById('gradesContainer').innerHTML = '<div class="empty-state">No courses.</div>';
@@ -976,14 +1145,12 @@ async function loadGrades() {
     }
     const courseIds = enrolledCourses.map(c => c.id);
 
-    // 1. Period Summary Grades
     const { data: pGrades } = await supabase
         .from('period_grades')
-        .select('*, courses(code, name)')
+        .select('*, courses(code, name, active_period)')
         .in('course_id', courseIds)
         .eq('student_id', currentUser.id);
 
-    // 2. Final Ratings
     const { data: fRatings } = await supabase
         .from('final_ratings')
         .select('*, courses(code, name)')
@@ -998,17 +1165,21 @@ async function loadGrades() {
         pGrades.forEach(g => {
             const key = g.course_id;
             if (!byCourse[key]) byCourse[key] = { course: g.courses, periods: {} };
-            byCourse[key].periods[g.period] = g.grade;
+            byCourse[key].periods[g.period] = g;
         });
-        let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Prelim</th><th>Midterm</th><th>Semi‑Final</th><th>Final</th></tr></thead><tbody>';
+        let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Active Period</th><th>Prelim</th><th>Midterm</th><th>Semi‑Final</th><th>Final</th></tr></thead><tbody>';
         for (const key in byCourse) {
             const item = byCourse[key];
+            const activeP = item.course?.active_period || 'prelim';
+            const formatGrade = (pg) => pg ? `${pg.grade.toFixed(2)}% ${pg.locked ? '🔒' : ''}` : '-';
+
             html += `<tr>
                 <td>${item.course?.code || 'N/A'}</td>
-                <td>${item.periods.prelim?.toFixed(2) || '-'}</td>
-                <td>${item.periods.midterm?.toFixed(2) || '-'}</td>
-                <td>${item.periods.semifinal?.toFixed(2) || '-'}</td>
-                <td>${item.periods.final?.toFixed(2) || '-'}</td>
+                <td><span class="badge badge-info">${activeP.toUpperCase()}</span></td>
+                <td>${formatGrade(item.periods.prelim)}</td>
+                <td>${formatGrade(item.periods.midterm)}</td>
+                <td>${formatGrade(item.periods.semifinal)}</td>
+                <td>${formatGrade(item.periods.final)}</td>
             </tr>`;
         }
         html += '</tbody></table></div>';
@@ -1027,11 +1198,9 @@ async function loadGrades() {
         finalContainer.innerHTML = html;
     }
 
-    // Load initial detailed breakdown if a course is selected
     loadDetailedCriteriaGrades();
 }
 
-// Function to compute and render detailed scores across all 4 criteria (15%, 25%, 10%, 50%)
 async function loadDetailedCriteriaGrades() {
     const courseId = document.getElementById('detailedCourseSelect')?.value;
     const period = document.getElementById('detailedPeriodSelect')?.value || 'prelim';
@@ -1045,7 +1214,6 @@ async function loadDetailedCriteriaGrades() {
     container.innerHTML = '<div class="empty-state">Calculating detailed scores...</div>';
 
     try {
-        // Fetch Assessment Types
         const { data: types } = await supabase
             .from('assessment_types')
             .select('id, name')
@@ -1053,7 +1221,6 @@ async function loadDetailedCriteriaGrades() {
         const typeMap = {};
         types?.forEach(t => { typeMap[t.id] = t.name; });
 
-        // Fetch Assessments for selected period
         const { data: assessments } = await supabase
             .from('assessments')
             .select('id, title, assessment_type_id, max_score')
@@ -1062,28 +1229,24 @@ async function loadDetailedCriteriaGrades() {
 
         const assessIds = assessments?.map(a => a.id) || [];
 
-        // Fetch Standard Grades
         const { data: grades } = await supabase
             .from('grades')
             .select('assessment_id, score, max_score')
             .in('assessment_id', assessIds)
             .eq('student_id', currentUser.id);
 
-        // Fetch Manual Grades
         const { data: manualGrades } = await supabase
             .from('manual_grades')
             .select('assessment_type_id, score, max_score, notes')
             .eq('course_id', courseId)
             .eq('student_id', currentUser.id);
 
-        // Fetch Recitations (Image 4 schema: rating 1-5 converted to percentage)
         const { data: recitations } = await supabase
             .from('recitations')
             .select('rating, date, time')
             .eq('course_id', courseId)
             .eq('student_id', currentUser.id);
 
-        // Fetch Attendance Records
         const { data: section } = await supabase.from('sections').select('id').eq('course_id', courseId).maybeSingle();
         const { data: sessions } = await supabase.from('attendance_sessions').select('id').eq('section_id', section?.id || null);
         const sessionIds = sessions?.map(s => s.id) || [];
@@ -1093,12 +1256,10 @@ async function loadDetailedCriteriaGrades() {
             .in('session_id', sessionIds)
             .eq('student_id', currentUser.id);
 
-        // Group Scores by 4 Criteria
         const quizScores = [];
         const caseScores = [];
         const examScores = [];
 
-        // 1. Map standard assessment grades
         grades?.forEach(g => {
             const assess = assessments.find(a => a.id === g.assessment_id);
             if (!assess) return;
@@ -1111,7 +1272,6 @@ async function loadDetailedCriteriaGrades() {
             else if (categoryName === 'Major Exam') examScores.push(entry);
         });
 
-        // 2. Map manual grades
         manualGrades?.forEach(mg => {
             const categoryName = typeMap[mg.assessment_type_id];
             const pct = (mg.score / (mg.max_score || 100)) * 100;
@@ -1122,7 +1282,6 @@ async function loadDetailedCriteriaGrades() {
             else if (categoryName === 'Major Exam') examScores.push(entry);
         });
 
-        // 3. Map recitations into Case analysis, Recitation, and reflection briefs (rating / 5 * 100)
         recitations?.forEach((r, idx) => {
             if (r.rating !== null && r.rating !== undefined) {
                 const pct = (Number(r.rating) / 5) * 100;
@@ -1130,7 +1289,6 @@ async function loadDetailedCriteriaGrades() {
             }
         });
 
-        // 4. Calculate Attendance percentage
         const totalAtt = sessionIds.length;
         const presentAtt = attendance?.filter(r => r.status === 'present').length || 0;
         const attPct = totalAtt > 0 ? (presentAtt / totalAtt) * 100 : 0;
@@ -1145,10 +1303,8 @@ async function loadDetailedCriteriaGrades() {
         const caseAvg = calcCategoryAvg(caseScores);
         const examAvg = calcCategoryAvg(examScores);
 
-        // Build HTML output
         let html = '';
 
-        // Box 1: Quizzes and activities (15%)
         html += `<div class="criteria-box">
             <h4>
                 <span>1. Quizzes and activities (15% Weight)</span>
@@ -1157,7 +1313,6 @@ async function loadDetailedCriteriaGrades() {
             ${renderCriteriaTable(quizScores)}
         </div>`;
 
-        // Box 2: Case analysis, Recitation, and reflection briefs (25%)
         html += `<div class="criteria-box">
             <h4>
                 <span>2. Case analysis, Recitation, and reflection briefs (25% Weight)</span>
@@ -1166,7 +1321,6 @@ async function loadDetailedCriteriaGrades() {
             ${renderCriteriaTable(caseScores)}
         </div>`;
 
-        // Box 3: Attendance and Others (10%)
         html += `<div class="criteria-box">
             <h4>
                 <span>3. Attendance and Others (10% Weight)</span>
@@ -1186,7 +1340,6 @@ async function loadDetailedCriteriaGrades() {
             </div>
         </div>`;
 
-        // Box 4: Major Exam (50%)
         html += `<div class="criteria-box">
             <h4>
                 <span>4. Major Exam (50% Weight)</span>
@@ -1347,7 +1500,7 @@ async function loadExcuseHistory() {
     let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>File</th><th>Status</th><th>Date</th></tr></thead><tbody>';
     data.forEach(d => {
         const badge = d.status === 'pending' ? 'badge-warning' :
-                       d.status === 'approved' ? 'badge-success' : 'badge-danger';
+                      d.status === 'approved' ? 'badge-success' : 'badge-danger';
         html += `<tr>
             <td>${d.courses?.code || 'N/A'}</td>
             <td><a href="${d.file_url}" target="_blank">📄 View</a></td>
@@ -1360,7 +1513,7 @@ async function loadExcuseHistory() {
 }
 
 // ============================================================
-// 11. RECITATION (Image 4 Schema: rating 1-5, date, time)
+// 11. RECITATION
 // ============================================================
 async function checkRecitationAvailability() {
     const statusDiv = document.getElementById('recitationStatus');
@@ -1593,7 +1746,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
         if (target === 'grades') await loadGrades();
         if (target === 'assessments') await loadAssessments();
         if (target === 'activities') await loadActivities();
-        if (target === 'dashboard') { await loadDashboardStats(); await loadRecentActivity(); }
+        if (target === 'dashboard') { await loadDashboardStats(); await loadDashboardPeriodGrades(); await loadRecentActivity(); }
     });
 });
 
