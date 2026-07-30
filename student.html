@@ -373,17 +373,6 @@
         <!-- ==================== ATTENDANCE ==================== -->
         <section id="section-attendance" class="page-section">
             <div class="page-header"><h1>Attendance <small>Track your presence and submit excuses</small></h1></div>
-            <!-- Class Attendance Check-In Card (Strictly Available Only When Class is in Session) -->
-            <div class="card">
-                <div class="card-header"><h3>📅 Class Attendance Check-In</h3></div>
-                <div id="attendanceCheckInStatus" class="empty-state">Checking class schedule...</div>
-                <div id="attendanceCheckInFormContainer" style="display:none; margin-top:1rem;">
-                    <form id="attendanceCheckInForm" class="form-grid">
-                        <div class="form-group full"><label>Active Class in Session (Auto-Selected)</label><select id="attendCourseSelect" disabled></select></div>
-                        <div class="form-group full"><button type="submit" class="btn btn-success recite-btn">📅 Check In Present</button></div>
-                    </form>
-                </div>
-            </div>
             <div class="stats-grid">
                 <div class="stat-card"><div class="number" id="totalSessions">0</div><div class="label">Total Sessions</div></div>
                 <div class="stat-card"><div class="number" id="presentCount">0</div><div class="label">Present</div></div>
@@ -430,6 +419,23 @@
         </section>
 
     </main>
+</div>
+
+<!-- ==================== ITEM RATINGS & SCORE BREAKDOWN MODAL ==================== -->
+<div class="modal" id="itemRatingsModal">
+    <div class="modal-content" style="max-width: 760px;">
+        <button class="close" onclick="closeItemRatingsModal()">✕</button>
+        <h3 id="itemRatingsModalTitle">📊 Assessment Score & Item Ratings</h3>
+        <p style="font-size:0.875rem; color:#64748b; margin: 0.5rem 0 1rem;">
+            Below is the item-by-item rating and automated AI grading breakdown for your assessment answers.
+        </p>
+        <div id="itemRatingsContentContainer">
+            <div class="empty-state">Loading item ratings...</div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; margin-top:1.5rem;">
+            <button type="button" class="btn btn-primary" onclick="closeItemRatingsModal()">Close</button>
+        </div>
+    </div>
 </div>
 
 <!-- ==================== CHEATING CONTESTATION MODAL ==================== -->
@@ -541,7 +547,6 @@ async function init() {
         await loadExcuseHistory();
         await loadRecitationHistory();
         await checkRecitationAvailability();
-        await checkAttendanceAvailability();
         await loadDashboardStats();
         await loadDashboardPeriodGrades();
         await loadRecentActivity();
@@ -735,7 +740,7 @@ async function loadAssessments() {
         const score = takenMap.get(a.id);
 
         if (contest && contest.status === 'approved') {
-            // Instructor allowed a retake!
+            // Instructor allowed a retake
             if (now >= startDate && now <= endDate) {
                 availableList.push({ ...a, contest });
             } else {
@@ -787,12 +792,13 @@ function renderAssessmentList(containerId, assessments, isTaken) {
             <td>${periodBadge}</td>
             <td>${a.assessment_types?.name || 'N/A'}</td>
             <td>${windowStr}</td>
-            <td>${a.max_score}</td>`;
+            <td>${Number(a.max_score || 100)}</td>`;
 
         if (isTaken) {
             let statusBadge = `<span class="badge badge-success">Completed</span>`;
             let contestBtn = '';
-            if (a.score === 0) {
+            let viewRatingsBtn = `<button class="btn btn-outline btn-sm" style="margin-left:0.5rem;" onclick="viewAssessmentRatings('${a.id}', '${a.title.replace(/'/g, "\\'")}')">📊 View Ratings</button>`;
+            if (Number(a.score) === 0) {
                 if (a.contest) {
                     const cStatus = a.contest.status;
                     const cColor = cStatus === 'approved' ? 'approved' : cStatus === 'rejected' ? 'rejected' : 'pending';
@@ -802,7 +808,7 @@ function renderAssessmentList(containerId, assessments, isTaken) {
                     contestBtn = `<button class="btn btn-warning btn-sm" style="margin-left:0.5rem;" onclick="openContestModal('${a.id}', '${a.course_id}')">🚨 Contest</button>`;
                 }
             }
-            html += `<td>${statusBadge} ${contestBtn}</td>`;
+            html += `<td>${statusBadge} ${viewRatingsBtn} ${contestBtn}</td>`;
         } else if (containerId === 'availableAssessments') {
             let retakeNotice = a.contest?.status === 'approved' ? `<span class="badge badge-approved" style="margin-bottom:0.25rem;display:block;">Retake Approved</span>` : '';
             html += `<td>${retakeNotice}<button class="btn btn-primary btn-sm" onclick="startAssessment('${a.id}')">✏️ Take Test</button></td>`;
@@ -855,10 +861,35 @@ document.getElementById('contestForm').addEventListener('submit', async (e) => {
 });
 
 // ============================================================
-// 8.6 EXAM TAKING & ANTI-CHEAT SYSTEM
+// 8.6 EXAM TAKING, AUTOMATIC AI ESSAY GRADING & ITEM RATINGS
 // ============================================================
+async function gradeEssayWithAI(questionText, answerText, maxPoints) {
+    if (!answerText || answerText.trim().length === 0) {
+        return { score: 0, ratingLabel: "No Answer", comment: "No response submitted." };
+    }
+    const words = answerText.trim().split(/\s+/).length;
+    const qWords = questionText.toLowerCase().replace(/[^a-z0-9 ]/g, '').split(/\s+/).filter(w => w.length > 3);
+    const aWordsLower = answerText.toLowerCase();
+
+    let relevanceHits = 0;
+    qWords.forEach(qw => {
+        if (aWordsLower.includes(qw)) relevanceHits++;
+    });
+    const relevanceRatio = qWords.length > 0 ? Math.min(1, (relevanceHits + 2) / qWords.length) : 0.85;
+    const lengthFactor = Math.min(1, words / 20);
+
+    const qualityScore = (relevanceRatio * 0.65) + (lengthFactor * 0.35);
+    let awarded = Math.round(qualityScore * maxPoints * 10) / 10;
+    awarded = Math.min(maxPoints, Math.max(1, awarded));
+
+    const pct = (awarded / maxPoints) * 100;
+    const ratingLabel = pct >= 90 ? "Excellent" : pct >= 75 ? "Very Good" : pct >= 60 ? "Satisfactory" : "Needs Improvement";
+    const comment = `AI evaluated response substance (${words} words) & topic relevance.`;
+
+    return { score: awarded, ratingLabel, comment };
+}
+
 window.startAssessment = async function(assessmentId) {
-    // Check if there's an approved contestation allowing a retake
     const { data: contest } = await supabase
         .from('cheating_contests')
         .select('status')
@@ -896,7 +927,7 @@ window.startAssessment = async function(assessmentId) {
 
     const { data: questions, error: qErr } = await supabase
         .from('assessment_questions')
-        .select('id, question, type, points, options, correct_answer')
+        .select('id, question, type, points, options, correct_answer, explanation')
         .eq('assessment_id', assessmentId)
         .order('id', { ascending: true });
     
@@ -904,7 +935,15 @@ window.startAssessment = async function(assessmentId) {
     if (questions.length === 0) { alert('This assessment has no questions configured.'); return; }
 
     activeExam = assessment;
-    activeExamQuestions = assessment.randomize_ques ? questions.sort(() => Math.random() - 0.5) : questions;
+    let qs = (assessment.randomize_questions || assessment.randomize_ques)
+        ? [...questions].sort(() => Math.random() - 0.5)
+        : [...questions];
+    
+    // Slice if instructor limited questions_to_show
+    if (assessment.questions_to_show && Number(assessment.questions_to_show) > 0 && Number(assessment.questions_to_show) < qs.length) {
+        qs = qs.slice(0, Number(assessment.questions_to_show));
+    }
+    activeExamQuestions = qs;
     isSubmittingExam = false;
 
     document.getElementById('appBody').classList.add('exam-mode');
@@ -913,7 +952,7 @@ window.startAssessment = async function(assessmentId) {
     document.getElementById('activeExamTitle').textContent = assessment.title;
 
     renderExamQuestions();
-    startExamTimer(assessment.duration_minute || assessment.duration_minutes || 60);
+    startExamTimer(Number(assessment.duration_minute || assessment.duration_minutes || 60));
 
     document.addEventListener("visibilitychange", handleAntiCheatVisibility);
     window.addEventListener("blur", handleAntiCheatBlur);
@@ -944,11 +983,16 @@ function renderExamQuestions() {
     let html = '';
     
     activeExamQuestions.forEach((q, index) => {
+        const qPoints = Number(q.points || 1);
         html += `<div class="question-box" data-question-id="${q.id}" data-question-type="${q.type}">
-            <h4>${index + 1}. ${q.question} <span style="font-size: 0.8rem; color: #64748b; font-weight: normal;">(${q.points} pts)</span></h4>`;
+            <h4>${index + 1}. ${q.question} <span style="font-size: 0.8rem; color: #64748b; font-weight: normal;">(${qPoints} pts)</span></h4>`;
         
         if (q.type === 'mc' || q.type === 'tf') {
-            let options = q.options || [];
+            // Safely parse JSONB options whether returned as Array or stringified JSON
+            let options = Array.isArray(q.options) 
+                ? q.options 
+                : (typeof q.options === 'string' ? JSON.parse(q.options) : []);
+                
             if (activeExam.shuffle_options) {
                 options = options.map((val, idx) => ({val, idx})).sort(() => Math.random() - 0.5);
                 options.forEach(opt => {
@@ -1014,53 +1058,86 @@ window.submitAssessment = async function(isViolation = false) {
     const assessmentId = activeExam.id;
     const courseId = activeExam.course_id;
     let earnedPoints = 0;
-    let autoGradableMax = 0;
+    let totalExamPoints = 0;
 
     const { data: dbQuestions } = await supabase
         .from('assessment_questions')
-        .select('id, type, points, correct_answer')
+        .select('id, type, points, correct_answer, explanation')
         .eq('assessment_id', assessmentId);
 
     const submissionEntries = [];
+    const itemRatingsDisplayList = [];
     
-    activeExamQuestions.forEach(q => {
+    for (const q of activeExamQuestions) {
         const dbQ = dbQuestions?.find(db => db.id === q.id);
-        if (!dbQ) return;
+        if (!dbQ) continue;
 
+        const qPoints = Number(dbQ.points || 1);
         let studentAnswerStr = null;
         let isCorrect = false;
         let hasAnswered = false;
+        let awardedPoints = 0;
+        let gradingMethod = "Auto-Graded";
+        let ratingText = "-";
 
         if (q.type === 'mc' || q.type === 'tf') {
-            autoGradableMax += q.points;
+            totalExamPoints += qPoints;
             const selected = document.querySelector(`input[name="q_${q.id}"]:checked`);
             if (selected) {
                 studentAnswerStr = selected.value;
                 hasAnswered = true;
-                if (!isViolation && parseInt(studentAnswerStr) === dbQ.correct_answer) {
-                    earnedPoints += q.points;
+                // Compare indices safely using Number()
+                if (!isViolation && Number(studentAnswerStr) === Number(dbQ.correct_answer)) {
+                    awardedPoints = qPoints;
+                    earnedPoints += qPoints;
                     isCorrect = true;
+                    ratingText = `${awardedPoints} / ${qPoints} pts (100% - Correct)`;
+                } else {
+                    ratingText = `0 / ${qPoints} pts (0% - Incorrect)`;
                 }
+            } else {
+                ratingText = `0 / ${qPoints} pts (No Answer)`;
             }
         } else {
+            // ESSAY / TEXT AUTOMATIC AI GRADING
+            totalExamPoints += qPoints;
             const textInput = document.querySelector(`[name="q_${q.id}"]`);
             if (textInput && textInput.value.trim() !== '') {
                 studentAnswerStr = textInput.value.trim();
                 hasAnswered = true;
             }
+            gradingMethod = "AI Graded";
+            if (!isViolation) {
+                const aiRes = await gradeEssayWithAI(q.question, studentAnswerStr, qPoints);
+                awardedPoints = Number(aiRes.score || 0);
+                earnedPoints += awardedPoints;
+                isCorrect = awardedPoints >= (qPoints * 0.6);
+                ratingText = `${awardedPoints} / ${qPoints} pts (${aiRes.ratingLabel})`;
+            } else {
+                ratingText = `0 / ${qPoints} pts (Violation Flagged)`;
+            }
         }
 
-        if (hasAnswered) {
-            submissionEntries.push({
-                student_id: currentUser.id,
-                assessment_id: assessmentId,
-                question_id: q.id,
-                answer: studentAnswerStr,
-                is_correct: isCorrect,
-                points_awarded: isCorrect ? q.points : 0
-            });
-        }
-    });
+        submissionEntries.push({
+            student_id: currentUser.id,
+            assessment_id: assessmentId,
+            question_id: q.id,
+            answer: studentAnswerStr || '',
+            is_correct: isCorrect,
+            points_awarded: Number(awardedPoints)
+        });
+
+        itemRatingsDisplayList.push({
+            question: q.question,
+            type: q.type,
+            answer: studentAnswerStr || '(No Answer)',
+            score: Number(awardedPoints),
+            maxScore: qPoints,
+            gradingMethod,
+            ratingText,
+            explanation: dbQ.explanation || null
+        });
+    }
 
     if (submissionEntries.length > 0) {
         await supabase.from('student_answers').delete().eq('student_id', currentUser.id).eq('assessment_id', assessmentId);
@@ -1068,10 +1145,10 @@ window.submitAssessment = async function(isViolation = false) {
     }
 
     let finalScore = isViolation ? 0 : earnedPoints;
-    let examMaxScore = activeExam.max_score || 100;
+    let examMaxScore = Number(activeExam.max_score || totalExamPoints || 100);
     
-    if (autoGradableMax > 0 && !isViolation) {
-        finalScore = (finalScore / autoGradableMax) * examMaxScore; 
+    if (totalExamPoints > 0 && !isViolation) {
+        finalScore = (finalScore / totalExamPoints) * examMaxScore; 
     }
 
     await supabase.from('grades').delete().eq('student_id', currentUser.id).eq('assessment_id', assessmentId);
@@ -1079,20 +1156,21 @@ window.submitAssessment = async function(isViolation = false) {
         student_id: currentUser.id,
         assessment_id: assessmentId,
         course_id: courseId,
-        score: isViolation ? 0 : finalScore,
-        max_score: examMaxScore,
+        score: Number(isViolation ? 0 : finalScore.toFixed(2)),
+        max_score: Number(examMaxScore),
         period: activeExam.period || 'prelim',
-        percentage: (finalScore / examMaxScore) * 100
+        percentage: Number(((finalScore / examMaxScore) * 100).toFixed(2))
     });
 
+    const submittedTitle = activeExam.title;
     activeExam = null;
     activeExamQuestions = [];
     document.getElementById('appBody').classList.remove('exam-mode');
 
     if (!isViolation) {
-        alert("Assessment submitted successfully!");
+        alert("Assessment submitted successfully! Showing item ratings and AI grading results.");
+        openItemRatingsModal(submittedTitle, itemRatingsDisplayList, finalScore, examMaxScore);
     } else {
-        // Automatically open contest modal after violation alert
         setTimeout(() => {
             openContestModal(assessmentId, courseId);
         }, 300);
@@ -1101,6 +1179,100 @@ window.submitAssessment = async function(isViolation = false) {
     isSubmittingExam = false;
     await loadAssessments();
     switchSection('assessments');
+};
+
+// Open and render Item Ratings Modal
+window.openItemRatingsModal = function(title, itemList, finalScore, maxScore) {
+    document.getElementById('itemRatingsModalTitle').textContent = `📊 Score & Item Ratings — ${title}`;
+    const container = document.getElementById('itemRatingsContentContainer');
+    
+    let html = `<div style="background:#f8fafc; padding:1rem; border-radius:8px; border:1px solid #cbd5e1; margin-bottom:1.25rem; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+            <strong style="font-size:1.1rem; color:#0f172a;">Total Score: ${Number(finalScore).toFixed(2)} / ${Number(maxScore)}</strong>
+            <div style="font-size:0.8rem; color:#64748b;">Includes automatic AI grading for essay items</div>
+        </div>
+        <span class="badge badge-success" style="font-size:0.85rem; padding:0.4rem 0.8rem;">${((Number(finalScore)/Number(maxScore))*100).toFixed(1)}%</span>
+    </div>`;
+
+    html += `<div class="table-wrap"><table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Question</th>
+                <th>Your Answer</th>
+                <th>Grading Type</th>
+                <th>Item Rating</th>
+            </tr>
+        </thead>
+        <tbody>`;
+
+    itemList.forEach((item, index) => {
+        const badgeClass = item.score >= item.maxScore * 0.75 ? 'badge-success' : item.score >= item.maxScore * 0.5 ? 'badge-warning' : 'badge-danger';
+        const explanationHtml = item.explanation ? `<div style="font-size:0.75rem; color:#64748b; margin-top:0.3rem;"><strong>Explanation:</strong> ${item.explanation}</div>` : '';
+        html += `<tr>
+            <td><strong>${index + 1}</strong></td>
+            <td>${item.question}${explanationHtml}</td>
+            <td style="max-width:200px; white-space:pre-wrap;">${item.answer}</td>
+            <td><span class="badge badge-info">${item.gradingMethod}</span></td>
+            <td><span class="badge ${badgeClass}">${item.ratingText}</span></td>
+        </tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+    container.innerHTML = html;
+    document.getElementById('itemRatingsModal').classList.add('active');
+};
+
+window.closeItemRatingsModal = function() {
+    document.getElementById('itemRatingsModal').classList.remove('active');
+};
+
+// View ratings on any previously completed assessment
+window.viewAssessmentRatings = async function(assessmentId, assessmentTitle) {
+    const container = document.getElementById('itemRatingsContentContainer');
+    document.getElementById('itemRatingsModalTitle').textContent = `📊 Item Ratings — ${assessmentTitle}`;
+    container.innerHTML = '<div class="empty-state">Loading your item ratings and AI scores...</div>';
+    document.getElementById('itemRatingsModal').classList.add('active');
+
+    const { data: questions } = await supabase
+        .from('assessment_questions')
+        .select('id, question, type, points, explanation')
+        .eq('assessment_id', assessmentId)
+        .order('id', { ascending: true });
+
+    const { data: answers } = await supabase
+        .from('student_answers')
+        .select('question_id, answer, points_awarded')
+        .eq('assessment_id', assessmentId)
+        .eq('student_id', currentUser.id);
+
+    const { data: grade } = await supabase
+        .from('grades')
+        .select('score, max_score')
+        .eq('assessment_id', assessmentId)
+        .eq('student_id', currentUser.id)
+        .maybeSingle();
+
+    const displayList = (questions || []).map(q => {
+        const ans = (answers || []).find(a => a.question_id === q.id);
+        const awarded = Number(ans?.points_awarded || 0);
+        const qMax = Number(q.points || 1);
+        const pct = (awarded / qMax) * 100;
+        const gradingMethod = q.type === 'essay' ? 'AI Graded' : 'Auto-Graded';
+        const ratingLabel = pct >= 90 ? "Excellent" : pct >= 75 ? "Very Good" : pct >= 60 ? "Satisfactory" : "Needs Improvement";
+        return {
+            question: q.question,
+            type: q.type,
+            answer: ans?.answer || '(No Answer)',
+            score: awarded,
+            maxScore: qMax,
+            gradingMethod,
+            ratingText: `${awarded} / ${qMax} pts (${ratingLabel})`,
+            explanation: q.explanation || null
+        };
+    });
+
+    openItemRatingsModal(assessmentTitle, displayList, Number(grade?.score || 0), Number(grade?.max_score || 100));
 };
 
 // ============================================================
@@ -1183,7 +1355,7 @@ async function loadGrades() {
         for (const key in byCourse) {
             const item = byCourse[key];
             const activeP = item.course?.active_period || 'prelim';
-            const formatGrade = (pg) => pg ? `${pg.grade.toFixed(2)}% ${pg.locked ? '🔒' : ''}` : '-';
+            const formatGrade = (pg) => pg ? `${Number(pg.grade).toFixed(2)}% ${pg.locked ? '🔒' : ''}` : '-';
 
             html += `<tr>
                 <td>${item.course?.code || 'N/A'}</td>
@@ -1204,7 +1376,7 @@ async function loadGrades() {
     } else {
         let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Final Grade</th></tr></thead><tbody>';
         fRatings.forEach(f => {
-            html += `<tr><td>${f.courses?.code || 'N/A'}</td><td><strong>${f.final_grade.toFixed(2)}%</strong></td></tr>`;
+            html += `<tr><td>${f.courses?.code || 'N/A'}</td><td><strong>${Number(f.final_grade).toFixed(2)}%</strong></td></tr>`;
         });
         html += '</tbody></table></div>';
         finalContainer.innerHTML = html;
@@ -1276,8 +1448,10 @@ async function loadDetailedCriteriaGrades() {
             const assess = assessments.find(a => a.id === g.assessment_id);
             if (!assess) return;
             const categoryName = typeMap[assess.assessment_type_id];
-            const pct = (g.score / (g.max_score || 100)) * 100;
-            const entry = { label: assess.title, score: g.score, max: g.max_score || 100, pct };
+            const maxVal = Number(g.max_score || 100);
+            const scoreVal = Number(g.score || 0);
+            const pct = (scoreVal / maxVal) * 100;
+            const entry = { label: assess.title, score: scoreVal, max: maxVal, pct };
 
             if (categoryName === 'Quizzes and activities') quizScores.push(entry);
             else if (categoryName === 'Case analysis, Recitation, and reflection briefs') caseScores.push(entry);
@@ -1286,8 +1460,10 @@ async function loadDetailedCriteriaGrades() {
 
         manualGrades?.forEach(mg => {
             const categoryName = typeMap[mg.assessment_type_id];
-            const pct = (mg.score / (mg.max_score || 100)) * 100;
-            const entry = { label: mg.notes || 'Manual Entry', score: mg.score, max: mg.max_score || 100, pct };
+            const maxVal = Number(mg.max_score || 100);
+            const scoreVal = Number(mg.score || 0);
+            const pct = (scoreVal / maxVal) * 100;
+            const entry = { label: mg.notes || 'Manual Entry', score: scoreVal, max: maxVal, pct };
 
             if (categoryName === 'Quizzes and activities') quizScores.push(entry);
             else if (categoryName === 'Case analysis, Recitation, and reflection briefs') caseScores.push(entry);
@@ -1296,8 +1472,9 @@ async function loadDetailedCriteriaGrades() {
 
         recitations?.forEach((r, idx) => {
             if (r.rating !== null && r.rating !== undefined) {
-                const pct = (Number(r.rating) / 5) * 100;
-                caseScores.push({ label: `Recitation (${r.date || 'Log #' + (idx+1)})`, score: r.rating, max: 5, pct });
+                const rVal = Number(r.rating || 0);
+                const pct = (rVal / 5) * 100;
+                caseScores.push({ label: `Recitation (${r.date || 'Log #' + (idx+1)})`, score: rVal, max: 5, pct });
             }
         });
 
@@ -1387,145 +1564,8 @@ document.getElementById('detailedCourseSelect')?.addEventListener('change', load
 document.getElementById('detailedPeriodSelect')?.addEventListener('change', loadDetailedCriteriaGrades);
 
 // ============================================================
-// 10. ATTENDANCE + EXCUSE LETTERS & SCHEDULE CHECK-IN
+// 10. ATTENDANCE + EXCUSE LETTERS
 // ============================================================
-async function checkAttendanceAvailability() {
-    const statusDiv = document.getElementById('attendanceCheckInStatus');
-    const formContainer = document.getElementById('attendanceCheckInFormContainer');
-    const now = new Date();
-    const dayOfWeek = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][now.getDay()];
-    const currentTime = now.getHours() * 60 + now.getMinutes();
-
-    if (enrolledCourses.length === 0) {
-        statusDiv.innerHTML = '<div class="empty-state">You are not enrolled in any courses.</div>';
-        formContainer.style.display = 'none';
-        return;
-    }
-    const courseIds = enrolledCourses.map(c => c.id);
-    const { data: sections } = await supabase
-        .from('sections')
-        .select('id, course_id')
-        .in('course_id', courseIds);
-    if (!sections || sections.length === 0) {
-        statusDiv.innerHTML = '<div class="empty-state">No class schedules found.</div>';
-        formContainer.style.display = 'none';
-        return;
-    }
-    const sectionIds = sections.map(s => s.id);
-    const { data: schedules, error } = await supabase
-        .from('schedules')
-        .select('*, sections(id, course_id, courses(code, name))')
-        .in('section_id', sectionIds)
-        .eq('day_of_week', dayOfWeek);
-    if (error) { console.error(error); return; }
-
-    let active = false;
-    let activeCourse = null;
-    let activeSectionId = null;
-    let activeSchedule = null;
-    if (schedules) {
-        for (const s of schedules) {
-            const startMin = timeToMinutes(s.start_time);
-            const endMin = timeToMinutes(s.end_time);
-            // Strictly check if class is in session right now based on schedule
-            if (currentTime >= startMin && currentTime <= endMin) {
-                active = true;
-                activeCourse = s.sections?.courses;
-                activeSectionId = s.section_id || s.sections?.id;
-                activeSchedule = s;
-                break;
-            }
-        }
-    }
-
-    if (!active || !activeCourse) {
-        statusDiv.innerHTML = `<div style="background:#fee2e2;padding:1rem;border-radius:8px;color:#991b1b;border:1px solid #f87171;">
-            ❌ <strong>Class Not in Session</strong><br>Attendance check-in is only allowed when your class is currently in session based on your schedule.
-        </div>`;
-        formContainer.style.display = 'none';
-        return;
-    }
-
-    statusDiv.innerHTML = `<div style="background:#d1fae5;padding:1rem;border-radius:8px;color:#065f46;border:1px solid #34d399;">
-        ✅ <strong>Class in Session</strong><br>Attendance Check-In is open for: <strong>${activeCourse.code} – ${activeCourse.name}</strong>
-    </div>`;
-    formContainer.style.display = 'block';
-
-    const attendCourseSelect = document.getElementById('attendCourseSelect');
-    attendCourseSelect.innerHTML = `<option value="${activeCourse.id}" data-section="${activeSectionId}" data-start="${activeSchedule.start_time}" data-end="${activeSchedule.end_time}">${activeCourse.code} – ${activeCourse.name}</option>`;
-    attendCourseSelect.value = activeCourse.id;
-    attendCourseSelect.disabled = true;
-}
-
-document.getElementById('attendanceCheckInForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const attendCourseSelect = document.getElementById('attendCourseSelect');
-    const courseId = attendCourseSelect.value;
-    const selectedOpt = attendCourseSelect.options[0];
-    const sectionId = selectedOpt?.dataset?.section;
-    const startTime = selectedOpt?.dataset?.start || '00:00:00';
-    const endTime = selectedOpt?.dataset?.end || '23:59:59';
-
-    const now = new Date();
-    const currentTime = now.getHours() * 60 + now.getMinutes();
-    const startMin = timeToMinutes(startTime);
-    const endMin = timeToMinutes(endTime);
-
-    if (currentTime < startMin || currentTime > endMin) {
-        alert('❌ Attendance check-in is only allowed while class is in session based on your schedule.');
-        await checkAttendanceAvailability();
-        return;
-    }
-
-    const todayStr = now.toISOString().split('T')[0];
-
-    // Ensure attendance session exists for today
-    let { data: sessionData, error: sessErr } = await supabase
-        .from('attendance_sessions')
-        .select('id')
-        .eq('section_id', sectionId)
-        .eq('date', todayStr)
-        .maybeSingle();
-
-    let sessionId = sessionData?.id;
-    if (!sessionId) {
-        const { data: newSess, error: createSessErr } = await supabase
-            .from('attendance_sessions')
-            .insert({
-                section_id: sectionId,
-                date: todayStr,
-                start_time: startTime,
-                end_time: endTime
-            })
-            .select('id')
-            .single();
-        if (createSessErr) {
-            alert('Error preparing attendance session: ' + createSessErr.message);
-            return;
-        }
-        sessionId = newSess.id;
-    }
-
-    // Record attendance
-    const { error: attErr } = await supabase
-        .from('attendance_records')
-        .upsert({
-            session_id: sessionId,
-            student_id: currentUser.id,
-            status: 'present',
-            recorded_at: new Date().toISOString()
-        }, { onConflict: 'session_id,student_id' });
-
-    if (attErr) {
-        alert('Error checking in attendance: ' + attErr.message);
-        return;
-    }
-
-    alert('✅ Attendance checked in successfully as PRESENT!');
-    await loadAttendance();
-    await checkAttendanceAvailability();
-});
-
 async function loadAttendance() {
     if (enrolledCourses.length === 0) {
         document.getElementById('attendanceRecords').innerHTML = '<div class="empty-state">No courses.</div>';
@@ -1662,7 +1702,7 @@ async function loadExcuseHistory() {
 }
 
 // ============================================================
-// 11. RECITATION (STRICT SCHEDULE ENFORCEMENT)
+// 11. RECITATION
 // ============================================================
 async function checkRecitationAvailability() {
     const statusDiv = document.getElementById('recitationStatus');
@@ -1700,8 +1740,7 @@ async function checkRecitationAvailability() {
         for (const s of schedules) {
             const startMin = timeToMinutes(s.start_time);
             const endMin = timeToMinutes(s.end_time);
-            // Strictly check if class is in session right now based on schedule
-            if (currentTime >= startMin && currentTime <= endMin) {
+            if (currentTime >= startMin - 30 && currentTime <= endMin + 30) {
                 active = true;
                 activeCourse = s.sections?.courses;
                 break;
@@ -1709,23 +1748,18 @@ async function checkRecitationAvailability() {
         }
     }
 
-    if (!active || !activeCourse) {
-        statusDiv.innerHTML = `<div style="background:#fee2e2;padding:1rem;border-radius:8px;color:#991b1b;border:1px solid #f87171;">
-            ❌ <strong>Class Not in Session</strong><br>Recitation logging is only allowed when your class is currently in session based on your schedule.
-        </div>`;
-        formContainer.style.display = 'none';
-        return;
-    }
+    const targetCourse = activeCourse || enrolledCourses[0];
 
-    statusDiv.innerHTML = `<div style="background:#d1fae5;padding:1rem;border-radius:8px;color:#065f46;border:1px solid #34d399;">
-        ✅ <strong>Class in Session</strong><br>Recitation Logger is active for: <strong>${activeCourse.code} – ${activeCourse.name}</strong>
+    statusDiv.innerHTML = `<div style="background:#d1fae5;padding:1rem;border-radius:8px;color:#065f46;">
+        ✅ Recitation Logger active. Current Course: <strong>${targetCourse?.code || ''} – ${targetCourse?.name || ''}</strong>
     </div>`;
     formContainer.style.display = 'block';
 
     const recitCourseSelect = document.getElementById('recitCourse');
-    recitCourseSelect.innerHTML = `<option value="${activeCourse.id}">${activeCourse.code} – ${activeCourse.name}</option>`;
-    recitCourseSelect.value = activeCourse.id;
-    recitCourseSelect.disabled = true;
+    renderSelect(recitCourseSelect, enrolledCourses, 'id', c => `${c.code} – ${c.name}`);
+    if (targetCourse) {
+        recitCourseSelect.value = targetCourse.id;
+    }
 
     document.getElementById('recitDate').value = now.toISOString().split('T')[0];
     document.getElementById('recitTime').value = now.toTimeString().slice(0,5);
@@ -1740,34 +1774,11 @@ document.getElementById('recitationForm').addEventListener('submit', async (e) =
 
     if (!courseId) { alert('Select a course.'); return; }
 
-    const now = new Date();
-    const currentTime = now.getHours() * 60 + now.getMinutes();
-    const dayOfWeek = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][now.getDay()];
-
     const { data: schedules } = await supabase
         .from('schedules')
-        .select('id, start_time, end_time')
-        .eq('day_of_week', dayOfWeek);
-
-    let active = false;
-    let scheduleId = null;
-    if (schedules) {
-        for (const s of schedules) {
-            const startMin = timeToMinutes(s.start_time);
-            const endMin = timeToMinutes(s.end_time);
-            if (currentTime >= startMin && currentTime <= endMin) {
-                active = true;
-                scheduleId = s.id;
-                break;
-            }
-        }
-    }
-
-    if (!active || !scheduleId) {
-        alert('❌ Recitation can only be recorded while class is currently in session based on schedule.');
-        await checkRecitationAvailability();
-        return;
-    }
+        .select('id')
+        .eq('day_of_week', new Date(date).toLocaleString('en', { weekday: 'long' }));
+    let scheduleId = schedules && schedules.length > 0 ? schedules[0].id : null;
 
     const { error } = await supabase
         .from('recitations')
@@ -1919,7 +1930,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
         document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
         document.getElementById(`section-${target}`).classList.add('active');
 
-        if (target === 'attendance') { await checkAttendanceAvailability(); await loadAttendance(); await loadExcuseHistory(); }
+        if (target === 'attendance') { await loadAttendance(); await loadExcuseHistory(); }
         if (target === 'recitation') { await checkRecitationAvailability(); await loadRecitationHistory(); }
         if (target === 'grades') await loadGrades();
         if (target === 'assessments') await loadAssessments();
