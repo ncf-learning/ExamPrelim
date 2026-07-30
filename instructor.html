@@ -165,7 +165,7 @@
 
         <!-- ===== COURSES ===== -->
         <section id="section-courses" class="page-section">
-            <div class="page-header"><div><h1>Courses <small>Manage your courses</small></h1></div><div class="actions"><button class="btn btn-primary" id="addCourseBtn">+ New Course</button></div></div>
+            <div class="page-header"><div><h1>Courses <small>Manage your courses</small></h1></div><div class="actions"><button class="btn btn-primary" id="addCourseBtn" onclick="addCourse()">+ New Course</button></div></div>
             <div class="card"><div id="instructorCourses"><div class="empty-state"><p>Loading your courses...</p></div></div></div>
         </section>
 
@@ -733,7 +733,7 @@ async function populateCourseSelects() {
 }
 
 // ------------------------------------------------------------
-// 9. SCHEDULES (with automatic attendance generation)
+// 9. SCHEDULES
 // ------------------------------------------------------------
 async function loadSchedules() {
     const container = document.getElementById('scheduleList');
@@ -1389,7 +1389,7 @@ window.saveDraft = async function() {
 };
 
 // ------------------------------------------------------------
-// 12. PUBLISHED ASSESSMENTS LIST (FIXED - using event delegation)
+// 12. PUBLISHED ASSESSMENTS LIST
 // ------------------------------------------------------------
 async function loadAssessmentsList() {
     const container = document.getElementById('assessmentsList');
@@ -1427,9 +1427,6 @@ async function loadAssessmentsList() {
     }
 }
 
-// ------------------------------------------------------------
-// 13. EVENT DELEGATION FOR EDIT BUTTONS (THE FIX)
-// ------------------------------------------------------------
 document.addEventListener('click', function(e) {
     const btn = e.target.closest('.edit-assessment-btn');
     if (btn) {
@@ -1439,9 +1436,6 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// ------------------------------------------------------------
-// 14. LOAD PUBLISHED ASSESSMENT FOR EDITING
-// ------------------------------------------------------------
 window.loadPublishedAssessment = async function(assessmentId) {
     console.log('loadPublishedAssessment called with ID:', assessmentId);
     try {
@@ -1524,9 +1518,6 @@ window.deleteAssessment = async function(assessmentId) {
     await updateStats();
 };
 
-// ------------------------------------------------------------
-// 15. UPDATE PUBLISHED ASSESSMENT
-// ------------------------------------------------------------
 async function updatePublishedAssessment() {
     if (!currentDraftAssessmentId) {
         alert('No assessment to update.');
@@ -1605,9 +1596,6 @@ async function updatePublishedAssessment() {
     goToStep(1);
 }
 
-// ------------------------------------------------------------
-// 16. PUBLISH BUTTON HANDLER
-// ------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', function() {
     const publishBtn = document.getElementById('publishAssessmentBtn');
     if (publishBtn) {
@@ -1642,7 +1630,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ------------------------------------------------------------
-// 17. DRAFT ASSESSMENTS LIST
+// 13. DRAFT ASSESSMENTS LIST
 // ------------------------------------------------------------
 async function loadDraftAssessments() {
     const container = document.getElementById('draftAssessmentsList');
@@ -1739,7 +1727,7 @@ window.deleteDraft = async function(draftId) {
 };
 
 // ------------------------------------------------------------
-// 18. QUESTION EDITOR FORM SUBMIT
+// 14. QUESTION EDITOR FORM SUBMIT
 // ------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', function() {
     const questionForm = document.getElementById('questionEditorForm');
@@ -1800,7 +1788,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ------------------------------------------------------------
-// 19. NAVIGATION STEPS
+// 15. NAVIGATION STEPS
 // ------------------------------------------------------------
 window.goToStep = function(step) {
     document.querySelectorAll('.step').forEach(el => { el.style.display = 'none'; el.classList.remove('active'); });
@@ -1809,7 +1797,7 @@ window.goToStep = function(step) {
 };
 
 // ------------------------------------------------------------
-// 20. GRADEBOOK, WEIGHTS, INTERVENTIONS
+// 16. GRADEBOOK, WEIGHTS, INTERVENTIONS (unchanged)
 // ------------------------------------------------------------
 async function loadGradebook() {
     const courseId = document.getElementById('manualCourseSelect').value;
@@ -1991,7 +1979,7 @@ async function loadStudentsForIntervention() {
 }
 
 // ------------------------------------------------------------
-// 21. OTHER FORM HANDLERS
+// 17. OTHER FORM HANDLERS
 // ------------------------------------------------------------
 document.getElementById('computeForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -2090,7 +2078,7 @@ document.getElementById('reportForm').addEventListener('submit', function(e) {
 });
 
 // ------------------------------------------------------------
-// 22. NAVIGATION & EVENT BINDING
+// 18. NAVIGATION
 // ------------------------------------------------------------
 document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', async function() {
@@ -2117,8 +2105,50 @@ document.getElementById('logoutBtn').addEventListener('click', async function() 
     window.location.href = 'index.html';
 });
 
-document.getElementById('addCourseBtn').addEventListener('click', window.addCourse);
+// --- ADD COURSE FIX ---
+// The function is now globally accessible via `window.addCourse`
+// and also called directly from the button's onclick attribute.
+window.addCourse = async function() {
+    console.log('Add Course button clicked.');
+    try {
+        // Check if user is logged in
+        if (!currentUser) {
+            alert('You must be logged in to add a course.');
+            return;
+        }
+        const code = prompt('Enter course code:');
+        if (!code) return;
+        const name = prompt('Enter course name:');
+        if (!name) return;
+        const desc = prompt('Enter description (optional):');
 
+        const { error } = await supabase.from('courses').insert({
+            code: code.trim(),
+            name: name.trim(),
+            description: desc?.trim() || '',
+            instructor_id: currentUser.id
+        });
+        if (error) {
+            console.error('Error inserting course:', error);
+            alert('Error: ' + error.message);
+            return;
+        }
+        alert('Course added!');
+        await loadInstructorData();
+        await populateCourseSelects();
+        await updateStats();
+    } catch (err) {
+        console.error('Unexpected error in addCourse:', err);
+        alert('An unexpected error occurred. See console for details.');
+    }
+};
+
+// Also attach via event listener (backup)
+document.getElementById('addCourseBtn')?.addEventListener('click', window.addCourse);
+
+// ------------------------------------------------------------
+// 19. OTHER EVENT LISTENERS
+// ------------------------------------------------------------
 document.getElementById('editCourseForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('editCourseId').value;
@@ -2176,23 +2206,6 @@ document.getElementById('editScheduleForm').addEventListener('submit', async (e)
     await loadSchedules();
 });
 
-window.addCourse = async function() {
-    const code = prompt('Enter course code:'); if (!code) return;
-    const name = prompt('Enter course name:'); if (!name) return;
-    const desc = prompt('Enter description (optional):');
-    const { error } = await supabase.from('courses').insert({
-        code: code.trim(),
-        name: name.trim(),
-        description: desc?.trim() || '',
-        instructor_id: currentUser.id
-    });
-    if (error) { alert('Error: ' + error.message); return; }
-    alert('Course added!');
-    await loadInstructorData();
-    await populateCourseSelects();
-    await updateStats();
-};
-
 window.openEditCourseModal = async function(courseId) {
     const { data: course, error } = await supabase.from('courses').select('*').eq('id', courseId).single();
     if (error) { alert('Error loading course: ' + error.message); return; }
@@ -2228,7 +2241,7 @@ document.getElementById('intervCourse').addEventListener('change', loadStudentsF
 document.getElementById('exportGrades').addEventListener('click', () => alert('CSV Export – coming soon!'));
 
 // ------------------------------------------------------------
-// 23. START
+// 20. START
 // ------------------------------------------------------------
 init();
 </script>
