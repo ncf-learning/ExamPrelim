@@ -127,10 +127,10 @@
         .exam-mode .sidebar { display: none !important; }
         .exam-mode .main { padding: 1rem; }
         .noselect {
-            user-select: none; /* Non-prefixed version */
-            -webkit-user-select: none; /* Safari */
-            -moz-user-select: none; /* Firefox */
-            -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
         }
         .exam-header {
             display: flex; justify-content: space-between; align-items: center; 
@@ -296,6 +296,7 @@
                 <div class="exam-header">
                     <div>
                         <h2 id="activeExamTitle">Exam Title</h2>
+                        <span id="examTimerDisplay" class="badge badge-info" style="font-size:0.9rem; margin-right:1rem;">Time Left: --:--</span>
                         <span class="badge badge-warning">Anti-Cheat Enabled: Do not leave this tab.</span>
                     </div>
                     <div class="actions">
@@ -358,6 +359,7 @@
                         <div class="form-group full"><label>Course</label><select id="recitCourse" required></select></div>
                         <div class="form-group"><label>Date</label><input type="date" id="recitDate" required /></div>
                         <div class="form-group"><label>Time</label><input type="time" id="recitTime" required /></div>
+                        <div class="form-group"><label>Recitation Rating (1-5)</label><select id="recitRating" required><option value="5">5 - Excellent</option><option value="4">4 - Very Good</option><option value="3" selected>3 - Satisfactory</option><option value="2">2 - Fair</option><option value="1">1 - Poor</option></select></div>
                         <div class="form-group full"><button type="submit" class="btn btn-success recite-btn">🎤 Record Recitation</button></div>
                     </form>
                 </div>
@@ -388,6 +390,7 @@ let today = new Date();
 // Active Exam State
 let activeExam = null;
 let activeExamQuestions = [];
+let examTimerInterval = null;
 
 // ============================================================
 // 3. UTILITY
@@ -467,10 +470,9 @@ async function init() {
 }
 
 // ============================================================
-// 5. ENROLLED COURSES (Two-step fetch – safe with RLS)
+// 5. ENROLLED COURSES
 // ============================================================
 async function loadEnrolledCourses() {
-    // Step 1: Get course IDs from enrollments
     const { data: enrollments, error: e1 } = await supabase
         .from('course_enrollments')
         .select('course_id')
@@ -483,7 +485,6 @@ async function loadEnrolledCourses() {
     }
     const courseIds = enrollments.map(e => e.course_id);
 
-    // Step 2: Fetch course details
     const { data: courses, error: e2 } = await supabase
         .from('courses')
         .select('id, code, name')
@@ -491,7 +492,6 @@ async function loadEnrolledCourses() {
     if (e2) { console.error('Error fetching courses:', e2); return; }
     enrolledCourses = courses || [];
 
-    // Display in profile
     const container = document.getElementById('myCoursesList');
     if (enrolledCourses.length === 0) {
         container.innerHTML = '<div class="empty-state">You are not enrolled in any courses.</div>';
@@ -583,14 +583,13 @@ async function loadAssessments() {
         .in('course_id', courseIds)
         .order('date', { ascending: true });
     if (error) { console.error(error); return; }
-    if (!allAssessments) { return; }
+    if (!allAssessments) return;
 
     const { data: taken } = await supabase
         .from('grades') 
         .select('assessment_id')
         .eq('student_id', currentUser.id);
     
-    // We also check student_answers just in case it wasn't graded automatically
     const { data: answered } = await supabase
         .from('student_answers')
         .select('assessment_id')
@@ -608,16 +607,14 @@ async function loadAssessments() {
 
     for (const a of allAssessments) {
         const assessDate = new Date(a.date);
-        // Expiration check: If it has duration, maybe we give a small grace period (e.g. 1 day after start date)
-        const expirationDate = new Date(assessDate.getTime() + (24 * 60 * 60 * 1000));
+        const durationMin = a.duration_minutes || a.duration_minute || 60;
+        const expirationDate = new Date(assessDate.getTime() + (durationMin * 60 * 1000) + (24 * 3600 * 1000));
 
         if (takenIds.has(a.id)) {
             takenList.push(a);
         } else if (assessDate <= now && now <= expirationDate) {
             availableList.push(a);
         } else if (now > expirationDate) {
-            // Technically missed, but we'll put it in future or handle appropriately. 
-            // For simplicity, skip or add to a missed list. Adding to taken for now to hide it from available.
             takenList.push(a);
         } else {
             futureList.push(a);
@@ -646,7 +643,6 @@ function renderAssessmentList(containerId, assessments, isTaken) {
         return;
     }
     
-    // Added Action column support
     let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Title</th><th>Type</th><th>Date</th><th>Max Score</th><th>Action</th></tr></thead><tbody>';
     for (const a of assessments) {
         html += `<tr>
@@ -656,9 +652,8 @@ function renderAssessmentList(containerId, assessments, isTaken) {
             <td>${new Date(a.date).toLocaleString()}</td>
             <td>${a.max_score}</td>`;
         if (isTaken) {
-            html += `<td><button class="btn btn-outline btn-sm" onclick="alert('View results coming soon.')">📊 View</button></td>`;
+            html += `<td><span class="badge badge-success">Completed</span></td>`;
         } else if (containerId === 'availableAssessments') {
-            // Available Assessment -> Show Take Button
             html += `<td><button class="btn btn-primary btn-sm" onclick="startAssessment('${a.id}')">✏️ Take Test</button></td>`;
         } else {
             html += `<td><span class="badge badge-info">Scheduled</span></td>`;
@@ -670,15 +665,28 @@ function renderAssessmentList(containerId, assessments, isTaken) {
 }
 
 // ============================================================
-// 8.5 TAKING THE EXAM & ANTI-CHEAT SYSTEM (NEW)
+// 8.5 TAKING THE EXAM & ANTI-CHEAT SYSTEM
 // ============================================================
 
 window.startAssessment = async function(assessmentId) {
-    if (!confirm("WARNING: Starting this exam will enable Anti-Cheat mode. \n\nYou are NOT allowed to copy, paste, change tabs, or open other windows. Doing so will immediately lock your exam and submit a score of 0. \n\nAre you ready?")) {
+    // 1. Strict single-attempt check via DB
+    const { data: existingGrade } = await supabase
+        .from('grades')
+        .select('id')
+        .eq('student_id', currentUser.id)
+        .eq('assessment_id', assessmentId)
+        .maybeSingle();
+
+    if (existingGrade) {
+        alert("You have already taken this assessment. You cannot re-take it.");
+        await loadAssessments();
         return;
     }
 
-    // Fetch Assessment details
+    if (!confirm("WARNING: Starting this assessment will enable Anti-Cheat mode. \n\nYou can only take this assessment ONCE. \nLeaving the tab or window will automatically submit your answers.\n\nAre you ready?")) {
+        return;
+    }
+
     const { data: assessment, error: aErr } = await supabase
         .from('assessments')
         .select('*')
@@ -686,33 +694,49 @@ window.startAssessment = async function(assessmentId) {
         .single();
     if (aErr || !assessment) { alert('Error loading assessment details.'); return; }
 
-    // Fetch Questions
     const { data: questions, error: qErr } = await supabase
         .from('assessment_questions')
         .select('id, question, type, points, options')
         .eq('assessment_id', assessmentId)
-        .order('id', { ascending: true }); // Avoid grabbing correct_answer so students can't inspect element
+        .order('id', { ascending: true });
     
     if (qErr || !questions) { alert('Error loading questions.'); return; }
     if (questions.length === 0) { alert('This assessment has no questions configured.'); return; }
 
-    // Initialize State
     activeExam = assessment;
     activeExamQuestions = assessment.randomize_ques ? questions.sort(() => Math.random() - 0.5) : questions;
 
-    // Apply UI Changes (Full Screen / Hide Menus)
     document.getElementById('appBody').classList.add('exam-mode');
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
     document.getElementById('section-exam').classList.add('active');
     document.getElementById('activeExamTitle').textContent = assessment.title;
 
-    // Render Questions
     renderExamQuestions();
+    startExamTimer(assessment.duration_minutes || assessment.duration_minute || 60);
 
-    // Enable Anti-Cheat Listeners
     document.addEventListener("visibilitychange", handleAntiCheatVisibility);
     window.addEventListener("blur", handleAntiCheatBlur);
 };
+
+function startExamTimer(durationMinutes) {
+    let timeLeft = durationMinutes * 60;
+    const timerDisplay = document.getElementById('examTimerDisplay');
+    
+    if (examTimerInterval) clearInterval(examTimerInterval);
+
+    examTimerInterval = setInterval(() => {
+        let m = Math.floor(timeLeft / 60);
+        let s = timeLeft % 60;
+        timerDisplay.textContent = `Time Left: ${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        
+        if (timeLeft <= 0) {
+            clearInterval(examTimerInterval);
+            alert("Time is up! Your assessment will now be submitted automatically.");
+            submitAssessment(false);
+        }
+        timeLeft--;
+    }, 1000);
+}
 
 function renderExamQuestions() {
     const container = document.getElementById('examQuestionsContainer');
@@ -725,7 +749,6 @@ function renderExamQuestions() {
         if (q.type === 'mc' || q.type === 'tf') {
             let options = q.options || [];
             if (activeExam.shuffle_options) {
-                // Shuffle logic (keeping original index value for accurate submission)
                 options = options.map((val, idx) => ({val, idx})).sort(() => Math.random() - 0.5);
                 options.forEach(opt => {
                     html += `<label class="option-label">
@@ -740,17 +763,14 @@ function renderExamQuestions() {
                 });
             }
         } else {
-            // Essay or Fill in the blank
             html += `<textarea name="q_${q.id}" rows="${q.type === 'essay' ? 4 : 1}" style="width:100%; border:1px solid #e2e8f0; border-radius:6px; padding:0.5rem;"></textarea>`;
         }
-        
         html += `</div>`;
     });
 
     container.innerHTML = html;
 }
 
-// Anti-Cheat Handlers
 function handleAntiCheatVisibility() {
     if (document.hidden && activeExam) {
         triggerAntiCheatViolation("You changed tabs or minimized the browser.");
@@ -763,20 +783,21 @@ function handleAntiCheatBlur() {
 }
 
 function triggerAntiCheatViolation(reason) {
-    // Only trigger once
     if (!activeExam) return;
-    alert(`🚨 SECURITY VIOLATION 🚨\n\n${reason}\n\nYour exam has been locked and automatically submitted with your current progress. Note: Cheating incidents may be recorded.`);
-    submitAssessment(true); // pass true for 'violation/cheated' flag
+    alert(`🚨 SECURITY VIOLATION 🚨\n\n${reason}\n\nYour exam has been locked and submitted.`);
+    submitAssessment(true);
 }
 
 window.submitAssessment = async function(isViolation = false) {
-    if (!isViolation && !confirm("Are you sure you want to submit your assessment? You cannot change your answers after submission.")) return;
+    if (examTimerInterval) clearInterval(examTimerInterval);
+    if (!activeExam) return;
+
+    if (!isViolation && !confirm("Are you sure you want to submit your assessment? You cannot re-take it after submission.")) return;
     
     const assessmentId = activeExam.id;
     let earnedPoints = 0;
     let autoGradableMax = 0;
 
-    // Fetch the correct answers directly on submission (not stored client-side earlier)
     const { data: dbQuestions } = await supabase
         .from('assessment_questions')
         .select('id, type, points, correct_answer')
@@ -790,13 +811,14 @@ window.submitAssessment = async function(isViolation = false) {
 
         let studentAnswerStr = null;
         let isCorrect = false;
+        let hasAnswered = false;
 
         if (q.type === 'mc' || q.type === 'tf') {
             autoGradableMax += q.points;
             const selected = document.querySelector(`input[name="q_${q.id}"]:checked`);
             if (selected) {
-                studentAnswerStr = selected.value; // It's stored as an index string
-                // If it's a violation, auto fail them.
+                studentAnswerStr = selected.value;
+                hasAnswered = true;
                 if (!isViolation && parseInt(studentAnswerStr) === dbQ.correct_answer) {
                     earnedPoints += q.points;
                     isCorrect = true;
@@ -804,33 +826,32 @@ window.submitAssessment = async function(isViolation = false) {
             }
         } else {
             const textInput = document.querySelector(`[name="q_${q.id}"]`);
-            if (textInput) {
-                studentAnswerStr = textInput.value;
-                // Essay is generally manual grading, but we record the answer
+            if (textInput && textInput.value.trim() !== '') {
+                studentAnswerStr = textInput.value.trim();
+                hasAnswered = true;
             }
         }
 
-        submissionEntries.push({
-            student_id: currentUser.id,
-            assessment_id: assessmentId,
-            question_id: q.id,
-            answer: studentAnswerStr || '',
-            is_correct: isCorrect,
-            points_awarded: isCorrect ? q.points : 0
-        });
+        // Rule: Only submit questions with answers
+        if (hasAnswered) {
+            submissionEntries.push({
+                student_id: currentUser.id,
+                assessment_id: assessmentId,
+                question_id: q.id,
+                answer: studentAnswerStr,
+                is_correct: isCorrect,
+                points_awarded: isCorrect ? q.points : 0
+            });
+        }
     });
 
-    // 1. Save answers
     if (submissionEntries.length > 0) {
         await supabase.from('student_answers').insert(submissionEntries);
     }
 
-    // 2. Save Grade (if it's purely MC/TF or we just record what auto-graded successfully)
-    // Instructor portal uses max_score for the overall exam. We scale earnedPoints up if necessary.
     let finalScore = isViolation ? 0 : earnedPoints;
     let examMaxScore = activeExam.max_score || 100;
     
-    // Proportional scaling if max score differs from sum of points (Optional depending on business logic)
     if (autoGradableMax > 0) {
         finalScore = (finalScore / autoGradableMax) * examMaxScore; 
     }
@@ -843,7 +864,6 @@ window.submitAssessment = async function(isViolation = false) {
         max_score: examMaxScore
     });
 
-    // Teardown Exam Mode
     activeExam = null;
     activeExamQuestions = [];
     document.removeEventListener("visibilitychange", handleAntiCheatVisibility);
@@ -854,7 +874,6 @@ window.submitAssessment = async function(isViolation = false) {
         alert("Assessment submitted successfully!");
     }
     
-    // Reload UI
     await loadAssessments();
     switchSection('assessments');
 };
@@ -1060,69 +1079,28 @@ async function loadExcuseHistory() {
 }
 
 // ============================================================
-// 11. RECITATION
+// 11. RECITATION (Unlimited logging per day + Rating 1-5)
 // ============================================================
 async function checkRecitationAvailability() {
     const statusDiv = document.getElementById('recitationStatus');
     const formContainer = document.getElementById('recitationFormContainer');
-    const now = new Date();
-    const dayOfWeek = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][now.getDay()];
-    const currentTime = now.getHours() * 60 + now.getMinutes();
 
     if (enrolledCourses.length === 0) {
         statusDiv.innerHTML = '<div class="empty-state">You are not enrolled in any courses.</div>';
         formContainer.style.display = 'none';
         return;
     }
-    const courseIds = enrolledCourses.map(c => c.id);
-    const { data: sections } = await supabase
-        .from('sections')
-        .select('id')
-        .in('course_id', courseIds);
-    if (!sections || sections.length === 0) {
-        statusDiv.innerHTML = '<div class="empty-state">No class schedules found.</div>';
-        formContainer.style.display = 'none';
-        return;
-    }
-    const sectionIds = sections.map(s => s.id);
-    const { data: schedules, error } = await supabase
-        .from('schedules')
-        .select('*, sections(course_id, courses(code, name))')
-        .in('section_id', sectionIds)
-        .eq('day_of_week', dayOfWeek);
-    if (error) { console.error(error); return; }
 
-    let active = false;
-    let activeCourse = null;
-    if (schedules) {
-        for (const s of schedules) {
-            const startMin = timeToMinutes(s.start_time);
-            const endMin = timeToMinutes(s.end_time);
-            if (currentTime >= startMin - 30 && currentTime <= endMin + 30) {
-                active = true;
-                activeCourse = s.sections?.courses;
-                break;
-            }
-        }
-    }
-
-    if (!active) {
-        statusDiv.innerHTML = '<div class="empty-state">⏰ No active class right now. Check your schedule.</div>';
-        formContainer.style.display = 'none';
-        return;
-    }
-
+    // Students can log anytime until class has ended (or freely anytime during active enrollment per instructions)
     statusDiv.innerHTML = `<div style="background:#d1fae5;padding:1rem;border-radius:8px;color:#065f46;">
-        ✅ Class is active! You can log your recitation for <strong>${activeCourse?.code || ''} - ${activeCourse?.name || ''}</strong>
+        ✅ Recitation Logger is active. You can log multiple participations per class session.
     </div>`;
     formContainer.style.display = 'block';
 
     const recitCourseSelect = document.getElementById('recitCourse');
-    if (activeCourse) {
-        recitCourseSelect.innerHTML = `<option value="${activeCourse.id}">${activeCourse.code} - ${activeCourse.name}</option>`;
-    } else {
-        renderSelect(recitCourseSelect, enrolledCourses, 'id', c => `${c.code} - ${c.name}`);
-    }
+    renderSelect(recitCourseSelect, enrolledCourses, 'id', c => `${c.code} - ${c.name}`);
+    
+    const now = new Date();
     document.getElementById('recitDate').value = now.toISOString().split('T')[0];
     document.getElementById('recitTime').value = now.toTimeString().slice(0,5);
 }
@@ -1132,13 +1110,15 @@ document.getElementById('recitationForm').addEventListener('submit', async (e) =
     const courseId = document.getElementById('recitCourse').value;
     const date = document.getElementById('recitDate').value;
     const time = document.getElementById('recitTime').value;
+    const rating = parseInt(document.getElementById('recitRating').value);
+
     if (!courseId) { alert('Select a course.'); return; }
+
     const { data: schedules } = await supabase
         .from('schedules')
         .select('id')
         .eq('day_of_week', new Date(date).toLocaleString('en', { weekday: 'long' }));
-    let scheduleId = null;
-    if (schedules && schedules.length > 0) scheduleId = schedules[0].id;
+    let scheduleId = schedules && schedules.length > 0 ? schedules[0].id : null;
 
     const { error } = await supabase
         .from('recitations')
@@ -1147,12 +1127,16 @@ document.getElementById('recitationForm').addEventListener('submit', async (e) =
             course_id: courseId,
             schedule_id: scheduleId,
             date: date,
-            time: time
+            time: time,
+            rating: rating
         });
+
     if (error) { alert('Error logging recitation: ' + error.message); return; }
-    alert('🎤 Recitation logged!');
+    alert('🎤 Recitation recorded successfully!');
     await loadRecitationHistory();
     document.getElementById('recitationForm').reset();
+    document.getElementById('recitDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('recitTime').value = new Date().toTimeString().slice(0,5);
 });
 
 async function loadRecitationHistory() {
@@ -1173,12 +1157,13 @@ async function loadRecitationHistory() {
         container.innerHTML = '<div class="empty-state">No recitations logged yet.</div>';
         return;
     }
-    let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Date</th><th>Time</th><th>Logged At</th></tr></thead><tbody>';
+    let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Date</th><th>Time</th><th>Rating</th><th>Logged At</th></tr></thead><tbody>';
     data.forEach(r => {
         html += `<tr>
             <td>${r.courses?.code || 'N/A'}</td>
             <td>${r.date}</td>
             <td>${r.time}</td>
+            <td><span class="badge badge-info">${r.rating || 3} / 5</span></td>
             <td>${new Date(r.recorded_at).toLocaleString()}</td>
         </tr>`;
     });
@@ -1190,10 +1175,8 @@ async function loadRecitationHistory() {
 // 12. DASHBOARD STATS & RECENT ACTIVITY
 // ============================================================
 async function loadDashboardStats() {
-    // Courses count
     document.getElementById('dashCourses').textContent = enrolledCourses.length;
 
-    // Upcoming assessments (next 7 days)
     if (enrolledCourses.length > 0) {
         const courseIds = enrolledCourses.map(c => c.id);
         const { data: assess } = await supabase
@@ -1205,7 +1188,6 @@ async function loadDashboardStats() {
         document.getElementById('dashAssessments').textContent = assess?.length || 0;
     }
 
-    // Attendance stats (from loaded data)
     const presentEl = document.getElementById('presentCount');
     const absentEl = document.getElementById('absentCount');
     document.getElementById('dashPresent').textContent = presentEl ? presentEl.textContent : '0';
@@ -1220,7 +1202,7 @@ async function loadRecentActivity() {
         const courseIds = enrolledCourses.map(c => c.id);
         const { data: recits } = await supabase
             .from('recitations')
-            .select('recorded_at, courses(code)')
+            .select('recorded_at, courses(code), rating')
             .eq('student_id', currentUser.id)
             .in('course_id', courseIds)
             .order('recorded_at', { ascending: false })
@@ -1228,7 +1210,7 @@ async function loadRecentActivity() {
         if (recits) {
             recits.forEach(r => {
                 activities.push({
-                    text: `🎤 Recitation logged for ${r.courses?.code || 'N/A'}`,
+                    text: `🎤 Recitation logged for ${r.courses?.code || 'N/A'} (Rating: ${r.rating || 3}/5)`,
                     time: new Date(r.recorded_at).toLocaleString()
                 });
             });
@@ -1278,7 +1260,6 @@ document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', async function() {
         if (this.id === 'logoutBtn') return;
         
-        // Prevent navigating away if an exam is active
         if (activeExam) {
             alert('You must submit your assessment before navigating away.');
             return;
@@ -1289,7 +1270,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
         this.classList.add('active');
         document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
         document.getElementById(`section-${target}`).classList.add('active');
-        // Reload data for some sections
+
         if (target === 'attendance') { await loadAttendance(); await loadExcuseHistory(); }
         if (target === 'recitation') { await checkRecitationAvailability(); await loadRecitationHistory(); }
         if (target === 'grades') await loadGrades();
