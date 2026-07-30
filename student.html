@@ -682,7 +682,7 @@ async function loadActivities() {
 }
 
 // ============================================================
-// 8. ASSESSMENTS & CONTESTATION STATE
+// 8. ASSESSMENTS & STRICT NO-RETAKE ENFORCEMENT
 // ============================================================
 async function loadAssessments() {
     if (enrolledCourses.length === 0) {
@@ -711,7 +711,6 @@ async function loadAssessments() {
         .select('assessment_id')
         .eq('student_id', currentUser.id);
 
-    // Fetch any cheating contests
     const { data: contests } = await supabase
         .from('cheating_contests')
         .select('assessment_id, status, reason')
@@ -719,6 +718,7 @@ async function loadAssessments() {
 
     const takenMap = new Map();
     taken?.forEach(g => takenMap.set(g.assessment_id, g.score));
+    // Check if student has ANY submitted answer for an assessment
     answered?.forEach(a => { if (!takenMap.has(a.assessment_id)) takenMap.set(a.assessment_id, 0); });
 
     const contestMap = new Map();
@@ -740,13 +740,13 @@ async function loadAssessments() {
         const score = takenMap.get(a.id);
 
         if (contest && contest.status === 'approved') {
-            // Instructor allowed a retake
             if (now >= startDate && now <= endDate) {
                 availableList.push({ ...a, contest });
             } else {
                 takenList.push({ ...a, contest, score });
             }
         } else if (isCompleted) {
+            // Strictly push to takenList so no retake is ever permitted
             takenList.push({ ...a, contest, score });
         } else if (now >= startDate && now <= endDate) {
             availableList.push({ ...a, contest });
@@ -795,7 +795,7 @@ function renderAssessmentList(containerId, assessments, isTaken) {
             <td>${Number(a.max_score || 100)}</td>`;
 
         if (isTaken) {
-            let statusBadge = `<span class="badge badge-success">Completed</span>`;
+            let statusBadge = `<span class="badge badge-success">Completed (No Retakes)</span>`;
             let contestBtn = '';
             let viewRatingsBtn = `<button class="btn btn-outline btn-sm" style="margin-left:0.5rem;" onclick="viewAssessmentRatings('${a.id}', '${a.title.replace(/'/g, "\\'")}')">📊 View Ratings</button>`;
             if (Number(a.score) === 0) {
@@ -861,32 +861,74 @@ document.getElementById('contestForm').addEventListener('submit', async (e) => {
 });
 
 // ============================================================
-// 8.6 EXAM TAKING, AUTOMATIC AI ESSAY GRADING & ITEM RATINGS
+// 8.6 EXAM TAKING, STRICT AI ESSAY GRADING & ITEM RATINGS
 // ============================================================
 async function gradeEssayWithAI(questionText, answerText, maxPoints) {
     if (!answerText || answerText.trim().length === 0) {
         return { score: 0, ratingLabel: "No Answer", comment: "No response submitted." };
     }
-    const words = answerText.trim().split(/\s+/).length;
-    const qWords = questionText.toLowerCase().replace(/[^a-z0-9 ]/g, '').split(/\s+/).filter(w => w.length > 3);
-    const aWordsLower = answerText.toLowerCase();
 
+    const cleanAnswer = answerText.trim();
+    const aWordsLower = cleanAnswer.toLowerCase();
+    const words = cleanAnswer.split(/\s+/).length;
+
+    // 1. Strict zero-tolerance for evasive / dismissive / gibberish phrases
+    const evasivePatterns = [
+        "idk", "i don't know", "dont know", "do not know", "no idea", "nothing", 
+        "none of the", "na", "n/a", "not sure", "forgot", "pass", "skip"
+    ];
+    if (evasivePatterns.some(pat => aWordsLower.includes(pat)) && words < 15) {
+        return { 
+            score: 0, 
+            ratingLabel: "Poor (Irrelevant/Evasive)", 
+            comment: "Answer appears dismissive or lacks effort." 
+        };
+    }
+
+    // 2. Remove stopwords to isolate core prompt concepts
+    const promptStopwords = ["what", "why", "how", "discuss", "explain", "describe", "define", "about", "state", "list", "give", "briefly", "elaborate", "analyze", "compare", "contrast"];
+    const qWords = questionText.toLowerCase()
+        .replace(/[^a-z0-9 ]/g, '')
+        .split(/\s+/)
+        .filter(w => w.length > 3 && !promptStopwords.includes(w));
+
+    // 3. Count matching core topic keywords in student response
     let relevanceHits = 0;
     qWords.forEach(qw => {
-        if (aWordsLower.includes(qw)) relevanceHits++;
+        if (aWordsLower.includes(qw) || (qw.length > 4 && aWordsLower.includes(qw.slice(0, -1)))) {
+            relevanceHits++;
+        }
     });
-    const relevanceRatio = qWords.length > 0 ? Math.min(1, (relevanceHits + 2) / qWords.length) : 0.85;
-    const lengthFactor = Math.min(1, words / 20);
 
-    const qualityScore = (relevanceRatio * 0.65) + (lengthFactor * 0.35);
-    let awarded = Math.round(qualityScore * maxPoints * 10) / 10;
-    awarded = Math.min(maxPoints, Math.max(1, awarded));
+    // 4. Strict Penalty: If prompt has clear keywords and student matched NONE
+    if (qWords.length > 0 && relevanceHits === 0) {
+        const maxOffTopicScore = Math.round(maxPoints * 0.1); // Cap at 10% max
+        return { 
+            score: maxOffTopicScore, 
+            ratingLabel: "Poor (Off-Topic)", 
+            comment: "Response did not address key concepts from the prompt." 
+        };
+    }
+
+    // 5. Calculate balanced score based on keyword relevance & depth
+    const relevanceRatio = qWords.length > 0 ? Math.min(1, relevanceHits / qWords.length) : 0.7;
+    const lengthRatio = Math.min(1, words / 25); // ~25 words for full depth
+
+    const rawPercentage = (relevanceRatio * 0.70) + (lengthRatio * 0.30);
+    let awarded = Math.round(rawPercentage * maxPoints * 10) / 10;
+    awarded = Math.min(maxPoints, Math.max(0, awarded));
 
     const pct = (awarded / maxPoints) * 100;
-    const ratingLabel = pct >= 90 ? "Excellent" : pct >= 75 ? "Very Good" : pct >= 60 ? "Satisfactory" : "Needs Improvement";
-    const comment = `AI evaluated response substance (${words} words) & topic relevance.`;
+    const ratingLabel = pct >= 90 ? "Excellent" :
+                        pct >= 75 ? "Very Good" :
+                        pct >= 60 ? "Satisfactory" :
+                        pct >= 40 ? "Needs Improvement" : "Poor";
 
-    return { score: awarded, ratingLabel, comment };
+    return { 
+        score: awarded, 
+        ratingLabel, 
+        comment: `AI evaluated keyword relevance (${relevanceHits}/${qWords.length} concepts) & depth (${words} words).` 
+    };
 }
 
 window.startAssessment = async function(assessmentId) {
@@ -900,6 +942,7 @@ window.startAssessment = async function(assessmentId) {
     const isRetakeApproved = contest && contest.status === 'approved';
 
     if (!isRetakeApproved) {
+        // STRICT DOUBLE-CHECK: Check both grades and student_answers tables
         const { data: existingGrade } = await supabase
             .from('grades')
             .select('id')
@@ -907,8 +950,16 @@ window.startAssessment = async function(assessmentId) {
             .eq('assessment_id', assessmentId)
             .maybeSingle();
 
-        if (existingGrade) {
-            alert("You have already taken this assessment. You cannot re-take it.");
+        const { data: existingAnswer } = await supabase
+            .from('student_answers')
+            .select('id')
+            .eq('student_id', currentUser.id)
+            .eq('assessment_id', assessmentId)
+            .limit(1)
+            .maybeSingle();
+
+        if (existingGrade || existingAnswer) {
+            alert("⛔ You have already taken and submitted this assessment. Retakes are not permitted.");
             await loadAssessments();
             return;
         }
@@ -939,7 +990,6 @@ window.startAssessment = async function(assessmentId) {
         ? [...questions].sort(() => Math.random() - 0.5)
         : [...questions];
     
-    // Slice if instructor limited questions_to_show
     if (assessment.questions_to_show && Number(assessment.questions_to_show) > 0 && Number(assessment.questions_to_show) < qs.length) {
         qs = qs.slice(0, Number(assessment.questions_to_show));
     }
@@ -988,7 +1038,6 @@ function renderExamQuestions() {
             <h4>${index + 1}. ${q.question} <span style="font-size: 0.8rem; color: #64748b; font-weight: normal;">(${qPoints} pts)</span></h4>`;
         
         if (q.type === 'mc' || q.type === 'tf') {
-            // Safely parse JSONB options whether returned as Array or stringified JSON
             let options = Array.isArray(q.options) 
                 ? q.options 
                 : (typeof q.options === 'string' ? JSON.parse(q.options) : []);
@@ -1086,7 +1135,6 @@ window.submitAssessment = async function(isViolation = false) {
             if (selected) {
                 studentAnswerStr = selected.value;
                 hasAnswered = true;
-                // Compare indices safely using Number()
                 if (!isViolation && Number(studentAnswerStr) === Number(dbQ.correct_answer)) {
                     awardedPoints = qPoints;
                     earnedPoints += qPoints;
@@ -1099,7 +1147,7 @@ window.submitAssessment = async function(isViolation = false) {
                 ratingText = `0 / ${qPoints} pts (No Answer)`;
             }
         } else {
-            // ESSAY / TEXT AUTOMATIC AI GRADING
+            // STRICT ESSAY / TEXT AUTOMATIC AI GRADING
             totalExamPoints += qPoints;
             const textInput = document.querySelector(`[name="q_${q.id}"]`);
             if (textInput && textInput.value.trim() !== '') {
@@ -1405,13 +1453,17 @@ async function loadDetailedCriteriaGrades() {
         const typeMap = {};
         types?.forEach(t => { typeMap[t.id] = t.name; });
 
+        // CASE-INSENSITIVE OR FLEXIBLE PERIOD QUERY
         const { data: assessments } = await supabase
             .from('assessments')
-            .select('id, title, assessment_type_id, max_score')
-            .eq('course_id', courseId)
-            .eq('period', period);
+            .select('id, title, assessment_type_id, max_score, period')
+            .eq('course_id', courseId);
 
-        const assessIds = assessments?.map(a => a.id) || [];
+        const periodAssessments = (assessments || []).filter(a => {
+            return (a.period || 'prelim').toLowerCase() === period.toLowerCase();
+        });
+
+        const assessIds = periodAssessments.map(a => a.id);
 
         const { data: grades } = await supabase
             .from('grades')
@@ -1445,29 +1497,30 @@ async function loadDetailedCriteriaGrades() {
         const examScores = [];
 
         grades?.forEach(g => {
-            const assess = assessments.find(a => a.id === g.assessment_id);
+            const assess = periodAssessments.find(a => a.id === g.assessment_id);
             if (!assess) return;
-            const categoryName = typeMap[assess.assessment_type_id];
+            const categoryName = (typeMap[assess.assessment_type_id] || '').trim().toLowerCase();
             const maxVal = Number(g.max_score || 100);
             const scoreVal = Number(g.score || 0);
             const pct = (scoreVal / maxVal) * 100;
             const entry = { label: assess.title, score: scoreVal, max: maxVal, pct };
 
-            if (categoryName === 'Quizzes and activities') quizScores.push(entry);
-            else if (categoryName === 'Case analysis, Recitation, and reflection briefs') caseScores.push(entry);
-            else if (categoryName === 'Major Exam') examScores.push(entry);
+            // FLEXIBLE KEYWORD MATCHING TO CATCH SLIGHT VARIATIONS
+            if (categoryName.includes('quiz') || categoryName.includes('activit')) quizScores.push(entry);
+            else if (categoryName.includes('case') || categoryName.includes('recitation') || categoryName.includes('reflection')) caseScores.push(entry);
+            else if (categoryName.includes('exam') || categoryName.includes('major')) examScores.push(entry);
         });
 
         manualGrades?.forEach(mg => {
-            const categoryName = typeMap[mg.assessment_type_id];
+            const categoryName = (typeMap[mg.assessment_type_id] || '').trim().toLowerCase();
             const maxVal = Number(mg.max_score || 100);
             const scoreVal = Number(mg.score || 0);
             const pct = (scoreVal / maxVal) * 100;
             const entry = { label: mg.notes || 'Manual Entry', score: scoreVal, max: maxVal, pct };
 
-            if (categoryName === 'Quizzes and activities') quizScores.push(entry);
-            else if (categoryName === 'Case analysis, Recitation, and reflection briefs') caseScores.push(entry);
-            else if (categoryName === 'Major Exam') examScores.push(entry);
+            if (categoryName.includes('quiz') || categoryName.includes('activit')) quizScores.push(entry);
+            else if (categoryName.includes('case') || categoryName.includes('recitation') || categoryName.includes('reflection')) caseScores.push(entry);
+            else if (categoryName.includes('exam') || categoryName.includes('major')) examScores.push(entry);
         });
 
         recitations?.forEach((r, idx) => {
