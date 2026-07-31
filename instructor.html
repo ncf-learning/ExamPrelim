@@ -199,8 +199,12 @@
                 <div id="attCodeDisplay" style="display:none; margin-top:0.75rem; padding:0.75rem; background:#f1f5f9; border-radius:8px; text-align:center; font-size:1.5rem; font-weight:700; letter-spacing:4px; font-family:monospace;"></div>
             </div>
             
-            <div class="card">
-                <div class="card-header"><h3>📩 Submitted Excuse Letters for Approval</h3><button class="btn btn-outline btn-sm" onclick="loadExcuseLetters()">🔄 Refresh</button></div>
+            <!-- EXCUSE LETTERS CARD -->
+            <div class="card" style="border-left: 4px solid #3b82f6;">
+                <div class="card-header">
+                    <h3>📩 Submitted Excuse Letters for Approval</h3>
+                    <button class="btn btn-outline btn-sm" onclick="loadExcuseLetters()">🔄 Refresh</button>
+                </div>
                 <div id="excuseLettersList"><div class="empty-state"><p>Loading excuse letters...</p></div></div>
             </div>
 
@@ -1073,31 +1077,67 @@ document.getElementById('scheduleForm').addEventListener('submit', async (e) => 
     document.getElementById('scheduleForm').reset();
 });
 
+// ============================================================
+// UPGRADED EXCUSE LETTERS VIEWING & APPROVAL
+// ============================================================
 window.loadExcuseLetters = async function() {
     const container = document.getElementById('excuseLettersList');
+    if (instructorCourses.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No assigned courses.</p></div>';
+        return;
+    }
+    const courseIds = instructorCourses.map(c => c.id);
     try {
         const { data: letters, error } = await supabase
             .from('excuse_letters')
-            .select('*')
+            .select('*, courses(code, name), attendance_sessions(date, start_time, end_time)')
+            .in('course_id', courseIds)
             .order('upload_date', { ascending: false });
         if (error) throw error;
+
         if (!letters || letters.length === 0) {
             container.innerHTML = '<div class="empty-state"><p>No submitted excuse letters.</p></div>';
             return;
         }
-        let html = '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Student ID</th><th>File</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+
+        const studentIds = [...new Set(letters.map(l => l.student_id))];
+        const { data: students } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, email, student_id')
+            .in('id', studentIds);
+
+        let html = '<div class="table-wrap"><table><thead><tr><th>Date Submitted</th><th>Student</th><th>Course</th><th>Session</th><th>File</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
         for (const l of letters) {
-            const fileLink = l.file_url ? `<a href="${l.file_url}" target="_blank">📎 View Document</a>` : 'No file';
+            const st = students?.find(s => s.id === l.student_id);
+            const stName = st ? `${st.first_name} ${st.last_name}` : l.student_id;
+            const stEmail = st?.email ? `<br><small class="text-muted">${st.email}</small>` : '';
+            const stIdNum = st?.student_id ? `<br><small class="text-muted">ID: ${st.student_id}</small>` : '';
+            
+            const courseCode = l.courses?.code || 'N/A';
+            const sessionInfo = l.attendance_sessions 
+                ? `${l.attendance_sessions.date} (${l.attendance_sessions.start_time}-${l.attendance_sessions.end_time})` 
+                : '<span class="badge badge-period">General Absence</span>';
+            
+            const fileLink = l.file_url 
+                ? `<a href="${l.file_url}" target="_blank" class="btn btn-outline btn-sm" style="padding:0.25rem 0.5rem; text-decoration:none;">📄 View Document</a>` 
+                : 'No file';
+
+            const statusBadge = `<span class="badge badge-${l.status === 'approved' ? 'approved' : l.status === 'rejected' ? 'rejected' : 'pending'}">${l.status.toUpperCase()}</span>`;
+
             html += `<tr>
                 <td>${new Date(l.upload_date || l.created_at).toLocaleDateString()}</td>
-                <td>${l.student_id}</td>
+                <td><strong>${stName}</strong>${stIdNum}${stEmail}</td>
+                <td><strong>${courseCode}</strong></td>
+                <td>${sessionInfo}</td>
                 <td>${fileLink}</td>
-                <td><span class="badge badge-${l.status === 'approved' ? 'approved' : l.status === 'rejected' ? 'rejected' : 'pending'}">${l.status}</span></td>
+                <td>${statusBadge}</td>
                 <td>
                     ${l.status === 'pending' ? `
-                        <button class="btn btn-success btn-sm" onclick="approveExcuseLetter('${l.id}', '${l.attendance_session_id}', '${l.student_id}')">✅ Approve</button>
-                        <button class="btn btn-danger btn-sm" onclick="rejectExcuseLetter('${l.id}')">❌ Reject</button>
-                    ` : 'Reviewed'}
+                        <div style="display:flex; gap:0.4rem;">
+                            <button class="btn btn-success btn-sm" onclick="approveExcuseLetter('${l.id}', '${l.attendance_session_id || ''}', '${l.student_id}')">✅ Approve</button>
+                            <button class="btn btn-danger btn-sm" onclick="rejectExcuseLetter('${l.id}')">❌ Reject</button>
+                        </div>
+                    ` : `<span class="text-muted text-sm">Reviewed</span>`}
                 </td>
             </tr>`;
         }
@@ -1110,8 +1150,18 @@ window.loadExcuseLetters = async function() {
 
 window.approveExcuseLetter = async function(letterId, sessionId, studentId) {
     if (!confirm("Approve this excuse letter?")) return;
-    await supabase.from('excuse_letters').update({ status: 'approved' }).eq('id', letterId);
-    if (sessionId && studentId) {
+    
+    const { error } = await supabase
+        .from('excuse_letters')
+        .update({ status: 'approved' })
+        .eq('id', letterId);
+
+    if (error) {
+        alert("Error approving excuse letter: " + error.message);
+        return;
+    }
+
+    if (sessionId && sessionId !== 'null' && sessionId !== 'undefined' && studentId) {
         await supabase.from('attendance_records').upsert({
             session_id: sessionId,
             student_id: studentId,
@@ -1119,14 +1169,21 @@ window.approveExcuseLetter = async function(letterId, sessionId, studentId) {
             excuse_letter_id: letterId
         }, { onConflict: 'session_id,student_id' });
     }
-    alert("Excuse letter approved!");
+    alert("✅ Excuse letter approved! Attendance record updated to Excused.");
     loadExcuseLetters();
 };
 
 window.rejectExcuseLetter = async function(letterId) {
     if (!confirm("Reject this excuse letter?")) return;
-    await supabase.from('excuse_letters').update({ status: 'rejected' }).eq('id', letterId);
-    alert("Excuse letter rejected.");
+    const { error } = await supabase
+        .from('excuse_letters')
+        .update({ status: 'rejected' })
+        .eq('id', letterId);
+    if (error) {
+        alert("Error rejecting excuse letter: " + error.message);
+        return;
+    }
+    alert("❌ Excuse letter rejected.");
     loadExcuseLetters();
 };
 
@@ -2283,7 +2340,6 @@ document.getElementById('computeForm').addEventListener('submit', async function
     const wAtt  = (weightMap['Attendance and Others'] !== undefined) ? weightMap['Attendance and Others'] / 100 : 0.10;
     const wExam = (weightMap['Major Exam'] !== undefined) ? weightMap['Major Exam'] / 100 : 0.50;
 
-    // CASE-INSENSITIVE PERIOD MATCHING
     const { data: allAssessments } = await supabase
         .from('assessments')
         .select('id, assessment_type_id, max_score, title, period, assessment_types(name)')
@@ -2349,7 +2405,6 @@ document.getElementById('computeForm').addEventListener('submit', async function
             .single();
         const name = student ? `${student.first_name} ${student.last_name}` : sid;
 
-        // FLEXIBLE CATEGORY AND TITLE KEYWORD MATCHING
         const quizScores = [];
         const caseScores = [];
         const examScores = [];
@@ -2388,7 +2443,7 @@ document.getElementById('computeForm').addEventListener('submit', async function
         });
 
         recitations?.filter(r => r.student_id === sid && r.rating !== null && r.rating !== undefined).forEach(r => {
-            caseScores.push(Number(r.rating) * 20); // 5 points max -> 100% scale
+            caseScores.push(Number(r.rating) * 20);
         });
 
         const calcAvg = (arr) => {
