@@ -82,7 +82,7 @@
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,0.1); }
 
         /* ===== BUTTONS ===== */
-        .btn { padding:0.55rem 1.25rem; border-radius:8px; font-size:0.85rem; font-weight:600; font-family:inherit; cursor:pointer; border:none; transition:0.2s; display:inline-flex; align-items:center; gap:0.5rem; }
+        .btn { padding:0.55rem 1.25rem; border-radius:8px; font-size:0.85rem; font-weight:600; font-family:inherit; cursor:pointer; border:none; transition:0.2s; display:inline-flex; align-items:center; gap:0.5rem; text-decoration:none; }
         .btn-primary { background:#3b82f6; color:#fff; }
         .btn-primary:hover { background:#2563eb; }
         .btn-success { background:#22c55e; color:#fff; }
@@ -91,11 +91,7 @@
         .btn-danger:hover { background:#dc2626; }
         .btn-outline { background:transparent; color:#475569; border:1px solid #e2e8f0; }
         .btn-outline:hover { background:#f1f5f9; }
-        .btn-sm { padding:0.2rem 0.7rem; font-size:0.75rem; }
-        .btn-warning { background:#f59e0b; color:#fff; }
-        .btn-warning:hover { background:#d97706; }
-
-        /* ===== BADGES ===== */
+        .btn-sm { padding:0.25rem 0.65rem; font-size:0.75rem; }
         .badge { display:inline-block; padding:0.15rem 0.6rem; border-radius:20px; font-size:0.7rem; font-weight:600; text-transform:uppercase; }
         .badge-pending { background:#fef3c7; color:#92400e; }
         .badge-approved { background:#d1fae5; color:#065f46; }
@@ -165,10 +161,10 @@
             font-size:0.95rem; margin-bottom:0.75rem; color:#0f172a;
         }
 
-        /* ===== PLAIN PAPER PRINTING ===== */
+        /* ===== PLAIN PAPER PRINTING - SUPPRESS BROWSER URL/HEADER CLUTTER ===== */
         @page {
             size: A4 portrait;
-            margin: 0.75in;
+            margin: 0 !important; /* Removes default browser headers, URLs, and page numbers */
         }
         @media print {
             html, body {
@@ -186,10 +182,15 @@
                 top: 0;
                 width: 100%;
                 margin: 0;
-                padding: 0;
+                padding: 20mm 20mm !important; /* Keeps printed text safely within paper edges */
+                box-sizing: border-box;
                 background: #fff;
                 color: #000;
                 font-family: 'Times New Roman', Times, serif;
+            }
+            #interventionPrintOutput {
+                border: none !important;
+                padding: 0 !important;
             }
             .sidebar, .page-header, .btn, nav { display: none !important; }
         }
@@ -434,6 +435,24 @@
         <!-- ==================== ATTENDANCE ==================== -->
         <section id="section-attendance" class="page-section">
             <div class="page-header"><h1>Attendance <small>Track your presence and submit excuses</small></h1></div>
+            
+            <!-- ATTENDANCE CHECK-IN CARD -->
+            <div class="card" style="border-left: 4px solid #22c55e;">
+                <div class="card-header">
+                    <h3>📲 Attendance Check-In (Scan QR / Enter Code)</h3>
+                </div>
+                <form id="checkInForm" class="form-grid" onsubmit="return false;">
+                    <div class="form-group">
+                        <label>Enter Session Code</label>
+                        <input type="text" id="checkInCode" placeholder="e.g., A1B2C3" maxlength="10" style="text-transform:uppercase; font-family:monospace; font-weight:700; letter-spacing:2px;" required />
+                    </div>
+                    <div class="form-group" style="justify-content:flex-end;">
+                        <button type="button" class="btn btn-success" onclick="submitAttendanceCheckIn()">✅ Submit Check-In</button>
+                    </div>
+                </form>
+                <div id="checkInResult" class="mt-1"></div>
+            </div>
+
             <div class="stats-grid">
                 <div class="stat-card"><div class="number" id="totalSessions">0</div><div class="label">Total Sessions</div></div>
                 <div class="stat-card"><div class="number" id="presentCount">0</div><div class="label">Present</div></div>
@@ -446,10 +465,15 @@
                 <div id="attendanceRecords"><div class="empty-state">Loading...</div></div>
             </div>
             <div class="card">
-                <div class="card-header"><h3>Upload Excuse Letter</h3></div>
+                <div class="card-header">
+                    <div>
+                        <h3>Upload Excuse Letter</h3>
+                        <p class="text-muted text-sm">Strict Rule: Only sessions where you are marked ABSENT can be selected, and only ONE excuse letter is allowed per session.</p>
+                    </div>
+                </div>
                 <form id="excuseForm" class="form-grid">
                     <div class="form-group full"><label>Course</label><select id="excuseCourse" required></select></div>
-                    <div class="form-group full"><label>Attendance Session (optional – leave blank for general absence)</label><select id="excuseSession"><option value="">General absence</option></select></div>
+                    <div class="form-group full"><label>Absent Attendance Session</label><select id="excuseSession" required><option value="">Select absent session...</option></select></div>
                     <div class="form-group full"><label>Upload File (PDF, image)</label><input type="file" id="excuseFile" accept=".pdf,.png,.jpg,.jpeg" required /></div>
                     <div class="form-group full"><button type="submit" class="btn btn-primary">📤 Upload Excuse Letter</button></div>
                 </form>
@@ -1731,7 +1755,7 @@ document.getElementById('detailedCourseSelect')?.addEventListener('change', load
 document.getElementById('detailedPeriodSelect')?.addEventListener('change', loadDetailedCriteriaGrades);
 
 // ============================================================
-// 10. ATTENDANCE + EXCUSE LETTERS
+// 10. ATTENDANCE + EXCUSE LETTERS (Strict Absent-Only & Once-Per-Session)
 // ============================================================
 async function loadAttendance() {
     if (enrolledCourses.length === 0) {
@@ -1769,6 +1793,14 @@ async function loadAttendance() {
         records.forEach(r => { recordMap[r.session_id] = r.status; });
     }
 
+    // Check which sessions already have an excuse letter submitted
+    const { data: existingExcuses } = await supabase
+        .from('excuse_letters')
+        .select('attendance_session_id')
+        .eq('student_id', currentUser.id)
+        .not('attendance_session_id', 'is', null);
+    const existingExcuseSet = new Set((existingExcuses || []).map(e => e.attendance_session_id));
+
     let present = 0, absent = 0, late = 0, excused = 0;
     let total = sessions.length;
     sessions.forEach(s => {
@@ -1805,9 +1837,60 @@ async function loadAttendance() {
 
     const courseSelect = document.getElementById('excuseCourse');
     renderSelect(courseSelect, enrolledCourses, 'id', c => `${c.code} – ${c.name}`);
+    
+    // STRICT RULE: Only sessions where student is ABSENT and has NOT submitted an excuse letter yet
+    const absentSessions = sessions.filter(s => (recordMap[s.id] === 'absent' || !recordMap[s.id]) && !existingExcuseSet.has(s.id));
     const sessionSelect = document.getElementById('excuseSession');
-    renderSelect(sessionSelect, sessions, 'id', s => `${s.date} ${s.start_time}-${s.end_time}`);
+    renderSelect(sessionSelect, absentSessions, 'id', s => `${s.date} (${s.start_time}-${s.end_time}) – ${s.sections?.courses?.code || ''}`);
 }
+
+window.submitAttendanceCheckIn = async function() {
+    const codeInput = document.getElementById('checkInCode');
+    const code = (codeInput?.value || '').trim().toUpperCase();
+    const resultDiv = document.getElementById('checkInResult');
+
+    if (!code) {
+        alert('Please enter the attendance session code.');
+        return;
+    }
+
+    resultDiv.innerHTML = '<span class="text-muted">Verifying session code...</span>';
+
+    try {
+        const { data: session, error: sessErr } = await supabase
+            .from('attendance_sessions')
+            .select('*, sections(course_id, courses(code, name))')
+            .eq('code', code)
+            .maybeSingle();
+
+        if (sessErr || !session) {
+            resultDiv.innerHTML = '<span class="badge badge-rejected">❌ Invalid session code. Please check with your instructor.</span>';
+            return;
+        }
+
+        if (session.expires_at && new Date() > new Date(session.expires_at)) {
+            resultDiv.innerHTML = '<span class="badge badge-rejected">⚠️ This attendance session has expired.</span>';
+            return;
+        }
+
+        const { error: recErr } = await supabase
+            .from('attendance_records')
+            .upsert({
+                session_id: session.id,
+                student_id: currentUser.id,
+                status: 'present',
+                recorded_at: new Date().toISOString()
+            }, { onConflict: 'session_id,student_id' });
+
+        if (recErr) throw recErr;
+
+        resultDiv.innerHTML = `<span class="badge badge-approved" style="font-size:0.85rem; padding:0.5rem 1rem;">✅ Successfully Checked In to ${session.sections?.courses?.code || 'Class'}!</span>`;
+        codeInput.value = '';
+        await loadAttendance();
+    } catch (err) {
+        resultDiv.innerHTML = `<span class="badge badge-rejected">Error: ${err.message}</span>`;
+    }
+};
 
 document.getElementById('excuseForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1815,9 +1898,23 @@ document.getElementById('excuseForm').addEventListener('submit', async (e) => {
     const sessionId = document.getElementById('excuseSession').value || null;
     const fileInput = document.getElementById('excuseFile');
     if (!courseId) { alert('Select a course.'); return; }
+    if (!sessionId) { alert('Strict Rule: You must select an absent attendance session.'); return; }
     if (!fileInput.files || fileInput.files.length === 0) { alert('Select a file.'); return; }
-    const file = fileInput.files[0];
 
+    // STRICT CHECK: Verify only once per attendance session
+    const { data: existingExcuse } = await supabase
+        .from('excuse_letters')
+        .select('id')
+        .eq('student_id', currentUser.id)
+        .eq('attendance_session_id', sessionId)
+        .maybeSingle();
+
+    if (existingExcuse) {
+        alert("⛔ You have already submitted an excuse letter for this attendance session. Only ONE excuse letter is allowed per session.");
+        return;
+    }
+
+    const file = fileInput.files[0];
     const filePath = `excuse_letters/${currentUser.id}/${Date.now()}_${file.name}`;
     const { error: uploadErr } = await supabase.storage
         .from('excuse_letters')
@@ -1831,7 +1928,7 @@ document.getElementById('excuseForm').addEventListener('submit', async (e) => {
         .insert({
             student_id: currentUser.id,
             course_id: courseId,
-            attendance_session_id: sessionId || null,
+            attendance_session_id: sessionId,
             file_url: fileUrl,
             status: 'pending'
         });
@@ -1839,6 +1936,7 @@ document.getElementById('excuseForm').addEventListener('submit', async (e) => {
     alert('Excuse letter uploaded successfully!');
     document.getElementById('excuseForm').reset();
     await loadExcuseHistory();
+    await loadAttendance();
 });
 
 async function loadExcuseHistory() {
