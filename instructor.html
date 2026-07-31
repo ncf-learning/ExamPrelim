@@ -199,10 +199,13 @@
                 <div id="attCodeDisplay" style="display:none; margin-top:0.75rem; padding:0.75rem; background:#f1f5f9; border-radius:8px; text-align:center; font-size:1.5rem; font-weight:700; letter-spacing:4px; font-family:monospace;"></div>
             </div>
             
-            <!-- EXCUSE LETTERS CARD -->
+            <!-- EXCUSE LETTERS CARD (No Excuse on Attendance - Allows Assessment/Quiz Taking) -->
             <div class="card" style="border-left: 4px solid #3b82f6;">
                 <div class="card-header">
-                    <h3>📩 Submitted Excuse Letters for Approval</h3>
+                    <div>
+                        <h3>📩 Submitted Excuse Letters for Approval</h3>
+                        <p class="text-muted text-sm">Note: Approval does NOT excuse attendance; rather, it authorizes the student to take/retake any quiz or assessment given during the class session.</p>
+                    </div>
                     <button class="btn btn-outline btn-sm" onclick="loadExcuseLetters()">🔄 Refresh</button>
                 </div>
                 <div id="excuseLettersList"><div class="empty-state"><p>Loading excuse letters...</p></div></div>
@@ -1093,7 +1096,8 @@ document.getElementById('scheduleForm').addEventListener('submit', async (e) => 
 });
 
 // ============================================================
-// EXCUSE LETTERS VIEWING & APPROVAL
+// UPGRADED EXCUSE LETTERS VIEWING & APPROVAL
+// (Does NOT change attendance; allows taking/retaking assessments given during class)
 // ============================================================
 window.loadExcuseLetters = async function() {
     const container = document.getElementById('excuseLettersList');
@@ -1105,7 +1109,7 @@ window.loadExcuseLetters = async function() {
     try {
         const { data: letters, error } = await supabase
             .from('excuse_letters')
-            .select('*, courses(code, name), attendance_sessions(date, start_time, end_time)')
+            .select('*')
             .in('course_id', courseIds)
             .order('upload_date', { ascending: false });
         if (error) throw error;
@@ -1121,21 +1125,33 @@ window.loadExcuseLetters = async function() {
             .select('id, first_name, last_name, email, student_id')
             .in('id', studentIds);
 
-        let html = '<div class="table-wrap"><table><thead><tr><th>Date Submitted</th><th>Student</th><th>Course</th><th>Session</th><th>File</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+        const { data: courses } = await supabase
+            .from('courses')
+            .select('id, code, name')
+            .in('id', courseIds);
+
+        const { data: sessions } = await supabase
+            .from('attendance_sessions')
+            .select('id, date, start_time, end_time');
+
+        let html = '<div class="table-wrap"><table><thead><tr><th>Date Submitted</th><th>Student</th><th>Course</th><th>Session Date / Time</th><th>File Preview</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
         for (const l of letters) {
             const st = students?.find(s => s.id === l.student_id);
             const stName = st ? `${st.first_name} ${st.last_name}` : l.student_id;
             const stEmail = st?.email ? `<br><small class="text-muted">${st.email}</small>` : '';
             const stIdNum = st?.student_id ? `<br><small class="text-muted">ID: ${st.student_id}</small>` : '';
             
-            const courseCode = l.courses?.code || 'N/A';
-            const sessionInfo = l.attendance_sessions 
-                ? `${l.attendance_sessions.date} (${l.attendance_sessions.start_time}-${l.attendance_sessions.end_time})` 
-                : '<span class="badge badge-period">General Absence</span>';
+            const courseObj = courses?.find(c => c.id === l.course_id);
+            const courseCode = courseObj ? courseObj.code : 'N/A';
+
+            const sessObj = sessions?.find(s => s.id === l.attendance_session_id);
+            const sessionInfo = sessObj 
+                ? `${sessObj.date} (${sessObj.start_time}-${sessObj.end_time})` 
+                : '<span class="badge badge-period">General / Class Session</span>';
             
             const fileLink = l.file_url 
-                ? `<a href="${l.file_url}" target="_blank" class="btn btn-outline btn-sm" style="padding:0.25rem 0.5rem; text-decoration:none;">📄 View Document</a>` 
-                : 'No file';
+                ? `<a href="${l.file_url}" target="_blank" class="btn btn-outline btn-sm" style="padding:0.3rem 0.6rem; text-decoration:none;">📄 View Document</a>` 
+                : 'No file uploaded';
 
             const statusBadge = `<span class="badge badge-${l.status === 'approved' ? 'approved' : l.status === 'rejected' ? 'rejected' : 'pending'}">${l.status.toUpperCase()}</span>`;
 
@@ -1149,7 +1165,7 @@ window.loadExcuseLetters = async function() {
                 <td>
                     ${l.status === 'pending' ? `
                         <div style="display:flex; gap:0.4rem;">
-                            <button class="btn btn-success btn-sm" onclick="approveExcuseLetter('${l.id}', '${l.attendance_session_id || ''}', '${l.student_id}')">✅ Approve</button>
+                            <button class="btn btn-success btn-sm" onclick="approveExcuseLetter('${l.id}', '${l.student_id}', '${l.course_id}')">✅ Approve (Allow Assessment)</button>
                             <button class="btn btn-danger btn-sm" onclick="rejectExcuseLetter('${l.id}')">❌ Reject</button>
                         </div>
                     ` : `<span class="text-muted text-sm">Reviewed</span>`}
@@ -1163,9 +1179,10 @@ window.loadExcuseLetters = async function() {
     }
 };
 
-window.approveExcuseLetter = async function(letterId, sessionId, studentId) {
-    if (!confirm("Approve this excuse letter?")) return;
+window.approveExcuseLetter = async function(letterId, studentId, courseId) {
+    if (!confirm("Approve this excuse letter? This will authorize the student to take/retake quizzes or assessments given during the class session.")) return;
     
+    // 1. Mark Excuse Letter as Approved
     const { error } = await supabase
         .from('excuse_letters')
         .update({ status: 'approved' })
@@ -1176,15 +1193,29 @@ window.approveExcuseLetter = async function(letterId, sessionId, studentId) {
         return;
     }
 
-    if (sessionId && sessionId !== 'null' && sessionId !== 'undefined' && studentId) {
-        await supabase.from('attendance_records').upsert({
-            session_id: sessionId,
-            student_id: studentId,
-            status: 'excused',
-            excuse_letter_id: letterId
-        }, { onConflict: 'session_id,student_id' });
+    // 2. Allow student to take/retake assessments given during class session
+    if (studentId && courseId) {
+        const { data: assessments } = await supabase
+            .from('assessments')
+            .select('id')
+            .eq('course_id', courseId);
+
+        if (assessments && assessments.length > 0) {
+            const assessIds = assessments.map(a => a.id);
+            // Approve any pending cheating contests so student can retake
+            await supabase
+                .from('cheating_contests')
+                .update({ status: 'approved', resolved_at: new Date().toISOString() })
+                .in('assessment_id', assessIds)
+                .eq('student_id', studentId);
+
+            // Remove blocking 0-score / unsubmitted attempts so they can take the assessment
+            await supabase.from('grades').delete().in('assessment_id', assessIds).eq('student_id', studentId);
+            await supabase.from('student_answers').delete().in('assessment_id', assessIds).eq('student_id', studentId);
+        }
     }
-    alert("✅ Excuse letter approved! Attendance record updated to Excused.");
+
+    alert("✅ Excuse Letter Approved! The student is now authorized to take/retake the quiz or assessment given during the class session (Attendance status remains unchanged).");
     loadExcuseLetters();
 };
 
