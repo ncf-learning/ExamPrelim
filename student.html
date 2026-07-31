@@ -187,25 +187,41 @@
             content: "•"; position: absolute; left: 0.5rem; color: #3b82f6; font-weight: 800;
         }
 
-        /* ===== PLAIN PAPER PRINTING - SUPPRESS BROWSER URL/HEADER CLUTTER ===== */
+        /* ===== SINGLE A4 PAGE PRINT GUARANTEE ===== */
         @page {
             size: A4 portrait;
             margin: 0 !important;
         }
         @media print {
             html, body {
-                width: 100%; height: 100%; margin: 0 !important; padding: 0 !important; background: #fff !important;
+                width: 210mm;
+                height: 297mm;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #fff !important;
+                overflow: hidden; /* Prevent accidental blank second page */
             }
             body * { visibility: hidden; }
             #printInterventionFormArea, #printInterventionFormArea * { visibility: visible; }
             #printInterventionFormArea {
-                position: absolute; left: 0; top: 0; width: 100%; margin: 0;
-                padding: 20mm 20mm !important; box-sizing: border-box;
-                background: #fff; color: #000;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 210mm;
+                min-height: 297mm;
+                max-height: 297mm;
+                margin: 0;
+                padding: 15mm 18mm !important; /* Compact printable padding */
+                box-sizing: border-box;
+                background: #fff;
+                color: #000;
                 font-family: 'Times New Roman', Times, serif;
+                overflow: hidden;
             }
             #interventionPrintOutput {
-                border: none !important; padding: 0 !important;
+                border: none !important;
+                padding: 0 !important;
+                width: 100%;
             }
             .sidebar, .page-header, .btn, nav { display: none !important; }
         }
@@ -2448,68 +2464,69 @@ window.printInterventionForm = async function(interventionId) {
     const courseCode = iv.courses ? `${iv.courses.code} – ${iv.courses.name}` : '-';
     const dateStr = new Date(iv.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
+    // SINGLE A4 COMPACT PRINT TEMPLATE
     const printHtml = `
-        <div style="text-align:center; border-bottom:2px solid #000; padding-bottom:1rem; margin-bottom:1.5rem;">
-            <h2 style="font-size:1.35rem; font-weight:800; margin-bottom:0.25rem;">NAGA COLLEGE FOUNDATION, INC.</h2>
-            <h3 style="font-size:1.1rem; font-weight:600; margin-bottom:0.15rem;">College of Computer Studies</h3>
-            <p style="font-size:0.85rem; color:#475569;">M.T. Villanueva Avenue, Naga City, Camarines Sur</p>
+        <div style="text-align:center; border-bottom:2px solid #000; padding-bottom:0.75rem; margin-bottom:1rem;">
+            <h2 style="font-size:1.25rem; font-weight:800; margin-bottom:0.15rem;">NAGA COLLEGE FOUNDATION, INC.</h2>
+            <h3 style="font-size:1.05rem; font-weight:600; margin-bottom:0.1rem;">College of Computer Studies</h3>
+            <p style="font-size:0.8rem; color:#475569;">M.T. Villanueva Avenue, Naga City, Camarines Sur</p>
         </div>
 
-        <h3 style="text-align:center; text-decoration:underline; margin-bottom:1.5rem;">ACADEMIC INTERVENTION & ACKNOWLEDGMENT FORM</h3>
+        <h3 style="text-align:center; text-decoration:underline; font-size:1.05rem; margin-bottom:1rem;">ACADEMIC INTERVENTION & ACKNOWLEDGMENT FORM</h3>
 
-        <p style="margin-bottom:1rem;"><strong>Date:</strong> ${dateStr}</p>
-        <p style="margin-bottom:1.5rem;">
+        <p style="margin-bottom:0.5rem;"><strong>Date:</strong> ${dateStr}</p>
+        <p style="margin-bottom:1rem;">
             <strong>To:</strong> Dr. Anna Loretta C. Romulo<br />
             Dean, College of Computer Studies
         </p>
 
-        <table style="width:100%; border-collapse:collapse; margin-bottom:1.5rem; border:1px solid #000;">
+        <table style="width:100%; border-collapse:collapse; margin-bottom:1rem; border:1px solid #000;">
             <tr>
-                <td style="padding:0.6rem; border:1px solid #000; background:#f8fafc; font-weight:bold; width:30%;">Student Name</td>
-                <td style="padding:0.6rem; border:1px solid #000;">${studentName} (ID: ${studentIdNum})</td>
+                <td style="padding:0.45rem 0.6rem; border:1px solid #000; background:#f8fafc; font-weight:bold; width:30%;">Student Name</td>
+                <td style="padding:0.45rem 0.6rem; border:1px solid #000;">${studentName} (ID: ${studentIdNum})</td>
             </tr>
             <tr>
-                <td style="padding:0.6rem; border:1px solid #000; background:#f8fafc; font-weight:bold;">Course / Subject</td>
-                <td style="padding:0.6rem; border:1px solid #000;">${courseCode}</td>
+                <td style="padding:0.45rem 0.6rem; border:1px solid #000; background:#f8fafc; font-weight:bold;">Course / Subject</td>
+                <td style="padding:0.45rem 0.6rem; border:1px solid #000;">${courseCode}</td>
             </tr>
             <tr>
-                <td style="padding:0.6rem; border:1px solid #000; background:#f8fafc; font-weight:bold;">Intervention Type</td>
-                <td style="padding:0.6rem; border:1px solid #000; text-transform:uppercase;">${iv.type.replace('_', ' ')}</td>
+                <td style="padding:0.45rem 0.6rem; border:1px solid #000; background:#f8fafc; font-weight:bold;">Intervention Type</td>
+                <td style="padding:0.45rem 0.6rem; border:1px solid #000; text-transform:uppercase;">${iv.type.replace('_', ' ')}</td>
             </tr>
             <tr>
-                <td style="padding:0.6rem; border:1px solid #000; background:#f8fafc; font-weight:bold;">Grade Adjustment</td>
-                <td style="padding:0.6rem; border:1px solid #000;">${iv.adjustment_value >= 0 ? '+' : ''}${iv.adjustment_value} Points</td>
+                <td style="padding:0.45rem 0.6rem; border:1px solid #000; background:#f8fafc; font-weight:bold;">Grade Adjustment</td>
+                <td style="padding:0.45rem 0.6rem; border:1px solid #000;">${iv.adjustment_value >= 0 ? '+' : ''}${iv.adjustment_value} Points</td>
             </tr>
             <tr>
-                <td style="padding:0.6rem; border:1px solid #000; background:#f8fafc; font-weight:bold;">Description / Reason</td>
-                <td style="padding:0.6rem; border:1px solid #000;">${iv.description || 'Academic assistance and performance remediation'}</td>
+                <td style="padding:0.45rem 0.6rem; border:1px solid #000; background:#f8fafc; font-weight:bold;">Description / Reason</td>
+                <td style="padding:0.45rem 0.6rem; border:1px solid #000;">${iv.description || 'Academic assistance and performance remediation'}</td>
             </tr>
         </table>
 
-        <p style="margin-bottom:2.5rem; line-height:1.6;">
+        <p style="margin-bottom:1.5rem; line-height:1.45; font-size:0.9rem;">
             <strong>Student Acknowledgment:</strong><br />
             I hereby acknowledge that I have undergone the academic intervention described above and understand the conditions set forth by my instructor and the College of Computer Studies to improve my academic standing.
         </p>
 
-        <div style="display:flex; justify-content:space-between; margin-top:3rem;">
+        <div style="display:flex; justify-content:space-between; margin-top:2rem;">
             <div style="text-align:center; width:45%;">
-                <div style="border-bottom:1px solid #000; height:40px; margin-bottom:0.5rem;"></div>
+                <div style="border-bottom:1px solid #000; height:36px; margin-bottom:0.35rem;"></div>
                 <strong>${studentName}</strong><br />
-                <span>Student Signature over Printed Name</span>
+                <span style="font-size:0.8rem;">Student Signature over Printed Name</span>
             </div>
             <div style="text-align:center; width:45%;">
-                <div style="border-bottom:1px solid #000; height:40px; margin-bottom:0.5rem;"></div>
+                <div style="border-bottom:1px solid #000; height:36px; margin-bottom:0.35rem;"></div>
                 <strong>Faculty Instructor</strong><br />
-                <span>College of Computer Studies</span>
+                <span style="font-size:0.8rem;">College of Computer Studies</span>
             </div>
         </div>
 
-        <div style="margin-top:4rem; text-align:center;">
-            <p style="margin-bottom:2.5rem; text-align:left;"><strong>Approved by:</strong></p>
+        <div style="margin-top:2.25rem; text-align:center;">
+            <p style="margin-bottom:1.75rem; text-align:left;"><strong>Approved by:</strong></p>
             <div style="display:inline-block; width:60%; text-align:center;">
-                <div style="border-bottom:1px solid #000; height:40px; margin-bottom:0.5rem;"></div>
+                <div style="border-bottom:1px solid #000; height:36px; margin-bottom:0.35rem;"></div>
                 <strong>DR. ANNA LORETTA C. ROMULO</strong><br />
-                <span>Dean, College of Computer Studies</span>
+                <span style="font-size:0.8rem;">Dean, College of Computer Studies</span>
             </div>
         </div>
     `;
