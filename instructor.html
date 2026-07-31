@@ -307,16 +307,31 @@
 
         <!-- ===== GRADEBOOK ===== -->
         <section id="section-gradebook" class="page-section">
-            <div class="page-header"><div><h1>Gradebook <small>Spreadsheet view</small></h1></div></div>
+            <div class="page-header"><div><h1>Gradebook <small>Traditional Class Record spreadsheet view</small></h1></div></div>
             <div class="card">
                 <div class="card-header">
-                    <h3>Grades</h3>
+                    <h3>Class Record & Gradebook</h3>
                     <div style="display:flex; gap:0.5rem; align-items:center;">
                         <button class="btn btn-outline btn-sm" onclick="loadGradebook()">🔄 Refresh</button>
                         <button class="btn btn-outline btn-sm" id="exportGrades">📥 Export CSV</button>
                     </div>
                 </div>
-                <div class="form-group" style="margin-bottom:1rem;"><label>Select Course</label><select id="manualCourseSelect"><option value="">Choose a course...</option></select></div>
+                <div class="form-grid" style="margin-bottom:1rem; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label>Select Course</label>
+                        <select id="manualCourseSelect"><option value="">Choose a course...</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Select Period / View</label>
+                        <select id="gradebookPeriodSelect">
+                            <option value="prelim">Prelim</option>
+                            <option value="midterm">Midterm</option>
+                            <option value="semifinal">Semi-Final</option>
+                            <option value="final">Final</option>
+                            <option value="summary">⭐ Final Rating (All Periods Summary)</option>
+                        </select>
+                    </div>
+                </div>
                 <div id="gradebookContainer"><div class="empty-state"><p>Select a course to view grades.</p></div></div>
             </div>
         </section>
@@ -1078,7 +1093,7 @@ document.getElementById('scheduleForm').addEventListener('submit', async (e) => 
 });
 
 // ============================================================
-// UPGRADED EXCUSE LETTERS VIEWING & APPROVAL
+// EXCUSE LETTERS VIEWING & APPROVAL
 // ============================================================
 window.loadExcuseLetters = async function() {
     const container = document.getElementById('excuseLettersList');
@@ -2069,68 +2084,181 @@ window.goToStep = function(step) {
 };
 
 // ============================================================
-// GRADEBOOK
+// TRADITIONAL CLASS RECORD & GRADEBOOK
 // ============================================================
 async function loadGradebook() {
     const courseId = document.getElementById('manualCourseSelect').value;
+    const periodView = (document.getElementById('gradebookPeriodSelect')?.value || 'prelim').toLowerCase();
     const container = document.getElementById('gradebookContainer');
     if (!courseId) {
         container.innerHTML = '<div class="empty-state"><p>Select a course to view grades.</p></div>';
         return;
     }
+
+    container.innerHTML = '<div class="empty-state"><p>Loading class record...</p></div>';
+
     try {
         const { data: enrollments } = await supabase
             .from('course_enrollments')
             .select('student_id')
             .eq('course_id', courseId);
         const studentIds = enrollments?.map(e => e.student_id) || [];
-        const { data: grades } = await supabase
-            .from('grades')
-            .select('student_id, assessment_id, score, max_score, assessments(title, assessment_types(name))')
-            .eq('course_id', courseId)
-            .in('student_id', studentIds);
+        if (studentIds.length === 0) {
+            container.innerHTML = '<div class="empty-state"><p>No students enrolled in this course yet.</p></div>';
+            return;
+        }
+
         const { data: students } = await supabase
             .from('profiles')
-            .select('id, first_name, last_name')
+            .select('id, first_name, last_name, student_id')
             .in('id', studentIds);
 
-        let html = '<div class="table-wrap"><table><thead><tr><th>Student</th>';
-        const assessmentMap = {};
-        if (grades) {
-            for (const g of grades) {
-                const key = g.assessment_id;
-                if (!assessmentMap[key]) assessmentMap[key] = g.assessments?.title || 'Assessment';
+        const sortedStudents = (students || []).sort((a, b) => 
+            (a.last_name || '').localeCompare(b.last_name || '')
+        );
+
+        if (periodView === 'summary') {
+            const { data: periodGrades } = await supabase
+                .from('period_grades')
+                .select('student_id, period, grade')
+                .eq('course_id', courseId)
+                .in('student_id', studentIds);
+
+            const { data: finalRatings } = await supabase
+                .from('final_ratings')
+                .select('student_id, final_grade')
+                .eq('course_id', courseId)
+                .in('student_id', studentIds);
+
+            let html = '<div class="table-wrap"><table><thead><tr><th>Student Name</th><th>ID Number</th><th>Prelim (25%)</th><th>Midterm (25%)</th><th>Semi-Final (25%)</th><th>Final (25%)</th><th>Final Rating</th><th>Status</th></tr></thead><tbody>';
+            
+            for (const s of sortedStudents) {
+                const name = `${s.last_name}, ${s.first_name}`;
+                const idNum = s.student_id || '-';
+                const prelim = Number(periodGrades?.find(p => p.student_id === s.id && (p.period || '').toLowerCase() === 'prelim')?.grade || 0);
+                const midterm = Number(periodGrades?.find(p => p.student_id === s.id && (p.period || '').toLowerCase() === 'midterm')?.grade || 0);
+                const semifinal = Number(periodGrades?.find(p => p.student_id === s.id && (p.period || '').toLowerCase() === 'semifinal')?.grade || 0);
+                const final = Number(periodGrades?.find(p => p.student_id === s.id && (p.period || '').toLowerCase() === 'final')?.grade || 0);
+                
+                const fr = finalRatings?.find(f => f.student_id === s.id);
+                const finalGradeVal = fr ? Number(fr.final_grade) : ((prelim + midterm + semifinal + final) / 4);
+                const statusBadge = finalGradeVal >= 75 
+                    ? '<span class="badge badge-approved">PASSED</span>' 
+                    : (finalGradeVal > 0 ? '<span class="badge badge-rejected">FAILED</span>' : '<span class="badge badge-pending">N/A</span>');
+
+                html += `<tr>
+                    <td><strong>${name}</strong></td>
+                    <td>${idNum}</td>
+                    <td>${prelim ? prelim.toFixed(2) + '%' : '-'}</td>
+                    <td>${midterm ? midterm.toFixed(2) + '%' : '-'}</td>
+                    <td>${semifinal ? semifinal.toFixed(2) + '%' : '-'}</td>
+                    <td>${final ? final.toFixed(2) + '%' : '-'}</td>
+                    <td><strong style="font-size:1.05rem;">${finalGradeVal ? finalGradeVal.toFixed(2) + '%' : '-'}</strong></td>
+                    <td>${statusBadge}</td>
+                </tr>`;
             }
-        }
-        const assessIds = Object.keys(assessmentMap);
-        for (const id of assessIds) html += `<th>${assessmentMap[id]}</th>`;
-        html += '<th>Average</th></tr></thead><tbody>';
-        for (const sid of studentIds) {
-            const s = students?.find(p => p.id === sid);
-            const name = s ? `${s.first_name} ${s.last_name}` : sid;
-            html += `<tr><td>${name}</td>`;
-            let totalPct = 0, count = 0;
-            for (const aid of assessIds) {
-                const g = grades?.find(g => g.student_id === sid && g.assessment_id === aid);
-                if (g) {
-                    const pct = (Number(g.score) / Number(g.max_score || 1)) * 100;
-                    html += `<td>${pct.toFixed(1)}%</td>`;
-                    totalPct += pct;
-                    count++;
-                } else {
-                    html += `<td>-</td>`;
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        } else {
+            const { data: assessments } = await supabase
+                .from('assessments')
+                .select('id, title, max_score, assessment_types(name)')
+                .eq('course_id', courseId)
+                .eq('is_published', true)
+                .ilike('period', periodView)
+                .order('created_at', { ascending: true });
+
+            const assessList = assessments || [];
+            const assessIds = assessList.map(a => a.id);
+
+            const { data: grades } = await supabase
+                .from('grades')
+                .select('student_id, assessment_id, score, max_score')
+                .eq('course_id', courseId)
+                .in('assessment_id', assessIds)
+                .in('student_id', studentIds);
+
+            const { data: pGrades } = await supabase
+                .from('period_grades')
+                .select('student_id, grade, locked')
+                .eq('course_id', courseId)
+                .ilike('period', periodView)
+                .in('student_id', studentIds);
+
+            let html = '<div class="table-wrap"><table><thead><tr><th>Student Name</th><th>ID Number</th>';
+            
+            if (assessList.length === 0) {
+                html += '<th>No Assessments in Period</th>';
+            } else {
+                for (const a of assessList) {
+                    const catName = a.assessment_types?.name || 'Assessment';
+                    html += `<th title="${catName}">${a.title}<br><small style="font-weight:normal;color:#64748b;">Max: ${Number(a.max_score || 100)}</small></th>`;
                 }
             }
-            const avg = count > 0 ? (totalPct / count) : 0;
-            html += `<td><strong>${avg.toFixed(1)}%</strong></td>`;
-            html += '</tr>';
+            html += `<th>${periodView.toUpperCase()} Period Grade</th></tr></thead><tbody>`;
+
+            for (const s of sortedStudents) {
+                const name = `${s.last_name}, ${s.first_name}`;
+                const idNum = s.student_id || '-';
+                html += `<tr>
+                    <td><strong>${name}</strong></td>
+                    <td>${idNum}</td>`;
+
+                if (assessList.length === 0) {
+                    html += '<td class="text-muted">-</td>';
+                } else {
+                    for (const a of assessList) {
+                        const g = grades?.find(grade => grade.student_id === s.id && grade.assessment_id === a.id);
+                        if (g && g.score !== null && g.score !== undefined) {
+                            const scoreVal = Number(g.score);
+                            const maxVal = Number(g.max_score || a.max_score || 100);
+                            const pct = maxVal > 0 ? (scoreVal / maxVal) * 100 : 0;
+                            html += `<td><strong>${scoreVal}</strong> <small class="text-muted">(${pct.toFixed(1)}%)</small></td>`;
+                        } else {
+                            html += '<td class="text-muted">-</td>';
+                        }
+                    }
+                }
+
+                const pg = pGrades?.find(p => p.student_id === s.id);
+                const pgDisplay = pg ? `<strong>${Number(pg.grade).toFixed(2)}%</strong> ${pg.locked ? '🔒' : ''}` : '<span class="text-muted">Not Computed</span>';
+                html += `<td style="background:#f8fafc;">${pgDisplay}</td></tr>`;
+            }
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
         }
-        html += '</tbody></table></div>';
-        container.innerHTML = html;
     } catch (err) {
-        container.innerHTML = '<div class="empty-state"><p>Error loading grades.</p></div>';
+        console.error('loadGradebook error:', err);
+        container.innerHTML = '<div class="empty-state"><p>Error loading class record: ' + err.message + '</p></div>';
     }
 }
+
+document.getElementById('gradebookPeriodSelect')?.addEventListener('change', () => {
+    loadGradebook();
+});
+
+document.getElementById('exportGrades')?.addEventListener('click', () => {
+    const table = document.querySelector('#gradebookContainer table');
+    if (!table) {
+        alert('No class record table to export!');
+        return;
+    }
+    let csv = [];
+    const rows = table.querySelectorAll('tr');
+    rows.forEach(row => {
+        const cols = row.querySelectorAll('th, td');
+        const rowData = Array.from(cols).map(col => `"${col.innerText.replace(/(\r\n|\n|\r)/gm, ' ').replace(/"/g, '""').trim()}"`);
+        csv.push(rowData.join(','));
+    });
+    const csvFile = new Blob([csv.join('\n')], { type: 'text/csv' });
+    const downloadLink = document.createElement('a');
+    downloadLink.download = `Class_Record_${new Date().toISOString().slice(0,10)}.csv`;
+    downloadLink.href = window.URL.createObjectURL(csvFile);
+    downloadLink.style.display = 'none';
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+});
 
 // ============================================================
 // WEIGHTS
