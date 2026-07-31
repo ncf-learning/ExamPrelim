@@ -2439,7 +2439,7 @@ async function loadInterventions() {
     try {
         const { data: interventions, error } = await supabase
             .from('interventions')
-            .select('*, profiles(first_name, last_name, student_id), courses(code, name)')
+            .select('*, courses(code, name)')
             .in('course_id', instructorCourses.map(c => c.id))
             .order('created_at', { ascending: false });
         if (error) throw error;
@@ -2447,9 +2447,17 @@ async function loadInterventions() {
             container.innerHTML = '<div class="empty-state"><p>No interventions recorded.</p></div>';
             return;
         }
+
+        const studentIds = [...new Set(interventions.map(iv => iv.student_id).filter(Boolean))];
+        const { data: students } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, student_id')
+            .in('id', studentIds);
+
         let html = '<div class="table-wrap"><table><thead><tr><th>Student</th><th>Course</th><th>Type</th><th>Adjustment</th><th>Description</th><th>Status</th><th>Signed Form</th><th>Actions</th></tr></thead><tbody>';
         for (const iv of interventions) {
-            const name = iv.profiles ? `${iv.profiles.first_name} ${iv.profiles.last_name}` : 'Unknown';
+            const st = students?.find(s => s.id === iv.student_id);
+            const name = st ? `${st.first_name} ${st.last_name}` : 'Unknown';
             const courseStr = iv.courses ? `${iv.courses.code}` : '-';
             const isClosed = iv.status === 'case_closed' || iv.signed_file_url;
             const statusBadge = isClosed 
@@ -2486,13 +2494,19 @@ async function loadInterventions() {
 window.printInterventionForm = async function(interventionId) {
     const { data: iv } = await supabase
         .from('interventions')
-        .select('*, profiles(first_name, last_name, student_id), courses(code, name)')
+        .select('*, courses(code, name)')
         .eq('id', interventionId)
         .single();
     if (!iv) return;
 
-    const studentName = iv.profiles ? `${iv.profiles.first_name} ${iv.profiles.last_name}` : 'Student';
-    const studentIdNum = iv.profiles?.student_id || '-';
+    const { data: st } = await supabase
+        .from('profiles')
+        .select('first_name, last_name, student_id')
+        .eq('id', iv.student_id)
+        .maybeSingle();
+
+    const studentName = st ? `${st.first_name} ${st.last_name}` : 'Student';
+    const studentIdNum = st?.student_id || '-';
     const courseCode = iv.courses ? `${iv.courses.code} – ${iv.courses.name}` : '-';
     const dateStr = new Date(iv.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
