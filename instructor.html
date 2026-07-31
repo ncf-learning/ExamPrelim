@@ -174,6 +174,18 @@
                 <div id="cheatingContestsList"><div class="empty-state"><p>Loading contests...</p></div></div>
             </div>
 
+            <!-- EXCUSE LETTERS CARD (Moved to Dashboard for easy access) -->
+            <div class="card" style="border-left: 4px solid #3b82f6;">
+                <div class="card-header">
+                    <div>
+                        <h3>📩 Submitted Excuse Letters for Approval</h3>
+                        <p class="text-muted text-sm">Note: Approval does NOT excuse attendance; rather, it authorizes the student to take/retake any quiz or assessment given during the class session.</p>
+                    </div>
+                    <button class="btn btn-outline btn-sm" onclick="loadExcuseLetters()">🔄 Refresh</button>
+                </div>
+                <div id="excuseLettersList"><div class="empty-state"><p>Loading excuse letters...</p></div></div>
+            </div>
+
             <div class="card"><div class="card-header"><h3>⏳ Pending Approvals</h3></div><div id="pendingApprovalsList"><div class="empty-state"><p>Loading...</p></div></div></div>
             <div class="card"><div class="card-header"><h3>🚀 Quick Actions</h3></div><div class="flex gap-2" style="flex-wrap:wrap;"><button class="btn btn-outline" onclick="switchSection('attendance')">📋 Take Attendance</button><button class="btn btn-outline" onclick="createNewAssessment()">✏️ Create Assessment</button><button class="btn btn-outline" onclick="switchSection('gradebook')">📈 View Grades</button><button class="btn btn-outline" onclick="switchSection('enroll')">👥 Enroll Student</button></div></div>
         </section>
@@ -186,7 +198,7 @@
 
         <!-- ===== ATTENDANCE & EXCUSE LETTERS ===== -->
         <section id="section-attendance" class="page-section">
-            <div class="page-header"><div><h1>Attendance & Excuse Letters <small>Create sessions, track attendance, and review excuse letters</small></h1></div></div>
+            <div class="page-header"><div><h1>Attendance <small>Create sessions and track attendance</small></h1></div></div>
             <div class="card">
                 <div class="card-header"><h3>Create Session (Self‑Check‑In)</h3></div>
                 <form id="attendanceForm" class="form-grid">
@@ -197,18 +209,6 @@
                     <div class="form-group full"><button type="submit" class="btn btn-primary">Generate Code</button></div>
                 </form>
                 <div id="attCodeDisplay" style="display:none; margin-top:0.75rem; padding:0.75rem; background:#f1f5f9; border-radius:8px; text-align:center; font-size:1.5rem; font-weight:700; letter-spacing:4px; font-family:monospace;"></div>
-            </div>
-            
-            <!-- EXCUSE LETTERS CARD (No Excuse on Attendance - Allows Assessment/Quiz Taking) -->
-            <div class="card" style="border-left: 4px solid #3b82f6;">
-                <div class="card-header">
-                    <div>
-                        <h3>📩 Submitted Excuse Letters for Approval</h3>
-                        <p class="text-muted text-sm">Note: Approval does NOT excuse attendance; rather, it authorizes the student to take/retake any quiz or assessment given during the class session.</p>
-                    </div>
-                    <button class="btn btn-outline btn-sm" onclick="loadExcuseLetters()">🔄 Refresh</button>
-                </div>
-                <div id="excuseLettersList"><div class="empty-state"><p>Loading excuse letters...</p></div></div>
             </div>
 
             <div class="card">
@@ -628,8 +628,9 @@ function setupNavigation() {
                 targetEl.classList.add('active');
             }
 
-            if (targetSection === 'dashboard' && typeof loadCheatingContests === 'function') {
-                loadCheatingContests();
+            if (targetSection === 'dashboard') {
+                if (typeof loadCheatingContests === 'function') loadCheatingContests();
+                if (typeof loadExcuseLetters === 'function') loadExcuseLetters();
             }
             if (targetSection === 'gradebook' && typeof loadGradebook === 'function') {
                 loadGradebook();
