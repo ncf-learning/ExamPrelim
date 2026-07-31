@@ -175,7 +175,7 @@
                 <div id="cheatingContestsList"><div class="empty-state"><p>Loading contests...</p></div></div>
             </div>
 
-            <!-- EXCUSE LETTERS CARD -->
+            <!-- EXCUSE LETTERS CARD (Placed on Dashboard for easy access) -->
             <div class="card" style="border-left: 4px solid #3b82f6;">
                 <div class="card-header">
                     <div>
@@ -197,7 +197,7 @@
             <div class="card"><div id="instructorCourses"><div class="empty-state"><p>Loading your courses...</p></div></div></div>
         </section>
 
-        <!-- ===== ATTENDANCE & EXCUSE LETTERS ===== -->
+        <!-- ===== ATTENDANCE ===== -->
         <section id="section-attendance" class="page-section">
             <div class="page-header"><div><h1>Attendance <small>Create sessions and track attendance</small></h1></div></div>
             <div class="card">
@@ -697,9 +697,11 @@ async function init() {
             alert('Profile not found. Please contact support.');
             return;
         }
-        if (profile.role !== 'instructor') {
-            alert('Not authorized as instructor.');
+        const userRole = (profile.role || '').trim().toLowerCase();
+        if (userRole !== 'instructor' && userRole !== 'admin' && userRole !== 'teacher' && userRole !== 'faculty') {
+            alert(`Not authorized as instructor (Current Account Role: "${profile.role || 'unknown'}"). Please sign out and sign in using an instructor account.`);
             await signOut();
+            window.location.href = 'index.html';
             return;
         }
         currentProfile = profile;
