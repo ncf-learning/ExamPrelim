@@ -738,7 +738,7 @@ async function loadAssessments() {
         const isCompleted = takenMap.has(String(a.id).toLowerCase());
         const score = takenMap.get(String(a.id).toLowerCase());
 
-        // STRICT SINGLE-ATTEMPT ENFORCEMENT: Once taken, it MUST go to Taken! Never Available!
+        // STRICT SINGLE-ATTEMPT ENFORCEMENT: Once taken or retaken, it MUST go to Taken! Never Available!
         if (isCompleted && (!contest || contest.status !== 'approved')) {
             takenList.push({ ...a, contest, score });
         } else if (contest && contest.status === 'approved') {
@@ -1234,11 +1234,13 @@ window.submitAssessment = async function(isViolation = false) {
         finalScore = (finalScore / totalExamPoints) * examMaxScore; 
     }
 
+    // Replace existing grade entry & RECORD assessment_type_id
     await supabase.from('grades').delete().eq('student_id', currentUser.id).eq('assessment_id', assessmentId);
     const { error: gradeErr } = await supabase.from('grades').insert({
         student_id: currentUser.id,
         assessment_id: assessmentId,
         course_id: courseId,
+        assessment_type_id: activeExam.assessment_type_id || null, // FIXED: Now properly records assessment_type_id
         score: Number(isViolation ? 0 : finalScore.toFixed(2)),
         max_score: Number(examMaxScore),
         period: (activeExam.period || 'prelim').toLowerCase(),
@@ -1249,6 +1251,12 @@ window.submitAssessment = async function(isViolation = false) {
         alert("Database Error saving grade: " + gradeErr.message);
         return;
     }
+
+    // FIXED: Once taken/retaken, resolve cheating_contests so it permanently moves to TAKEN
+    await supabase.from('cheating_contests')
+        .update({ status: 'completed' })
+        .eq('student_id', currentUser.id)
+        .eq('assessment_id', assessmentId);
 
     const submittedTitle = activeExam.title;
     activeExam = null;
@@ -1809,66 +1817,96 @@ async function loadExcuseHistory() {
 }
 
 // ============================================================
-// 11. RECITATION
+// 11. RECITATION (Strict: Active only within Schedule + Present Attendance)
 // ============================================================
 async function checkRecitationAvailability() {
     const statusDiv = document.getElementById('recitationStatus');
     const formContainer = document.getElementById('recitationFormContainer');
-    const now = new Date();
-    const dayOfWeek = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][now.getDay()];
-    const currentTime = now.getHours() * 60 + now.getMinutes();
-
+    
     if (enrolledCourses.length === 0) {
         statusDiv.innerHTML = '<div class="empty-state">You are not enrolled in any courses.</div>';
         formContainer.style.display = 'none';
         return;
     }
+
     const courseIds = enrolledCourses.map(c => c.id);
     const { data: sections } = await supabase
         .from('sections')
         .select('id, course_id')
         .in('course_id', courseIds);
+
     if (!sections || sections.length === 0) {
-        statusDiv.innerHTML = '<div class="empty-state">No class schedules found.</div>';
+        statusDiv.innerHTML = '<div class="empty-state">No class sections found.</div>';
         formContainer.style.display = 'none';
         return;
     }
+
     const sectionIds = sections.map(s => s.id);
-    const { data: schedules, error } = await supabase
+    const todayStr = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const dayOfWeek = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][now.getDay()];
+    const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
+
+    // 1. Check if class schedule is active right now
+    const { data: schedules } = await supabase
         .from('schedules')
-        .select('*, sections(course_id, courses(code, name))')
+        .select('*, sections(id, course_id, courses(code, name))')
         .in('section_id', sectionIds)
         .eq('day_of_week', dayOfWeek);
-    if (error) { console.error(error); return; }
 
-    let active = false;
-    let activeCourse = null;
-    if (schedules) {
-        for (const s of schedules) {
-            const startMin = timeToMinutes(s.start_time);
-            const endMin = timeToMinutes(s.end_time);
-            if (currentTime >= startMin - 30 && currentTime <= endMin + 30) {
-                active = true;
-                activeCourse = s.sections?.courses;
-                break;
-            }
-        }
+    let currentSchedule = (schedules || []).find(s => {
+        const startMin = timeToMinutes(s.start_time);
+        const endMin = timeToMinutes(s.end_time);
+        return currentTimeMinutes >= startMin - 15 && currentTimeMinutes <= endMin + 15;
+    });
+
+    if (!currentSchedule) {
+        statusDiv.innerHTML = '<div class="empty-state">⚠️ Recitation is inactive. You can only log recitation during your scheduled class time.</div>';
+        formContainer.style.display = 'none';
+        return;
     }
 
-    const targetCourse = activeCourse || enrolledCourses[0];
+    // 2. Check if attendance session exists for today (if instructor deleted it because no class happened, disable)
+    const { data: activeSessions } = await supabase
+        .from('attendance_sessions')
+        .select('id, section_id')
+        .eq('section_id', currentSchedule.section_id)
+        .eq('date', todayStr);
+
+    if (!activeSessions || activeSessions.length === 0) {
+        statusDiv.innerHTML = '<div class="empty-state">⚠️ Recitation is inactive. There is no active class session today (or session was deleted/cancelled by your instructor).</div>';
+        formContainer.style.display = 'none';
+        return;
+    }
+
+    const sessionIds = activeSessions.map(s => s.id);
+
+    // 3. Check if student attendance is marked present or late for this session
+    const { data: records } = await supabase
+        .from('attendance_records')
+        .select('status')
+        .in('session_id', sessionIds)
+        .eq('student_id', currentUser.id)
+        .in('status', ['present', 'late']);
+
+    if (!records || records.length === 0) {
+        statusDiv.innerHTML = '<div class="empty-state">⚠️ Recitation is inactive. Your attendance is not marked as Present/Late for today\'s class session yet.</div>';
+        formContainer.style.display = 'none';
+        return;
+    }
+
+    const targetCourse = currentSchedule.sections?.courses;
 
     statusDiv.innerHTML = `<div style="background:#d1fae5;padding:1rem;border-radius:8px;color:#065f46;">
-        ✅ Recitation Logger active. Current Course: <strong>${targetCourse?.code || ''} – ${targetCourse?.name || ''}</strong>
+        ✅ Recitation Active! Class Session & Attendance Confirmed: <strong>${targetCourse?.code || ''} – ${targetCourse?.name || ''}</strong>
     </div>`;
     formContainer.style.display = 'block';
 
     const recitCourseSelect = document.getElementById('recitCourse');
-    renderSelect(recitCourseSelect, enrolledCourses, 'id', c => `${c.code} – ${c.name}`);
-    if (targetCourse) {
-        recitCourseSelect.value = targetCourse.id;
-    }
+    renderSelect(recitCourseSelect, [targetCourse], 'id', c => `${c.code} – ${c.name}`);
+    recitCourseSelect.value = targetCourse.id;
 
-    document.getElementById('recitDate').value = now.toISOString().split('T')[0];
+    document.getElementById('recitDate').value = todayStr;
     document.getElementById('recitTime').value = now.toTimeString().slice(0,5);
 }
 
