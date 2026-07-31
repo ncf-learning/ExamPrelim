@@ -120,7 +120,7 @@
         .modal-content { background:#fff; border-radius:12px; padding:2rem; max-width:600px; width:95%; max-height:80vh; overflow-y:auto; }
         .modal-content .close { float:right; background:none; border:none; font-size:1.5rem; cursor:pointer; }
 
-        /* ===== ANTI-CHEAT EXAM UI ===== */
+        /* ===== ANTI-CHEAT EXAM UI WITH FIXED TOP BAR ===== */
         .exam-mode .sidebar { display: none !important; }
         .exam-mode .main { padding: 1rem; }
         .noselect {
@@ -131,9 +131,15 @@
         }
         .exam-header {
             display: flex; justify-content: space-between; align-items: center; 
-            background: #fff; padding: 1rem 1.5rem; border-radius: 8px; border: 1px solid #e2e8f0; 
-            margin-bottom: 1.5rem; position: sticky; top: 0; z-index: 100; 
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            background: #0f172a; color: #fff; padding: 1rem 1.5rem; border-radius: 8px; border: 1px solid #1e293b; 
+            margin-bottom: 1.5rem; position: sticky; top: 0; z-index: 1000; 
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+        }
+        .exam-header h2 { font-size: 1.25rem; font-weight: 700; color: #fff; margin: 0; }
+        .exam-header .time-box { display: flex; align-items: center; gap: 0.75rem; }
+        .exam-header .time-box .time-label {
+            background: #3b82f6; color: #fff; padding: 0.4rem 0.85rem; border-radius: 6px;
+            font-size: 0.85rem; font-weight: 700; letter-spacing: 0.5px;
         }
         .question-box { background: #fff; padding: 1.5rem; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 1rem; }
         .question-box h4 { margin-bottom: 1rem; font-size: 1.1rem; }
@@ -161,36 +167,45 @@
             font-size:0.95rem; margin-bottom:0.75rem; color:#0f172a;
         }
 
+        /* ===== STRATEGIZE AI CARD ===== */
+        .strategize-box {
+            background: #eff6ff; border: 1px solid #93c5fd; border-radius: 10px;
+            padding: 1.25rem; margin-bottom: 1.5rem;
+        }
+        .strategize-box h4 {
+            font-size: 1rem; color: #1e3a8a; font-weight: 700;
+            display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;
+        }
+        .strategize-list {
+            list-style: none; padding: 0; margin: 0;
+        }
+        .strategize-list li {
+            position: relative; padding-left: 1.5rem; margin-bottom: 0.5rem;
+            font-size: 0.875rem; color: #1e40af; line-height: 1.5;
+        }
+        .strategize-list li::before {
+            content: "•"; position: absolute; left: 0.5rem; color: #3b82f6; font-weight: 800;
+        }
+
         /* ===== PLAIN PAPER PRINTING - SUPPRESS BROWSER URL/HEADER CLUTTER ===== */
         @page {
             size: A4 portrait;
-            margin: 0 !important; /* Removes default browser headers, URLs, and page numbers */
+            margin: 0 !important;
         }
         @media print {
             html, body {
-                width: 100%;
-                height: 100%;
-                margin: 0 !important;
-                padding: 0 !important;
-                background: #fff !important;
+                width: 100%; height: 100%; margin: 0 !important; padding: 0 !important; background: #fff !important;
             }
             body * { visibility: hidden; }
             #printInterventionFormArea, #printInterventionFormArea * { visibility: visible; }
             #printInterventionFormArea {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                margin: 0;
-                padding: 20mm 20mm !important; /* Keeps printed text safely within paper edges */
-                box-sizing: border-box;
-                background: #fff;
-                color: #000;
+                position: absolute; left: 0; top: 0; width: 100%; margin: 0;
+                padding: 20mm 20mm !important; box-sizing: border-box;
+                background: #fff; color: #000;
                 font-family: 'Times New Roman', Times, serif;
             }
             #interventionPrintOutput {
-                border: none !important;
-                padding: 0 !important;
+                border: none !important; padding: 0 !important;
             }
             .sidebar, .page-header, .btn, nav { display: none !important; }
         }
@@ -250,7 +265,7 @@
             <!-- Current Period Grade Overview -->
             <div class="card" style="border-left: 4px solid #3b82f6;">
                 <div class="card-header">
-                    <h3>🏆 Current Period Grades</h3>
+                    <h3>🏆 Current Period Grades (Currently Acquired)</h3>
                     <span class="badge badge-info">Active Period Controlled by Instructor</span>
                 </div>
                 <div id="dashPeriodGradesContainer"><div class="empty-state">Loading period grades...</div></div>
@@ -353,14 +368,15 @@
         <!-- ==================== EXAM TAKING SECTION ==================== -->
         <section id="section-exam" class="page-section">
             <div class="noselect" oncontextmenu="return false;" oncopy="return false;" oncut="return false;" onpaste="return false;">
+                <!-- STICKY HEADER WITH TITLE, AVAILABLE TIME & SUBMIT ON TOP -->
                 <div class="exam-header">
                     <div>
                         <h2 id="activeExamTitle">Exam Title</h2>
-                        <span id="examTimerDisplay" class="badge badge-info" style="font-size:0.9rem; margin-right:1rem;">Time Left: --:--</span>
-                        <span class="badge badge-warning">Anti-Cheat Enabled: Do not leave this tab.</span>
+                        <div style="font-size:0.75rem; color:#94a3b8; margin-top:0.25rem;">Anti-Cheat Enabled: Do not leave this tab or defocus window.</div>
                     </div>
-                    <div class="actions">
-                        <button class="btn btn-success" onclick="submitAssessment(false)">Submit Assessment</button>
+                    <div class="time-box">
+                        <div class="time-label" id="examTimerDisplay">AVAILABLE TIME: --:--</div>
+                        <button class="btn btn-success" style="font-weight:700; padding:0.6rem 1.5rem;" onclick="submitAssessment(false)">SUBMIT</button>
                     </div>
                 </div>
                 <div id="examQuestionsContainer">
@@ -371,7 +387,7 @@
 
         <!-- ==================== GRADES ==================== -->
         <section id="section-grades" class="page-section">
-            <div class="page-header"><h1>Grades <small>Your academic performance</small></h1></div>
+            <div class="page-header"><h1>Grades <small>Your academic performance & AI-supported strategy</small></h1></div>
             
             <!-- DETAILED CRITERIA BREAKDOWN -->
             <div class="card">
@@ -387,6 +403,10 @@
                         </select>
                     </div>
                 </div>
+
+                <!-- STRATEGIZE AI SECTION -->
+                <div id="strategizeContainer"></div>
+
                 <div id="detailedCriteriaContainer"><div class="empty-state">Select a course to view detailed breakdown by assessment criteria.</div></div>
             </div>
 
@@ -483,9 +503,14 @@
 
         <!-- ==================== RECITATION ==================== -->
         <section id="section-recitation" class="page-section">
-            <div class="page-header"><h1>Recitation Logger <small>Log your class participation</small></h1></div>
+            <div class="page-header">
+                <h1>Recitation Logger <small>Recitation is automated per current active period (PRELIM, MIDTERM, SEMI-FINAL, FINALS)</small></h1>
+            </div>
             <div class="card">
-                <div class="card-header"><h3>Record Recitation</h3></div>
+                <div class="card-header">
+                    <h3>Record Recitation</h3>
+                    <span class="badge badge-period" id="recitActivePeriodBadge">Period: AUTOMATED</span>
+                </div>
                 <div id="recitationStatus" class="empty-state">Checking class schedule...</div>
                 <div id="recitationFormContainer" style="display:none; margin-top:1rem;">
                     <form id="recitationForm" class="form-grid">
@@ -498,7 +523,7 @@
                 </div>
             </div>
             <div class="card">
-                <div class="card-header"><h3>Recitation History</h3></div>
+                <div class="card-header"><h3>Recitation History (Per Period Computation)</h3></div>
                 <div id="recitationHistory"><div class="empty-state">No recitations logged yet.</div></div>
             </div>
         </section>
@@ -1123,7 +1148,7 @@ function startExamTimer(durationMinutes) {
     examTimerInterval = setInterval(() => {
         let m = Math.floor(timeLeft / 60);
         let s = timeLeft % 60;
-        timerDisplay.textContent = `Time Left: ${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        timerDisplay.textContent = `AVAILABLE TIME: ${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
         
         if (timeLeft <= 0) {
             clearInterval(examTimerInterval);
@@ -1454,7 +1479,7 @@ window.viewAssessmentRatings = async function(assessmentId, assessmentTitle) {
 };
 
 // ============================================================
-// 9. DASHBOARD PERIOD GRADES & GRADES BREAKDOWN
+// 9. DASHBOARD PERIOD GRADES (CURRENTLY ACQUIRED FORMAT) & GRADES BREAKDOWN
 // ============================================================
 async function loadDashboardPeriodGrades() {
     const container = document.getElementById('dashPeriodGradesContainer');
@@ -1476,12 +1501,28 @@ async function loadDashboardPeriodGrades() {
         return;
     }
 
-    let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Active Period</th><th>Current Period Grade</th><th>Status</th></tr></thead><tbody>';
+    let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Active Period</th><th>Current Acquired Grade</th><th>Status</th></tr></thead><tbody>';
     
     for (const c of enrolledCourses) {
         const activePeriod = (c.active_period || 'prelim').toLowerCase();
         const pGrade = periodGrades?.find(g => g.course_id === c.id && (g.period || 'prelim').toLowerCase() === activePeriod);
-        const gradeValue = pGrade ? `${Number(pGrade.grade).toFixed(2)}%` : 'Not Computed';
+        
+        // FORMAT: SAMPLE 2.3 / 100% — Shows raw percentage/numerical rating against the 100% target scale
+        let gradeDisplay = 'Not Computed';
+        if (pGrade && pGrade.grade !== null && pGrade.grade !== undefined) {
+            const rawVal = Number(pGrade.grade);
+            const gpaEquivalent = rawVal >= 97 ? '1.0' :
+                                  rawVal >= 94 ? '1.25' :
+                                  rawVal >= 91 ? '1.5' :
+                                  rawVal >= 88 ? '1.75' :
+                                  rawVal >= 85 ? '2.0' :
+                                  rawVal >= 82 ? '2.25' :
+                                  rawVal >= 79 ? '2.5' :
+                                  rawVal >= 76 ? '2.75' :
+                                  rawVal >= 75 ? '3.0' : '5.0';
+            gradeDisplay = `${gpaEquivalent} (${rawVal.toFixed(2)}%) / 100%`;
+        }
+
         const isLocked = pGrade?.locked;
         const lockBadge = isLocked 
             ? '<span class="badge badge-approved">🔒 LOCKED (OFFICIAL)</span>' 
@@ -1490,7 +1531,7 @@ async function loadDashboardPeriodGrades() {
         html += `<tr>
             <td><strong>${c.code}</strong> – ${c.name}</td>
             <td><span class="badge badge-info" style="text-transform:uppercase;">${activePeriod}</span></td>
-            <td style="font-size:1.1rem; font-weight:700; color:#1e293b;">${gradeValue}</td>
+            <td style="font-size:1.05rem; font-weight:700; color:#1e293b;">${gradeDisplay}</td>
             <td>${lockBadge}</td>
         </tr>`;
     }
@@ -1568,10 +1609,12 @@ async function loadDetailedCriteriaGrades() {
     const courseId = document.getElementById('detailedCourseSelect')?.value;
     const period = (document.getElementById('detailedPeriodSelect')?.value || 'prelim').toLowerCase();
     const container = document.getElementById('detailedCriteriaContainer');
+    const stratContainer = document.getElementById('strategizeContainer');
     if (!container) return;
 
     if (!courseId) {
         container.innerHTML = '<div class="empty-state">Select a course above to view your detailed assessment criteria breakdown.</div>';
+        if (stratContainer) stratContainer.innerHTML = '';
         return;
     }
     container.innerHTML = '<div class="empty-state">Calculating detailed scores...</div>';
@@ -1683,6 +1726,11 @@ async function loadDetailedCriteriaGrades() {
         const caseAvg = calcCategoryAvg(caseScores);
         const examAvg = calcCategoryAvg(examScores);
 
+        // Render AI Strategizer box based on weights (Quizzes 15%, Case/Recitation 25%, Attendance 10%, Major Exam 50%)
+        if (stratContainer) {
+            renderStrategizeAI(quizAvg, caseAvg, attPct, examAvg, period, enrolledCourses.find(c => c.id === courseId)?.code || 'Course');
+        }
+
         let html = '';
 
         html += `<div class="criteria-box">
@@ -1749,6 +1797,57 @@ function renderCriteriaTable(items) {
     });
     html += '</tbody></table></div>';
     return html;
+}
+
+// STRATEGIZE AI GENERATOR — Provides direct, technical, helpful actionable suggestions
+function renderStrategizeAI(quizAvg, caseAvg, attPct, examAvg, periodName, courseCode) {
+    const stratContainer = document.getElementById('strategizeContainer');
+    if (!stratContainer) return;
+
+    // Weights
+    const wQuiz = 0.15;
+    const wCase = 0.25;
+    const wAtt = 0.10;
+    const wExam = 0.50;
+
+    const currentWeighted = (quizAvg * wQuiz) + (caseAvg * wCase) + (attPct * wAtt) + (examAvg * wExam);
+    const targetPassing = 75.0; // 3.0 Passing equivalent
+    const neededForPassing = Math.max(0, targetPassing - ((quizAvg * wQuiz) + (caseAvg * wCase) + (attPct * wAtt)));
+    const requiredExamScore = wExam > 0 ? (neededForPassing / wExam) : 0;
+
+    let suggestionsHtml = '';
+    if (currentWeighted >= 85) {
+        suggestionsHtml = `
+            <li><strong>Standing: EXCELLENT (${currentWeighted.toFixed(2)}%).</strong> Your current performance exceeds the passing threshold by ${(currentWeighted - targetPassing).toFixed(2)}%.</li>
+            <li><strong>Major Exam Strategy (50% Weight):</strong> To maintain an honor-level rating (1.5 / 90% or above), aim for at least <strong>${Math.min(100, Math.max(70, ((90 - ((quizAvg*wQuiz) + (caseAvg*wCase) + (attPct*wAtt))) / wExam))).toFixed(1)}%</strong> on your remaining ${periodName.toUpperCase()} Major Exam.</li>
+            <li><strong>Recitation & Case Briefs (25% Weight):</strong> Maintain regular recitation participation; this 25% block acts as your primary buffer against challenging technical exam items.</li>
+        `;
+    } else if (currentWeighted >= targetPassing) {
+        suggestionsHtml = `
+            <li><strong>Standing: SAFE / PASSING (${currentWeighted.toFixed(2)}%).</strong> You are currently above the 75% (3.0) passing requirement.</li>
+            <li><strong>Major Exam Target (50% Weight):</strong> You require a minimum score of <strong>${Math.min(100, Math.max(0, requiredExamScore)).toFixed(1)}%</strong> on the ${periodName.toUpperCase()} Major Exam to secure a passing grade for this period.</li>
+            <li><strong>Optimization Tip:</strong> Prioritize lifting your Case Analysis & Recitation average (currently ${caseAvg.toFixed(1)}%). Boosting this 25% weight category by 10 points adds +2.5% directly to your period grade.</li>
+        `;
+    } else {
+        suggestionsHtml = `
+            <li><strong>Standing: REQUIRES INTERVENTION (${currentWeighted.toFixed(2)}%).</strong> You are currently ${(targetPassing - currentWeighted).toFixed(2)}% below the 75% passing mark.</li>
+            <li><strong>Critical Exam Target (50% Weight):</strong> Because the Major Exam carries a 50% weight, achieving at least <strong>${Math.min(100, Math.max(60, requiredExamScore)).toFixed(1)}%</strong> on the exam is technically required to pull your grade to 75%.</li>
+            <li><strong>Immediate Action Plan:</strong> Ensure 100% attendance on remaining sessions (10% weight) and volunteer for at least 2 recitation rounds to maximize the 25% Case/Recitation component before period lock.</li>
+        `;
+    }
+
+    const html = `
+        <div class="strategize-box">
+            <h4>💡 STRATEGIZE — AI Passing Grade Action Plan (${courseCode} - ${periodName.toUpperCase()})</h4>
+            <p style="font-size: 0.8rem; color: #475569; margin-bottom: 0.75rem;">
+                Based on official criteria weights: <strong>Quizzes (15%)</strong>, <strong>Case/Recitation (25%)</strong>, <strong>Attendance (10%)</strong>, and <strong>Major Exam (50%)</strong>.
+            </p>
+            <ul class="strategize-list">
+                ${suggestionsHtml}
+            </ul>
+        </div>
+    `;
+    stratContainer.innerHTML = html;
 }
 
 document.getElementById('detailedCourseSelect')?.addEventListener('change', loadDetailedCriteriaGrades);
@@ -1967,11 +2066,12 @@ async function loadExcuseHistory() {
 }
 
 // ============================================================
-// 11. RECITATION (Strict: Active only within Schedule + Present Attendance)
+// 11. RECITATION (Strict: Active only within Schedule + Present Attendance + Automated Period)
 // ============================================================
 async function checkRecitationAvailability() {
     const statusDiv = document.getElementById('recitationStatus');
     const formContainer = document.getElementById('recitationFormContainer');
+    const periodBadge = document.getElementById('recitActivePeriodBadge');
     
     if (enrolledCourses.length === 0) {
         statusDiv.innerHTML = '<div class="empty-state">You are not enrolled in any courses.</div>';
@@ -1999,7 +2099,7 @@ async function checkRecitationAvailability() {
 
     const { data: schedules } = await supabase
         .from('schedules')
-        .select('*, sections(id, course_id, courses(code, name))')
+        .select('*, sections(id, course_id, courses(code, name, active_period))')
         .in('section_id', sectionIds)
         .eq('day_of_week', dayOfWeek);
 
@@ -2043,9 +2143,15 @@ async function checkRecitationAvailability() {
     }
 
     const targetCourse = currentSchedule.sections?.courses;
+    const activePeriodName = (targetCourse?.active_period || 'prelim').toUpperCase();
+
+    if (periodBadge) {
+        periodBadge.textContent = `Period: ${activePeriodName} (Automated)`;
+        periodBadge.className = 'badge badge-info';
+    }
 
     statusDiv.innerHTML = `<div style="background:#d1fae5;padding:1rem;border-radius:8px;color:#065f46;">
-        ✅ Recitation Active! Class Session & Attendance Confirmed: <strong>${targetCourse?.code || ''} – ${targetCourse?.name || ''}</strong>
+        ✅ Recitation Active! Class Session & Attendance Confirmed: <strong>${targetCourse?.code || ''} – ${targetCourse?.name || ''}</strong> <span class="badge badge-success" style="margin-left:0.5rem;">${activePeriodName}</span>
     </div>`;
     formContainer.style.display = 'block';
 
@@ -2066,6 +2172,9 @@ document.getElementById('recitationForm').addEventListener('submit', async (e) =
 
     if (!courseId) { alert('Select a course.'); return; }
 
+    const targetCourse = enrolledCourses.find(c => c.id === courseId);
+    const autoPeriod = (targetCourse?.active_period || 'prelim').toLowerCase();
+
     const { data: schedules } = await supabase
         .from('schedules')
         .select('id')
@@ -2080,11 +2189,12 @@ document.getElementById('recitationForm').addEventListener('submit', async (e) =
             schedule_id: scheduleId,
             date: date,
             time: time,
-            rating: rating
+            rating: rating,
+            period: autoPeriod
         });
 
     if (error) { alert('Error logging recitation: ' + error.message); return; }
-    alert('🎤 Recitation recorded successfully!');
+    alert(`🎤 Recitation recorded successfully for the ${autoPeriod.toUpperCase()} period!`);
     await loadRecitationHistory();
     document.getElementById('recitDate').value = new Date().toISOString().split('T')[0];
     document.getElementById('recitTime').value = new Date().toTimeString().slice(0,5);
@@ -2108,13 +2218,15 @@ async function loadRecitationHistory() {
         container.innerHTML = '<div class="empty-state">No recitations logged yet.</div>';
         return;
     }
-    let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Date</th><th>Time</th><th>Rating</th><th>Logged At</th></tr></thead><tbody>';
+    let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Period</th><th>Date</th><th>Time</th><th>Rating</th><th>Logged At</th></tr></thead><tbody>';
     data.forEach(r => {
+        const periodStr = r.period ? r.period.toUpperCase() : 'PRELIM';
         html += `<tr>
             <td>${r.courses?.code || 'N/A'}</td>
+            <td><span class="badge badge-info">${periodStr}</span></td>
             <td>${r.date}</td>
             <td>${r.time}</td>
-            <td><span class="badge badge-info">${r.rating || 3} / 5</span></td>
+            <td><span class="badge badge-success">${r.rating || 3} / 5</span></td>
             <td>${new Date(r.recorded_at).toLocaleString()}</td>
         </tr>`;
     });
