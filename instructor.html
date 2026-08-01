@@ -3090,7 +3090,7 @@ document.getElementById('reportType')?.addEventListener('change', function(e) {
 });
 
 // ============================================================
-// GROUP ENROLLMENT (RLS NULL SELECT BUG FIXED)
+// GROUP ENROLLMENT (FIXED FOR STUDENT_ID NOT-NULL CONSTRAINT)
 // ============================================================
 document.getElementById('enrollForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -3128,18 +3128,25 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
                 continue;
             }
 
-            // 2. If profile does not exist, insert it using crypto.randomUUID()
-            //    Assign profile = { id: newId } directly to bypass RLS select restrictions
+            // 2. If profile does not exist, insert it with a generated student_id
+            //    to avoid violating NOT NULL and UNIQUE constraints on profiles
             if (!profile) {
                 const newId = crypto.randomUUID();
+                const username = email.split('@')[0];
+                const tempStudentId = 'ID-' + Math.floor(100000 + Math.random() * 900000);
+                
                 const { error: insertError } = await supabase
                     .from('profiles')
                     .insert({
                         id: newId,
                         email: email,
+                        student_id: tempStudentId, // Prevents: violates not-null constraint on column "student_id"
                         role: 'student',
-                        first_name: email.split('@')[0],
-                        last_name: 'Student'
+                        first_name: username,
+                        last_name: 'Student',
+                        section: 'N/A',
+                        phone: 'N/A',
+                        address: 'N/A'
                     });
 
                 if (insertError) {
