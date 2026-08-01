@@ -267,7 +267,7 @@
                             <div class="form-group"><label>Randomise questions per student?</label><input type="checkbox" id="assessRandomize"></div>
                             <div class="form-group"><label>AI Grading</label><select id="assessAI"><option value="none">None</option><option value="openai">OpenAI</option><option value="gemini">Gemini</option></select></div>
                         </div>
-                        <button type="button" class="btn btn-primary mt-2" onclick="goToStep(2)">Next → Questions</button>
+                        <button type="button" class="btn btn-primary mt-2" onclick="saveDraftAndNext()">Next → Questions</button>
                         <button type="button" class="btn btn-outline mt-2" onclick="saveDraft()">💾 Save Draft</button>
                     </div>
                     <div class="step" data-step="2" style="display:none;">
@@ -1428,6 +1428,13 @@ window.createNewAssessment = function() {
     goToStep(1);
 };
 
+window.saveDraftAndNext = async function() {
+    const draftId = await ensureDraftExists();
+    if (draftId) {
+        goToStep(2);
+    }
+};
+
 async function ensureDraftExists() {
     if (currentDraftAssessmentId) return currentDraftAssessmentId;
 
@@ -1793,9 +1800,24 @@ async function loadAssessmentsList() {
                     displayDate = a.date;
                 }
             }
-            const timeFrameStr = (a.start_date || a.end_date) 
-                ? `${a.start_date ? new Date(a.start_date).toLocaleDateString() : 'Start'} – ${a.end_date ? new Date(a.end_date).toLocaleDateString() : 'End'}`
-                : 'Open';
+            
+            // Format dates clearly with readable month names (Aug 4, 2026 – Aug 8, 2026)
+            let timeFrameStr = 'Open';
+            if (a.start_date || a.end_date) {
+                const startFormatted = a.start_date 
+                    ? new Date(a.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
+                    : 'Start';
+                const endFormatted = a.end_date 
+                    ? new Date(a.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
+                    : 'End';
+                timeFrameStr = `${startFormatted} – ${endFormatted}`;
+                
+                // If an existing DB record has inverted dates, flag it visually
+                if (a.start_date && a.end_date && new Date(a.end_date) < new Date(a.start_date)) {
+                    timeFrameStr += ` <span class="badge badge-rejected" style="margin-left:0.4rem;">⚠️ Inverted Dates</span>`;
+                }
+            }
+
             const typeName = a.assessment_types?.name || 'N/A';
             const periodBadge = a.period ? `<span class="badge badge-period">${a.period}</span>` : '-';
             html += `<tr>
@@ -3161,8 +3183,8 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
         try {
             let profileId = profileMap[email];
 
-            // If profile does not exist yet, we attempt insertion only if FK check allows,
-            // otherwise we provide clean fallback guidance without failing the rest.
+            // If profile does not exist yet, attempt insertion only if FK check allows,
+            // otherwise provide clean fallback guidance without failing the rest.
             if (!profileId) {
                 const newId = crypto.randomUUID();
                 const username = email.split('@')[0];
