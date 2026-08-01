@@ -462,7 +462,7 @@
                 <form id="enrollForm" class="form-grid">
                     <div class="form-group full"><label>Course</label><select id="enrollCourse" required></select></div>
                     <div class="form-group full">
-                        <label>Student Emails (Group Enrollment – separate emails by comma or line break)</label>
+                        <label>Student Emails (Group Enrollment – separate emails by comma, semicolon, space, or line break)</label>
                         <textarea id="enrollEmails" rows="4" placeholder="student1@ncf.edu.ph, student2@ncf.edu.ph" required></textarea>
                         <span class="text-muted text-sm">Note: All new enrolled accounts are initialized with default password: <strong>111111</strong></span>
                     </div>
@@ -748,9 +748,10 @@ async function ensureSectionForCourse(courseId) {
     if (sections && sections.length > 0) return sections[0].id;
     const course = instructorCourses.find(c => c.id === courseId);
     const sectionName = course ? course.code + ' Section' : 'Default Section';
-    const { data: newSection, error: insertError } = await supabase.from('sections').insert({ course_id: courseId, name: sectionName }).select().single();
-    if (insertError) return null;
-    return newSection.id;
+    const { data: newSection } = await supabase.from('sections').insert({ course_id: courseId, name: sectionName }).select('id').maybeSingle();
+    if (newSection?.id) return newSection.id;
+    const { data: retrySections } = await supabase.from('sections').select('id').eq('course_id', courseId);
+    return retrySections?.[0]?.id || null;
 }
 
 async function loadInstructorData() {
@@ -1107,7 +1108,6 @@ document.getElementById('scheduleForm').addEventListener('submit', async (e) => 
 
 // ============================================================
 // EXCUSE LETTERS VIEWING & APPROVAL ON DASHBOARD
-// (Does NOT change attendance; allows taking/retaking assessments given during class)
 // ============================================================
 window.loadExcuseLetters = async function() {
     const container = document.getElementById('excuseLettersList');
@@ -1192,7 +1192,6 @@ window.loadExcuseLetters = async function() {
 window.approveExcuseLetter = async function(letterId, studentId, courseId) {
     if (!confirm("Approve this excuse letter? This will authorize the student to take/retake quizzes or assessments given during the class session.")) return;
     
-    // 1. Mark Excuse Letter as Approved
     const { error } = await supabase
         .from('excuse_letters')
         .update({ status: 'approved' })
@@ -1203,7 +1202,6 @@ window.approveExcuseLetter = async function(letterId, studentId, courseId) {
         return;
     }
 
-    // 2. Allow student to take/retake assessments given during class session
     if (studentId && courseId) {
         const { data: assessments } = await supabase
             .from('assessments')
@@ -1212,14 +1210,12 @@ window.approveExcuseLetter = async function(letterId, studentId, courseId) {
 
         if (assessments && assessments.length > 0) {
             const assessIds = assessments.map(a => a.id);
-            // Approve any pending cheating contests so student can retake
             await supabase
                 .from('cheating_contests')
                 .update({ status: 'approved', resolved_at: new Date().toISOString() })
                 .in('assessment_id', assessIds)
                 .eq('student_id', studentId);
 
-            // Remove blocking 0-score / unsubmitted attempts so they can take the assessment
             await supabase.from('grades').delete().in('assessment_id', assessIds).eq('student_id', studentId);
             await supabase.from('student_answers').delete().in('assessment_id', assessIds).eq('student_id', studentId);
         }
@@ -1465,9 +1461,19 @@ async function ensureDraftExists() {
             const { data: newType } = await supabase
                 .from('assessment_types')
                 .insert({ course_id: courseId, name: type, weight: defaultWeight })
-                .select()
-                .single();
-            if (newType) typeId = newType.id;
+                .select('id')
+                .maybeSingle();
+            if (newType?.id) {
+                typeId = newType.id;
+            } else {
+                const { data: refetchType } = await supabase
+                    .from('assessment_types')
+                    .select('id')
+                    .eq('course_id', courseId)
+                    .eq('name', type)
+                    .maybeSingle();
+                if (refetchType) typeId = refetchType.id;
+            }
         }
     }
 
@@ -1492,15 +1498,27 @@ async function ensureDraftExists() {
             course_id: courseId,
             is_published: false
         })
-        .select()
-        .single();
+        .select('id')
+        .maybeSingle();
 
     if (error) {
         alert('Error creating draft: ' + error.message);
         return null;
     }
 
-    currentDraftAssessmentId = draft.id;
+    currentDraftAssessmentId = draft?.id || null;
+    if (!currentDraftAssessmentId) {
+        const { data: latestDraft } = await supabase
+            .from('assessments')
+            .select('id')
+            .eq('course_id', courseId)
+            .eq('title', title)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+        currentDraftAssessmentId = latestDraft?.id || null;
+    }
+
     await loadDraftAssessments();
     return currentDraftAssessmentId;
 }
@@ -1685,9 +1703,19 @@ window.saveDraft = async function() {
             const { data: newType } = await supabase
                 .from('assessment_types')
                 .insert({ course_id: courseId, name: type, weight: defaultWeight })
-                .select()
-                .single();
-            if (newType) typeId = newType.id;
+                .select('id')
+                .maybeSingle();
+            if (newType?.id) {
+                typeId = newType.id;
+            } else {
+                const { data: refetchType } = await supabase
+                    .from('assessment_types')
+                    .select('id')
+                    .eq('course_id', courseId)
+                    .eq('name', type)
+                    .maybeSingle();
+                if (refetchType) typeId = refetchType.id;
+            }
         }
     }
 
@@ -1801,10 +1829,10 @@ window.cloneAssessmentToCourse = async function(assessmentId) {
         ai_grading: orig.ai_grading,
         course_id: targetCourse.id,
         is_published: false
-    }).select().single();
+    }).select('id').maybeSingle();
 
-    if (error) {
-        alert("Failed to re-use assessment: " + error.message);
+    if (error || !cloned?.id) {
+        alert("Failed to re-use assessment: " + (error?.message || "Could not retrieve cloned assessment ID."));
         return;
     }
 
@@ -1924,9 +1952,19 @@ document.getElementById('editAssessmentForm').addEventListener('submit', async f
             const { data: newType } = await supabase
                 .from('assessment_types')
                 .insert({ course_id: courseId, name: type, weight: defaultWeight })
-                .select()
-                .single();
-            if (newType) typeId = newType.id;
+                .select('id')
+                .maybeSingle();
+            if (newType?.id) {
+                typeId = newType.id;
+            } else {
+                const { data: refetchType } = await supabase
+                    .from('assessment_types')
+                    .select('id')
+                    .eq('course_id', courseId)
+                    .eq('name', type)
+                    .maybeSingle();
+                if (refetchType) typeId = refetchType.id;
+            }
         }
     }
 
@@ -3052,7 +3090,7 @@ document.getElementById('reportType')?.addEventListener('change', function(e) {
 });
 
 // ============================================================
-// GROUP ENROLLMENT (FIXED WITHOUT SERVER AUTH REQUIREMENT)
+// GROUP ENROLLMENT (RLS NULL SELECT BUG FIXED)
 // ============================================================
 document.getElementById('enrollForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -3060,9 +3098,9 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
     const emailsRaw = document.getElementById('enrollEmails').value;
     if (!courseId || !emailsRaw) return;
 
-    // Normalize emails: lowercase, trim whitespace, remove duplicates
+    // Normalize emails: support commas, semicolons, whitespace, and line breaks
     const emails = [...new Set(
-        emailsRaw.split(/[\r\n,]+/)
+        emailsRaw.split(/[\r\n,;;\s]+/)
             .map(em => em.trim().toLowerCase())
             .filter(em => em !== '' && em.includes('@'))
     )];
@@ -3091,9 +3129,10 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
             }
 
             // 2. If profile does not exist, insert it using crypto.randomUUID()
+            //    Assign profile = { id: newId } directly to bypass RLS select restrictions
             if (!profile) {
                 const newId = crypto.randomUUID();
-                const { data: newProfile, error: insertError } = await supabase
+                const { error: insertError } = await supabase
                     .from('profiles')
                     .insert({
                         id: newId,
@@ -3101,16 +3140,14 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
                         role: 'student',
                         first_name: email.split('@')[0],
                         last_name: 'Student'
-                    })
-                    .select('id')
-                    .single();
+                    });
 
                 if (insertError) {
                     console.error(`Error inserting profile for ${email}:`, insertError);
                     errors.push(`${email}: Profile creation failed (${insertError.message})`);
                     continue;
                 }
-                profile = newProfile;
+                profile = { id: newId };
             }
 
             // 3. Enroll the student
@@ -3120,7 +3157,7 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
                     .upsert({
                         course_id: courseId,
                         student_id: profile.id
-                    }, { onConflict: 'course_id,student_id' });
+                    }, { onConflict: 'course_id,student_id', ignoreDuplicates: true });
 
                 if (enrollError) {
                     console.error(`Error enrolling ${email}:`, enrollError);
@@ -3128,10 +3165,12 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
                 } else {
                     successCount++;
                 }
+            } else {
+                errors.push(`${email}: Could not resolve student account ID.`);
             }
         } catch (err) {
             console.error(`Unexpected error for ${email}:`, err);
-            errors.push(`${email}: Unexpected error`);
+            errors.push(`${email}: Unexpected error (${err.message})`);
         }
     }
 
