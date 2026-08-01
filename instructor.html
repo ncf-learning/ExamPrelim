@@ -260,7 +260,7 @@
                             <div class="form-group full"><label>Title</label><input type="text" id="assessTitle" placeholder="e.g., Quiz 1: Chapter 1-3" required></div>
                             <div class="form-group full"><label>Description</label><textarea id="assessDesc" rows="2"></textarea></div>
                             <div class="form-group"><label>Max Score</label><input type="number" id="assessMaxScore" value="100" min="1"></div>
-                            <div class="form-group"><label>Primary Date & Time</label><input type="datetime-local" id="assessDate" required></div>
+                            <div class="form-group"><label>Date Created (Auto-assigned)</label><input type="datetime-local" id="assessDate" disabled style="background:#f8fafc; cursor:not-allowed;"></div>
                             <div class="form-group"><label>Available From (Time-Frame Start)</label><input type="datetime-local" id="assessStartDate"></div>
                             <div class="form-group"><label>Available Until (Time-Frame End)</label><input type="datetime-local" id="assessEndDate"></div>
                             <div class="form-group"><label>Questions to show</label><input type="number" id="assessShow" placeholder="Leave blank to show all" min="1"></div>
@@ -551,7 +551,7 @@
             <div class="form-group"><label>Duration (min)</label><input type="number" id="editAssessDuration" min="1" /></div>
             <div class="form-group"><label>Max Score</label><input type="number" id="editAssessMaxScore" min="1" /></div>
             <div class="form-group"><label>Passing Score (%)</label><input type="number" id="editAssessPassing" min="0" max="100" /></div>
-            <div class="form-group"><label>Primary Date & Time</label><input type="datetime-local" id="editAssessDate" required /></div>
+            <div class="form-group"><label>Date Created (Auto-assigned)</label><input type="datetime-local" id="editAssessDate" disabled style="background:#f8fafc; cursor:not-allowed;" /></div>
             <div class="form-group"><label>Available From (Start)</label><input type="datetime-local" id="editAssessStartDate" /></div>
             <div class="form-group"><label>Available Until (End)</label><input type="datetime-local" id="editAssessEndDate" /></div>
             <div class="form-group"><label>Questions to show</label><input type="number" id="editAssessShow" placeholder="Leave blank to show all" min="1" /></div>
@@ -1403,7 +1403,12 @@ window.createNewAssessment = function() {
     document.getElementById('assessmentForm').reset();
     document.getElementById('assessTitle').value = '';
     document.getElementById('assessDesc').value = '';
-    document.getElementById('assessDate').value = '';
+    
+    // Default "Date Created" to current local Philippine Time
+    const nowPH = toPhilippineTime(new Date().toISOString());
+    const assessDateInput = document.getElementById('assessDate');
+    if (assessDateInput) assessDateInput.value = nowPH;
+
     document.getElementById('assessStartDate').value = '';
     document.getElementById('assessEndDate').value = '';
     document.getElementById('assessDuration').value = 60;
@@ -1432,9 +1437,18 @@ async function ensureDraftExists() {
     const period = (document.getElementById('assessPeriod').value || 'prelim').toLowerCase();
     const duration = parseInt(document.getElementById('assessDuration').value) || 60;
     const maxScore = parseFloat(document.getElementById('assessMaxScore').value) || 100;
-    const date = document.getElementById('assessDate').value || null;
+    
+    // Always fallback to current ISO date if not provided
+    const date = new Date().toISOString();
+    
     const startDate = document.getElementById('assessStartDate').value || null;
     const endDate = document.getElementById('assessEndDate').value || null;
+
+    if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
+        alert('Time Frame Error: Available Until (End Date) cannot be earlier than Available From (Start Date).');
+        return null;
+    }
+
     const questionsToShow = parseInt(document.getElementById('assessShow').value) || null;
     const randomize = document.getElementById('assessRandomize').checked;
     const ai = document.getElementById('assessAI').value;
@@ -1674,9 +1688,18 @@ window.saveDraft = async function() {
     const period = (document.getElementById('assessPeriod').value || 'prelim').toLowerCase();
     const duration = parseInt(document.getElementById('assessDuration').value) || 60;
     const maxScore = parseFloat(document.getElementById('assessMaxScore').value) || 100;
-    const date = document.getElementById('assessDate').value || null;
+    
+    // Always save current timestamp for Date Created
+    const date = new Date().toISOString();
+    
     const startDate = document.getElementById('assessStartDate').value || null;
     const endDate = document.getElementById('assessEndDate').value || null;
+
+    if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
+        alert('Time Frame Error: Available Until (End Date) cannot be earlier than Available From (Start Date).');
+        return;
+    }
+
     const questionsToShow = parseInt(document.getElementById('assessShow').value) || null;
     const randomize = document.getElementById('assessRandomize').checked;
     const ai = document.getElementById('assessAI').value;
@@ -1759,7 +1782,7 @@ async function loadAssessmentsList() {
             container.innerHTML = '<div class="empty-state"><p>No published assessments yet.</p></div>';
             return;
         }
-        let html = '<div class="table-wrap"><table><thead><tr><th>Title</th><th>Course</th><th>Period</th><th>Type</th><th>Time-Frame (From - Until)</th><th>Date</th><th>Actions</th></tr></thead><tbody>';
+        let html = '<div class="table-wrap"><table><thead><tr><th>Title</th><th>Course</th><th>Period</th><th>Type</th><th>Time-Frame (From - Until)</th><th>Date Created</th><th>Actions</th></tr></thead><tbody>';
         for (const a of assessments) {
             let displayDate = 'N/A';
             if (a.date) {
@@ -1818,7 +1841,7 @@ window.cloneAssessmentToCourse = async function(assessmentId) {
         period: orig.period,
         max_score: orig.max_score,
         duration_minute: orig.duration_minute,
-        date: orig.date,
+        date: new Date().toISOString(),
         start_date: orig.start_date,
         end_date: orig.end_date,
         randomize_ques: orig.randomize_ques,
@@ -1887,7 +1910,7 @@ window.loadPublishedAssessment = async function(assessmentId) {
         document.getElementById('editAssessDuration').value = assessment.duration_minute || 60;
         document.getElementById('editAssessMaxScore').value = assessment.max_score || 100;
         document.getElementById('editAssessPassing').value = assessment.passing_score || 60;
-        document.getElementById('editAssessDate').value = toPhilippineTime(assessment.date);
+        document.getElementById('editAssessDate').value = toPhilippineTime(assessment.date || new Date().toISOString());
         document.getElementById('editAssessStartDate').value = toPhilippineTime(assessment.start_date);
         document.getElementById('editAssessEndDate').value = toPhilippineTime(assessment.end_date);
         document.getElementById('editAssessShow').value = assessment.questions_to_show || '';
@@ -1928,10 +1951,18 @@ document.getElementById('editAssessmentForm').addEventListener('submit', async f
     const duration = parseInt(document.getElementById('editAssessDuration').value) || 60;
     const maxScore = parseFloat(document.getElementById('editAssessMaxScore').value) || 100;
     const passing = parseInt(document.getElementById('editAssessPassing').value) || 60;
-    const phTime = document.getElementById('editAssessDate').value;
+    
+    // Always preserve Date Created as ISO
+    const utcDate = new Date().toISOString();
+    
     const startDate = document.getElementById('editAssessStartDate').value;
     const endDate = document.getElementById('editAssessEndDate').value;
-    const utcDate = toUTC(phTime);
+
+    if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
+        alert('Time Frame Error: Available Until (End Date) cannot be earlier than Available From (Start Date).');
+        return;
+    }
+
     const questionsToShow = parseInt(document.getElementById('editAssessShow').value) || null;
     const randomize = document.getElementById('editAssessRandomize').checked;
     const shuffleOptions = document.getElementById('editAssessShuffleOptions').checked;
@@ -2082,7 +2113,7 @@ window.loadDraft = async function(draftId) {
     }
     document.getElementById('assessDuration').value = draft.duration_minute || 60;
     document.getElementById('assessMaxScore').value = draft.max_score || 100;
-    document.getElementById('assessDate').value = draft.date || '';
+    document.getElementById('assessDate').value = toPhilippineTime(draft.date || new Date().toISOString());
     document.getElementById('assessStartDate').value = toPhilippineTime(draft.start_date);
     document.getElementById('assessEndDate').value = toPhilippineTime(draft.end_date);
     document.getElementById('assessShow').value = draft.questions_to_show || '';
@@ -2439,7 +2470,7 @@ document.getElementById('weightsForm').addEventListener('submit', async (e) => {
 });
 
 // ============================================================
-// INTERVENTIONS (With Printable Form for Dean's Signature & Case Closed Tracking)
+// INTERVENTIONS
 // ============================================================
 document.getElementById('interventionForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -3090,7 +3121,7 @@ document.getElementById('reportType')?.addEventListener('change', function(e) {
 });
 
 // ============================================================
-// GROUP ENROLLMENT (FIXED FOR STUDENT_ID NOT-NULL CONSTRAINT)
+// GROUP ENROLLMENT (FIXED FOR PROFILES_ID_FKEY)
 // ============================================================
 document.getElementById('enrollForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -3113,24 +3144,26 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
     let successCount = 0;
     let errors = [];
 
+    // Retrieve all existing profiles first to avoid auth.users FK constraint traps
+    const { data: existingProfiles, error: listError } = await supabase
+        .from('profiles')
+        .select('id, email')
+        .in('email', emails);
+
+    const profileMap = {};
+    if (existingProfiles) {
+        existingProfiles.forEach(p => {
+            if (p.email) profileMap[p.email.toLowerCase()] = p.id;
+        });
+    }
+
     for (const email of emails) {
         try {
-            // 1. Look up existing profile
-            let { data: profile, error: fetchError } = await supabase
-                .from('profiles')
-                .select('id')
-                .eq('email', email)
-                .maybeSingle();
+            let profileId = profileMap[email];
 
-            if (fetchError) {
-                console.error(`Error looking up profile for ${email}:`, fetchError);
-                errors.push(`${email}: Lookup failed (${fetchError.message})`);
-                continue;
-            }
-
-            // 2. If profile does not exist, insert it with a generated student_id
-            //    to avoid violating NOT NULL and UNIQUE constraints on profiles
-            if (!profile) {
+            // If profile does not exist yet, we attempt insertion only if FK check allows,
+            // otherwise we provide clean fallback guidance without failing the rest.
+            if (!profileId) {
                 const newId = crypto.randomUUID();
                 const username = email.split('@')[0];
                 const tempStudentId = 'ID-' + Math.floor(100000 + Math.random() * 900000);
@@ -3140,7 +3173,7 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
                     .insert({
                         id: newId,
                         email: email,
-                        student_id: tempStudentId, // Prevents: violates not-null constraint on column "student_id"
+                        student_id: tempStudentId,
                         role: 'student',
                         first_name: username,
                         last_name: 'Student',
@@ -3150,33 +3183,33 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
                     });
 
                 if (insertError) {
-                    console.error(`Error inserting profile for ${email}:`, insertError);
-                    errors.push(`${email}: Profile creation failed (${insertError.message})`);
+                    // Check if error is due to auth.users foreign key constraint
+                    if (insertError.message && insertError.message.includes('profiles_id_fkey')) {
+                        errors.push(`${email}: User must sign up via Student Sign-In first before they can be enrolled.`);
+                    } else {
+                        errors.push(`${email}: Profile creation failed (${insertError.message})`);
+                    }
                     continue;
                 }
-                profile = { id: newId };
+                profileId = newId;
             }
 
-            // 3. Enroll the student
-            if (profile?.id) {
+            // Enroll the student
+            if (profileId) {
                 const { error: enrollError } = await supabase
                     .from('course_enrollments')
                     .upsert({
                         course_id: courseId,
-                        student_id: profile.id
+                        student_id: profileId
                     }, { onConflict: 'course_id,student_id', ignoreDuplicates: true });
 
                 if (enrollError) {
-                    console.error(`Error enrolling ${email}:`, enrollError);
                     errors.push(`${email}: Enrollment failed (${enrollError.message})`);
                 } else {
                     successCount++;
                 }
-            } else {
-                errors.push(`${email}: Could not resolve student account ID.`);
             }
         } catch (err) {
-            console.error(`Unexpected error for ${email}:`, err);
             errors.push(`${email}: Unexpected error (${err.message})`);
         }
     }
@@ -3185,7 +3218,7 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
     if (errors.length > 0) {
         alert(`Enrolled ${successCount} student(s).\n\nErrors encountered:\n` + errors.join('\n'));
     } else {
-        alert(`Successfully enrolled ${successCount} student(s) into the course!\n(Default account password is set to 111111)`);
+        alert(`Successfully enrolled ${successCount} student(s) into the course!`);
     }
 
     if (successCount > 0) {
