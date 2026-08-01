@@ -3143,7 +3143,7 @@ document.getElementById('reportType')?.addEventListener('change', function(e) {
 });
 
 // ============================================================
-// GROUP ENROLLMENT (AUTOMATIC AUTH CREATION TO SATISFY PROFILES_ID_FKEY)
+// GROUP ENROLLMENT (AUTOMATIC AUTH CREATION + ERROR REPORTING)
 // ============================================================
 function getSupabaseConfig(client) {
     let url = '';
@@ -3212,7 +3212,9 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
             // Step 2: If profile doesn't exist, register via Auth API so auth.users gets the ID first
             if (!profileId) {
                 let authUserId = null;
+                let authErrorMsg = '';
 
+                // 2a. Attempt Registration via GoTrue REST API
                 if (url && key) {
                     try {
                         const signupRes = await fetch(`${url}/auth/v1/signup`, {
@@ -3233,18 +3235,53 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
                             })
                         });
                         const signupData = await signupRes.json();
-                        if (signupData?.id) authUserId = signupData.id;
-                        else if (signupData?.user?.id) authUserId = signupData.user.id;
-                        else if (signupData?.data?.user?.id) authUserId = signupData.data.user.id;
+                        if (signupData?.id) {
+                            authUserId = signupData.id;
+                        } else if (signupData?.user?.id) {
+                            authUserId = signupData.user.id;
+                        } else if (signupData?.data?.user?.id) {
+                            authUserId = signupData.data.user.id;
+                        } else {
+                            authErrorMsg = signupData?.msg || signupData?.message || signupData?.error_description || signupData?.error || '';
+                        }
                     } catch (errAuth) {
-                        console.warn('Auth API signup warning:', errAuth);
+                        authErrorMsg = errAuth.message;
+                    }
+
+                    // 2b. If signup returned empty because user ALREADY EXISTS in auth.users,
+                    // recover their ID via token login with default password '111111'
+                    if (!authUserId) {
+                        try {
+                            const loginRes = await fetch(`${url}/auth/v1/token?grant_type=password`, {
+                                method: 'POST',
+                                headers: {
+                                    'apikey': key,
+                                    'Authorization': `Bearer ${key}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    email: email,
+                                    password: '111111'
+                                })
+                            });
+                            const loginData = await loginRes.json();
+                            if (loginData?.user?.id) {
+                                authUserId = loginData.user.id;
+                            } else if (loginData?.id) {
+                                authUserId = loginData.id;
+                            } else if (!authErrorMsg) {
+                                authErrorMsg = loginData?.error_description || loginData?.msg || loginData?.error || '';
+                            }
+                        } catch (errLogin) {
+                            if (!authErrorMsg) authErrorMsg = errLogin.message;
+                        }
                     }
                 }
 
-                // If fetch couldn't register, use supabase.auth.signUp as fallback
+                // 2c. If fetch couldn't register or login, use supabase.auth.signUp as fallback
                 if (!authUserId) {
                     try {
-                        const { data: signUpRes } = await supabase.auth.signUp({
+                        const { data: signUpRes, error: signUpErr } = await supabase.auth.signUp({
                             email: email,
                             password: '111111',
                             options: {
@@ -3255,14 +3292,19 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
                                 }
                             }
                         });
-                        if (signUpRes?.user?.id) authUserId = signUpRes.user.id;
+                        if (signUpRes?.user?.id) {
+                            authUserId = signUpRes.user.id;
+                        } else if (signUpErr && !authErrorMsg) {
+                            authErrorMsg = signUpErr.message;
+                        }
                     } catch (errFallback) {
-                        console.warn('Fallback signUp warning:', errFallback);
+                        if (!authErrorMsg) authErrorMsg = errFallback.message;
                     }
                 }
 
                 if (!authUserId) {
-                    errors.push(`${email}: Auth registration failed (Account may already exist with a different password, or Email Confirmations are required in Supabase Auth settings).`);
+                    const errorDetail = authErrorMsg ? ` (${authErrorMsg})` : ' (Check Supabase Auth -> Rate Limits or Email settings)';
+                    errors.push(`${email}: Auth registration failed${errorDetail}`);
                     continue;
                 }
 
