@@ -3145,6 +3145,37 @@ document.getElementById('reportType')?.addEventListener('change', function(e) {
 // ============================================================
 // GROUP ENROLLMENT (AUTOMATIC AUTH CREATION TO SATISFY PROFILES_ID_FKEY)
 // ============================================================
+function getSupabaseConfig(client) {
+    let url = '';
+    let key = '';
+
+    try {
+        if (client.supabaseUrl) url = String(client.supabaseUrl);
+        if (client.supabaseKey) key = String(client.supabaseKey);
+
+        if (!url && client.rest?.url) {
+            url = String(client.rest.url);
+        }
+        if (!url && client.auth?.url) {
+            url = String(client.auth.url);
+        }
+        if (!key && client.rest?.headers) {
+            key = client.rest.headers['apikey'] || client.rest.headers['Authorization'] || '';
+            key = String(key).replace(/^Bearer\s+/i, '');
+        }
+        if (!key && client.auth?.headers) {
+            key = client.auth.headers['apikey'] || client.auth.headers['Authorization'] || '';
+            key = String(key).replace(/^Bearer\s+/i, '');
+        }
+
+        url = url.replace(/\/rest\/v1.*$/, '').replace(/\/auth\/v1.*$/, '').replace(/\/$/, '');
+    } catch (e) {
+        console.error('getSupabaseConfig error:', e);
+    }
+
+    return { url, key };
+}
+
 document.getElementById('enrollForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     const courseId = document.getElementById('enrollCourse').value;
@@ -3165,15 +3196,7 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
 
     let successCount = 0;
     let errors = [];
-
-    // Helper to get url and apikey for direct Auth API calls
-    let baseUrl = supabase.supabaseUrl || '';
-    if (!baseUrl && supabase.rest?.url) baseUrl = supabase.rest.url.replace(/\/rest\/v1.*$/, '');
-    if (!baseUrl && supabase.auth?.url) baseUrl = supabase.auth.url.replace(/\/auth\/v1.*$/, '');
-    
-    let apikey = supabase.supabaseKey || '';
-    if (!apikey && supabase.rest?.headers?.['apikey']) apikey = supabase.rest.headers['apikey'];
-    if (!apikey && supabase.headers?.['apikey']) apikey = supabase.headers['apikey'];
+    const { url, key } = getSupabaseConfig(supabase);
 
     for (const email of emails) {
         try {
@@ -3190,13 +3213,13 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
             if (!profileId) {
                 let authUserId = null;
 
-                if (baseUrl && apikey) {
+                if (url && key) {
                     try {
-                        const signupRes = await fetch(`${baseUrl}/auth/v1/signup`, {
+                        const signupRes = await fetch(`${url}/auth/v1/signup`, {
                             method: 'POST',
                             headers: {
-                                'apikey': apikey,
-                                'Authorization': `Bearer ${apikey}`,
+                                'apikey': key,
+                                'Authorization': `Bearer ${key}`,
                                 'Content-Type': 'application/json'
                             },
                             body: JSON.stringify({
@@ -3212,20 +3235,44 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
                         const signupData = await signupRes.json();
                         if (signupData?.id) authUserId = signupData.id;
                         else if (signupData?.user?.id) authUserId = signupData.user.id;
+                        else if (signupData?.data?.user?.id) authUserId = signupData.data.user.id;
                     } catch (errAuth) {
                         console.warn('Auth API signup warning:', errAuth);
                     }
                 }
 
-                // If Auth API created the user (or if we need an ID), use authUserId or fallback
-                const newId = authUserId || crypto.randomUUID();
+                // If fetch couldn't register, use supabase.auth.signUp as fallback
+                if (!authUserId) {
+                    try {
+                        const { data: signUpRes } = await supabase.auth.signUp({
+                            email: email,
+                            password: '111111',
+                            options: {
+                                data: {
+                                    first_name: email.split('@')[0],
+                                    last_name: 'Student',
+                                    role: 'student'
+                                }
+                            }
+                        });
+                        if (signUpRes?.user?.id) authUserId = signUpRes.user.id;
+                    } catch (errFallback) {
+                        console.warn('Fallback signUp warning:', errFallback);
+                    }
+                }
+
+                if (!authUserId) {
+                    errors.push(`${email}: Supabase Auth registration failed. Please check your Authentication settings.`);
+                    continue;
+                }
+
                 const tempStudentId = 'ID-' + Math.floor(100000 + Math.random() * 900000);
 
                 // Attempt to insert/upsert into profiles
                 const { data: insertedProfile, error: insertError } = await supabase
                     .from('profiles')
                     .upsert({
-                        id: newId,
+                        id: authUserId,
                         email: email,
                         student_id: tempStudentId,
                         role: 'student',
@@ -3234,7 +3281,7 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
                         section: 'N/A',
                         phone: 'N/A',
                         address: 'N/A'
-                    }, { onConflict: 'email' })
+                    }, { onConflict: 'id' })
                     .select('id')
                     .maybeSingle();
 
@@ -3248,15 +3295,12 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
 
                     if (retryProfile?.id) {
                         profileId = retryProfile.id;
-                    } else if (insertError.message && insertError.message.includes('profiles_id_fkey')) {
-                        errors.push(`${email}: Account not registered yet (Student must sign in/sign up once first).`);
-                        continue;
                     } else {
                         errors.push(`${email}: Profile creation failed (${insertError.message})`);
                         continue;
                     }
                 } else {
-                    profileId = insertedProfile?.id || newId;
+                    profileId = insertedProfile?.id || authUserId;
                 }
             }
 
