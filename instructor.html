@@ -175,7 +175,7 @@
                 <div id="cheatingContestsList"><div class="empty-state"><p>Loading contests...</p></div></div>
             </div>
 
-            <!-- EXCUSE LETTERS CARD (Placed on Dashboard for easy access) -->
+            <!-- EXCUSE LETTERS CARD -->
             <div class="card" style="border-left: 4px solid #3b82f6;">
                 <div class="card-header">
                     <div>
@@ -3052,7 +3052,7 @@ document.getElementById('reportType')?.addEventListener('change', function(e) {
 });
 
 // ============================================================
-// GROUP ENROLLMENT
+// GROUP ENROLLMENT (FIXED WITHOUT SERVER AUTH REQUIREMENT)
 // ============================================================
 document.getElementById('enrollForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -3060,34 +3060,92 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
     const emailsRaw = document.getElementById('enrollEmails').value;
     if (!courseId || !emailsRaw) return;
 
-    const emails = emailsRaw.split(/[\r\n,]+/).map(em => em.trim()).filter(em => em !== '');
-    if (emails.length === 0) return;
+    // Normalize emails: lowercase, trim whitespace, remove duplicates
+    const emails = [...new Set(
+        emailsRaw.split(/[\r\n,]+/)
+            .map(em => em.trim().toLowerCase())
+            .filter(em => em !== '' && em.includes('@'))
+    )];
+
+    if (emails.length === 0) {
+        alert('Please enter at least one valid email address.');
+        return;
+    }
 
     let successCount = 0;
-    for (const email of emails) {
-        let { data: profile } = await supabase.from('profiles').select('id').eq('email', email).maybeSingle();
-        if (!profile) {
-            const { data: newProfile } = await supabase.from('profiles').insert({
-                email: email,
-                role: 'student',
-                first_name: email.split('@')[0],
-                last_name: 'Student'
-            }).select('id').single();
-            profile = newProfile;
-        }
+    let errors = [];
 
-        if (profile) {
-            await supabase.from('course_enrollments').upsert({
-                course_id: courseId,
-                student_id: profile.id
-            }, { onConflict: 'course_id,student_id' });
-            successCount++;
+    for (const email of emails) {
+        try {
+            // 1. Look up existing profile
+            let { data: profile, error: fetchError } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('email', email)
+                .maybeSingle();
+
+            if (fetchError) {
+                console.error(`Error looking up profile for ${email}:`, fetchError);
+                errors.push(`${email}: Lookup failed (${fetchError.message})`);
+                continue;
+            }
+
+            // 2. If profile does not exist, insert it using crypto.randomUUID()
+            if (!profile) {
+                const newId = crypto.randomUUID();
+                const { data: newProfile, error: insertError } = await supabase
+                    .from('profiles')
+                    .insert({
+                        id: newId,
+                        email: email,
+                        role: 'student',
+                        first_name: email.split('@')[0],
+                        last_name: 'Student'
+                    })
+                    .select('id')
+                    .single();
+
+                if (insertError) {
+                    console.error(`Error inserting profile for ${email}:`, insertError);
+                    errors.push(`${email}: Profile creation failed (${insertError.message})`);
+                    continue;
+                }
+                profile = newProfile;
+            }
+
+            // 3. Enroll the student
+            if (profile?.id) {
+                const { error: enrollError } = await supabase
+                    .from('course_enrollments')
+                    .upsert({
+                        course_id: courseId,
+                        student_id: profile.id
+                    }, { onConflict: 'course_id,student_id' });
+
+                if (enrollError) {
+                    console.error(`Error enrolling ${email}:`, enrollError);
+                    errors.push(`${email}: Enrollment failed (${enrollError.message})`);
+                } else {
+                    successCount++;
+                }
+            }
+        } catch (err) {
+            console.error(`Unexpected error for ${email}:`, err);
+            errors.push(`${email}: Unexpected error`);
         }
     }
 
-    alert(`Successfully enrolled ${successCount} student(s) into the course! (Default account password is set to 111111)`);
-    document.getElementById('enrollForm').reset();
-    updateStats();
+    // Report feedback to the instructor
+    if (errors.length > 0) {
+        alert(`Enrolled ${successCount} student(s).\n\nErrors encountered:\n` + errors.join('\n'));
+    } else {
+        alert(`Successfully enrolled ${successCount} student(s) into the course!\n(Default account password is set to 111111)`);
+    }
+
+    if (successCount > 0) {
+        document.getElementById('enrollForm').reset();
+        updateStats();
+    }
 });
 
 // ============================================================
