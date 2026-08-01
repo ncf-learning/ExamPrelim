@@ -350,6 +350,14 @@
                 </form>
             </div>
             <div class="card">
+                <div class="card-header"><h3>Account Security</h3></div>
+                <form id="changePasswordForm" class="form-grid">
+                    <div class="form-group"><label>New Password</label><input type="password" id="newPassword" required minlength="6" placeholder="Enter new password (min. 6 chars)" /></div>
+                    <div class="form-group"><label>Confirm New Password</label><input type="password" id="confirmPassword" required minlength="6" placeholder="Re-type new password" /></div>
+                    <div class="form-group full"><button type="submit" class="btn btn-primary">🔒 Change Password</button></div>
+                </form>
+            </div>
+            <div class="card">
                 <div class="card-header"><h3>My Courses</h3></div>
                 <div id="myCoursesList"><div class="empty-state">Loading...</div></div>
             </div>
@@ -770,6 +778,39 @@ document.getElementById('profileForm').addEventListener('submit', async (e) => {
     currentProfile.phone = phone;
     currentProfile.address = address;
     document.getElementById('userName').textContent = `${firstName} ${lastName}`;
+});
+
+document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+
+    if (newPassword !== confirmPassword) {
+        alert('Passwords do not match. Please re-type carefully.');
+        return;
+    }
+    if (newPassword.length < 6) {
+        alert('Password must be at least 6 characters long.');
+        return;
+    }
+
+    const btn = e.target.querySelector('button[type="submit"]');
+    if (btn) btn.disabled = true;
+
+    try {
+        const { error } = await supabase.auth.updateUser({
+            password: newPassword
+        });
+
+        if (error) throw error;
+
+        alert('✅ Password changed successfully!');
+        document.getElementById('changePasswordForm').reset();
+    } catch (err) {
+        alert('Error changing password: ' + err.message);
+    } finally {
+        if (btn) btn.disabled = false;
+    }
 });
 
 // ============================================================
