@@ -566,6 +566,24 @@
     </div>
 </div>
 
+<div class="modal" id="cloneAssessmentModal">
+    <div class="modal-content">
+        <button class="close" onclick="closeCloneAssessmentModal()">✕</button>
+        <h3>Copy / Re-use Assessment</h3>
+        <form id="cloneAssessmentForm" class="form-grid" style="margin-top:1rem;">
+            <input type="hidden" id="cloneAssessId" />
+            <div class="form-group full">
+                <label>Select Target Course / Section</label>
+                <select id="cloneTargetCourse" required><option value="">Select course...</option></select>
+            </div>
+            <div class="form-group full" style="margin-top:1rem; display:flex; gap:0.5rem;">
+                <button type="submit" class="btn btn-primary">📋 Copy & Modify</button>
+                <button type="button" class="btn btn-outline" onclick="closeCloneAssessmentModal()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script type="module">
 import { supabase, getCurrentUser, getCurrentProfile, signOut } from './supabase.js';
 
@@ -1842,17 +1860,23 @@ async function loadAssessmentsList() {
 }
 
 window.cloneAssessmentToCourse = async function(assessmentId) {
-    if (instructorCourses.length <= 1) {
-        alert("You need at least two courses to re-use an assessment across courses.");
-        return;
-    }
-    const targetCode = prompt("Enter the exact Course Code (e.g., IT 101) where you want to copy this assessment:");
-    if (!targetCode) return;
-    const targetCourse = instructorCourses.find(c => c.code.toLowerCase() === targetCode.trim().toLowerCase());
-    if (!targetCourse) {
-        alert("Course not found in your assigned courses!");
-        return;
-    }
+    const select = document.getElementById('cloneTargetCourse');
+    renderSelect(select, instructorCourses, 'id', c => `${c.code} - ${c.name}`);
+    document.getElementById('cloneAssessId').value = assessmentId;
+    document.getElementById('cloneAssessmentModal').classList.add('active');
+};
+
+window.closeCloneAssessmentModal = function() {
+    document.getElementById('cloneAssessmentModal').classList.remove('active');
+};
+
+document.getElementById('cloneAssessmentForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const assessmentId = document.getElementById('cloneAssessId').value;
+    const targetCourseId = document.getElementById('cloneTargetCourse').value;
+    if (!assessmentId || !targetCourseId) return;
+
+    const targetCourse = instructorCourses.find(c => c.id === targetCourseId);
     const { data: orig } = await supabase.from('assessments').select('*').eq('id', assessmentId).single();
     if (!orig) return;
 
@@ -1872,7 +1896,7 @@ window.cloneAssessmentToCourse = async function(assessmentId) {
         show_answers: orig.show_answers,
         passing_score: orig.passing_score,
         ai_grading: orig.ai_grading,
-        course_id: targetCourse.id,
+        course_id: targetCourseId,
         is_published: false
     }).select('id').maybeSingle();
 
@@ -1894,9 +1918,11 @@ window.cloneAssessmentToCourse = async function(assessmentId) {
         await supabase.from('assessment_questions').insert(toInsert);
     }
 
-    alert(`Assessment successfully copied to ${targetCourse.code} as a draft!`);
-    loadDraftAssessments();
-};
+    closeCloneAssessmentModal();
+    alert(`Assessment copied to ${targetCourse?.code || 'course'} as a draft! Opening editor to modify...`);
+    await loadDraftAssessments();
+    loadDraft(cloned.id);
+});
 
 document.addEventListener('click', function(e) {
     const btn = e.target.closest('.edit-assessment-btn');
