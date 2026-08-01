@@ -3143,7 +3143,7 @@ document.getElementById('reportType')?.addEventListener('change', function(e) {
 });
 
 // ============================================================
-// GROUP ENROLLMENT (FIXED FOR PROFILES_ID_FKEY)
+// GROUP ENROLLMENT (AUTOMATIC AUTH CREATION TO SATISFY PROFILES_ID_FKEY)
 // ============================================================
 document.getElementById('enrollForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -3166,57 +3166,101 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
     let successCount = 0;
     let errors = [];
 
-    // Retrieve all existing profiles first to avoid auth.users FK constraint traps
-    const { data: existingProfiles, error: listError } = await supabase
-        .from('profiles')
-        .select('id, email')
-        .in('email', emails);
-
-    const profileMap = {};
-    if (existingProfiles) {
-        existingProfiles.forEach(p => {
-            if (p.email) profileMap[p.email.toLowerCase()] = p.id;
-        });
-    }
+    // Helper to get url and apikey for direct Auth API calls
+    let baseUrl = supabase.supabaseUrl || '';
+    if (!baseUrl && supabase.rest?.url) baseUrl = supabase.rest.url.replace(/\/rest\/v1.*$/, '');
+    if (!baseUrl && supabase.auth?.url) baseUrl = supabase.auth.url.replace(/\/auth\/v1.*$/, '');
+    
+    let apikey = supabase.supabaseKey || '';
+    if (!apikey && supabase.rest?.headers?.['apikey']) apikey = supabase.rest.headers['apikey'];
+    if (!apikey && supabase.headers?.['apikey']) apikey = supabase.headers['apikey'];
 
     for (const email of emails) {
         try {
-            let profileId = profileMap[email];
+            // Step 1: Check if profile already exists (case-insensitive check)
+            let { data: profile } = await supabase
+                .from('profiles')
+                .select('id, email')
+                .ilike('email', email)
+                .maybeSingle();
 
-            // If profile does not exist yet, attempt insertion only if FK check allows,
-            // otherwise provide clean fallback guidance without failing the rest.
+            let profileId = profile?.id || null;
+
+            // Step 2: If profile doesn't exist, register via Auth API so auth.users gets the ID first
             if (!profileId) {
-                const newId = crypto.randomUUID();
-                const username = email.split('@')[0];
+                let authUserId = null;
+
+                if (baseUrl && apikey) {
+                    try {
+                        const signupRes = await fetch(`${baseUrl}/auth/v1/signup`, {
+                            method: 'POST',
+                            headers: {
+                                'apikey': apikey,
+                                'Authorization': `Bearer ${apikey}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                email: email,
+                                password: '111111',
+                                data: {
+                                    first_name: email.split('@')[0],
+                                    last_name: 'Student',
+                                    role: 'student'
+                                }
+                            })
+                        });
+                        const signupData = await signupRes.json();
+                        if (signupData?.id) authUserId = signupData.id;
+                        else if (signupData?.user?.id) authUserId = signupData.user.id;
+                    } catch (errAuth) {
+                        console.warn('Auth API signup warning:', errAuth);
+                    }
+                }
+
+                // If Auth API created the user (or if we need an ID), use authUserId or fallback
+                const newId = authUserId || crypto.randomUUID();
                 const tempStudentId = 'ID-' + Math.floor(100000 + Math.random() * 900000);
-                
-                const { error: insertError } = await supabase
+
+                // Attempt to insert/upsert into profiles
+                const { data: insertedProfile, error: insertError } = await supabase
                     .from('profiles')
-                    .insert({
+                    .upsert({
                         id: newId,
                         email: email,
                         student_id: tempStudentId,
                         role: 'student',
-                        first_name: username,
+                        first_name: email.split('@')[0],
                         last_name: 'Student',
                         section: 'N/A',
                         phone: 'N/A',
                         address: 'N/A'
-                    });
+                    }, { onConflict: 'email' })
+                    .select('id')
+                    .maybeSingle();
 
                 if (insertError) {
-                    // Check if error is due to auth.users foreign key constraint
-                    if (insertError.message && insertError.message.includes('profiles_id_fkey')) {
-                        errors.push(`${email}: User must sign up via Student Sign-In first before they can be enrolled.`);
+                    // Check if it failed because email already exists in profiles under different case
+                    let { data: retryProfile } = await supabase
+                        .from('profiles')
+                        .select('id')
+                        .ilike('email', email)
+                        .maybeSingle();
+
+                    if (retryProfile?.id) {
+                        profileId = retryProfile.id;
+                    } else if (insertError.message && insertError.message.includes('profiles_id_fkey')) {
+                        errors.push(`${email}: Account not registered yet (Student must sign in/sign up once first).`);
+                        continue;
                     } else {
                         errors.push(`${email}: Profile creation failed (${insertError.message})`);
+                        continue;
                     }
-                    continue;
+                } else {
+                    profileId = insertedProfile?.id || newId;
                 }
-                profileId = newId;
             }
 
-            // Enroll the student
+            // Step 3: Enroll student into course_enrollments
             if (profileId) {
                 const { error: enrollError } = await supabase
                     .from('course_enrollments')
@@ -3230,13 +3274,15 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
                 } else {
                     successCount++;
                 }
+            } else {
+                errors.push(`${email}: Could not obtain valid student ID.`);
             }
         } catch (err) {
             errors.push(`${email}: Unexpected error (${err.message})`);
         }
     }
 
-    // Report feedback to the instructor
+    // Report feedback
     if (errors.length > 0) {
         alert(`Enrolled ${successCount} student(s).\n\nErrors encountered:\n` + errors.join('\n'));
     } else {
