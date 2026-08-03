@@ -37,8 +37,10 @@
 
         <div id="message" style="margin-top:1rem; text-align:center; display:none; padding:0.75rem; border-radius:0.5rem;"></div>
 
-        <div style="text-align:center; margin-top:1rem;">
-            Don't have an account? <a href="register.html" style="color:#3b82f6;">Register here</a>
+        <!-- REPLACED SELF-REGISTRATION LINK WITH INSTRUCTOR ENROLLMENT NOTICE -->
+        <div style="text-align:center; margin-top:1.25rem; font-size: 0.85rem; color: #64748b; line-height: 1.4;">
+            Don't have an account? Self-registration is disabled.<br />
+            <strong>Please contact your instructor</strong> for course enrollment and account credentials.
         </div>
 
         <div class="footer">
@@ -119,11 +121,11 @@
                 sessionStorage.setItem('userRole', profile.role);
                 sessionStorage.setItem('userName', `${profile.first_name} ${profile.last_name}`);
 
-                // 4. Redirect – FIXED: student goes to student.html
+                // 4. Redirect
                 if (profile.role === 'instructor') {
                     window.location.href = 'instructor.html';
                 } else if (profile.role === 'student') {
-                    window.location.href = 'student.html';   // <-- corrected from dashboard.html
+                    window.location.href = 'student.html';
                 } else {
                     showMessage('⏳ Account pending approval.', false);
                     await supabase.auth.signOut();
