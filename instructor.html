@@ -93,7 +93,7 @@
         .question-item .q-actions { display:flex; gap:0.5rem; }
         .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); display:none; align-items:center; justify-content:center; z-index:1000; }
         .modal.active { display:flex; }
-        .modal-content { background:#fff; border-radius:12px; padding:2rem; max-width:800px; width:95%; max-height:80vh; overflow-y:auto; }
+        .modal-content { background:#fff; border-radius:12px; padding:2rem; max-width:850px; width:95%; max-height:85vh; overflow-y:auto; }
         .modal-content .form-grid { grid-template-columns:1fr; }
         .modal-content .close { float:right; background:none; border:none; font-size:1.5rem; cursor:pointer; }
         .modal-content table { width:100%; }
@@ -101,7 +101,7 @@
         @media (max-width:1024px) { .sidebar { width:220px; } .main { padding:1.5rem; } .form-grid { grid-template-columns:1fr; } }
         @media (max-width:768px) { .app { flex-direction:column; } .sidebar { width:100%; height:auto; position:static; padding:1rem; } .sidebar nav { display:flex; flex-wrap:wrap; gap:0.25rem; } .sidebar nav .nav-label { display:none; } .sidebar nav .nav-item { padding:0.4rem 0.7rem; font-size:0.8rem; } .sidebar .user-section { display:none; } .main { padding:1rem; } .stats-grid { grid-template-columns:1fr 1fr; } }
         @media (max-width:480px) { .stats-grid { grid-template-columns:1fr; } .page-header { flex-direction:column; align-items:flex-start; } }
-        .qr-code img { max-width:100px; height:auto; border:1px solid #e2e8f0; border-radius:4px; }
+        .qr-code img { max-width:80px; height:auto; border:1px solid #e2e8f0; border-radius:4px; }
 
         @media print {
             body * { visibility: hidden; }
@@ -200,26 +200,34 @@
         <!-- ===== ATTENDANCE ===== -->
         <section id="section-attendance" class="page-section">
             <div class="page-header"><div><h1>Attendance <small>Create sessions and track attendance</small></h1></div></div>
+            
             <div class="card">
-                <div class="card-header"><h3>Create Session (Self‑Check‑In)</h3></div>
+                <div class="card-header"><h3>Create Session (Self‑Check‑In & Manual Attendance)</h3></div>
                 <form id="attendanceForm" class="form-grid">
                     <div class="form-group full"><label>Course</label><select id="attCourse" required></select></div>
                     <div class="form-group"><label>Date</label><input type="date" id="attDate" required></div>
                     <div class="form-group"><label>Start</label><input type="time" id="attStart" required></div>
                     <div class="form-group"><label>End</label><input type="time" id="attEnd" required></div>
-                    <div class="form-group full"><button type="submit" class="btn btn-primary">Generate Code</button></div>
+                    <div class="form-group full"><button type="submit" class="btn btn-primary">+ Generate Session & Code</button></div>
                 </form>
-                <div id="attCodeDisplay" style="display:none; margin-top:0.75rem; padding:0.75rem; background:#f1f5f9; border-radius:8px; text-align:center; font-size:1.5rem; font-weight:700; letter-spacing:4px; font-family:monospace;"></div>
+                <div id="attCodeDisplay" style="display:none; margin-top:0.75rem; padding:1rem; background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; text-align:center; font-family:monospace;"></div>
             </div>
 
             <div class="card">
-                <div class="card-header"><h3>Manual Attendance Marking</h3></div>
+                <div class="card-header"><h3>Manual Attendance Marking (Check Students by Instructor)</h3></div>
                 <div class="form-grid">
-                    <div class="form-group full"><label>Select Session</label><select id="manualSessionSelect"><option value="">Choose a session...</option></select></div>
-                    <div class="form-group full"><button class="btn btn-primary" onclick="openMarkAttendanceModal()">📝 Mark Attendance</button><button class="btn btn-outline" onclick="loadManualSessions()">🔄 Refresh Sessions</button></div>
+                    <div class="form-group full"><label>Select Course Session</label><select id="manualSessionSelect"><option value="">Choose a session...</option></select></div>
+                    <div class="form-group full">
+                        <button type="button" class="btn btn-primary" onclick="openMarkAttendanceModal()">📝 Mark / Check Attendance</button>
+                        <button type="button" class="btn btn-outline" onclick="loadManualSessions()">🔄 Refresh Sessions</button>
+                    </div>
                 </div>
             </div>
-            <div class="card"><div class="card-header"><h3>Attendance Sessions</h3></div><div id="attendanceSessionsList"><div class="empty-state"><p>No sessions yet.</p></div></div></div>
+
+            <div class="card">
+                <div class="card-header"><h3>Attendance Sessions History</h3></div>
+                <div id="attendanceSessionsList"><div class="empty-state"><p>No sessions yet.</p></div></div>
+            </div>
         </section>
 
         <!-- ===== SCHEDULE ===== -->
@@ -503,22 +511,30 @@
     </div>
 </div>
 
+<!-- MARK ATTENDANCE MODAL -->
 <div class="modal" id="markAttendanceModal">
     <div class="modal-content">
         <button class="close" onclick="closeMarkAttendanceModal()">✕</button>
-        <h3>Mark Attendance</h3>
+        <h3 style="margin-bottom:0.75rem;">Check & Mark Attendance by Instructor</h3>
         <div id="markAttendanceInfo"></div>
-        <div id="markAttendanceTableWrap" style="margin-top:1rem;">
+        <div id="markAttendanceTableWrap" style="margin-top:0.75rem;">
             <div class="table-wrap">
                 <table>
-                    <thead><tr><th>Student</th><th>Current Status</th><th>Update Status</th><th>Action</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th>Student Name & ID</th>
+                            <th>Current Status</th>
+                            <th>Mark Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
                     <tbody id="markAttendanceBody"></tbody>
                 </table>
             </div>
         </div>
-        <div style="margin-top:1rem; display:flex; gap:0.5rem; justify-content:flex-end;">
-            <button class="btn btn-success" id="saveManualAttendanceBtn" onclick="saveManualAttendance()">💾 Save All</button>
-            <button class="btn btn-outline" onclick="closeMarkAttendanceModal()">Cancel</button>
+        <div style="margin-top:1.5rem; display:flex; gap:0.5rem; justify-content:flex-end;">
+            <button class="btn btn-success" id="saveManualAttendanceBtn" onclick="saveManualAttendance()">💾 Save All Attendance</button>
+            <button class="btn btn-outline" onclick="closeMarkAttendanceModal()">Close</button>
         </div>
     </div>
 </div>
@@ -666,8 +682,10 @@ function setupNavigation() {
                 loadStudentsForIntervention();
                 loadInterventions();
             }
-            if (targetSection === 'attendance' && typeof loadExcuseLetters === 'function') {
-                loadExcuseLetters();
+            if (targetSection === 'attendance') {
+                if (typeof loadAttendanceSessions === 'function') loadAttendanceSessions();
+                if (typeof loadManualSessions === 'function') loadManualSessions();
+                if (typeof loadExcuseLetters === 'function') loadExcuseLetters();
             }
         });
     });
@@ -1257,6 +1275,71 @@ window.rejectExcuseLetter = async function(letterId) {
     loadExcuseLetters();
 };
 
+// ============================================================
+// ATTENDANCE SESSIONS & MANUAL MARKING BY INSTRUCTOR
+// ============================================================
+
+// 1. CREATE NEW ATTENDANCE SESSION
+document.getElementById('attendanceForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const courseId = document.getElementById('attCourse').value;
+    const date = document.getElementById('attDate').value;
+    const start = document.getElementById('attStart').value;
+    const end = document.getElementById('attEnd').value;
+
+    if (!courseId || !date || !start || !end) {
+        alert('Please fill in all session fields (Course, Date, Start Time, End Time).');
+        return;
+    }
+
+    if (end <= start) {
+        alert('End time must be later than start time.');
+        return;
+    }
+
+    const sectionId = await ensureSectionForCourse(courseId);
+    if (!sectionId) {
+        alert('Could not find or create a section for this course.');
+        return;
+    }
+
+    // Generate a 6-character alphanumeric code
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+    // Calculate expiration timestamp (end of session time in ISO string)
+    const expiresAt = new Date(`${date}T${end}:00`).toISOString();
+
+    const { data, error } = await supabase
+        .from('attendance_sessions')
+        .insert({
+            section_id: sectionId,
+            date: date,
+            start_time: start,
+            end_time: end,
+            code: code,
+            expires_at: expiresAt
+        })
+        .select()
+        .maybeSingle();
+
+    if (error) {
+        alert('Error creating attendance session: ' + error.message);
+        return;
+    }
+
+    // Show the generated code display box
+    const displayEl = document.getElementById('attCodeDisplay');
+    if (displayEl) {
+        displayEl.style.display = 'block';
+        displayEl.innerHTML = `Session Created!<br><span style="font-size:1.8rem; font-weight:700; color:#3b82f6; letter-spacing:3px;">${code}</span><br><small style="font-size:0.75rem; font-weight:400; color:#64748b;">Self-Check-In Code (Valid until ${end})</small>`;
+    }
+
+    alert('✅ Attendance session created successfully! Code: ' + code);
+    await loadAttendanceSessions();
+    await loadManualSessions();
+    document.getElementById('attendanceForm').reset();
+});
+
 async function loadAttendanceSessions() {
     const container = document.getElementById('attendanceSessionsList');
     try {
@@ -1278,101 +1361,153 @@ async function loadAttendanceSessions() {
                 <td>${s.date}</td>
                 <td>${s.start_time}</td>
                 <td>${s.end_time}</td>
-                <td>${s.code}</td>
+                <td><strong>${s.code}</strong></td>
                 <td class="qr-code"><img src="${qrUrl}" alt="QR Code" /></td>
-                <td>${s.expires_at ? new Date(s.expires_at).toLocaleString() : '-'}</td>
+                <td>${s.expires_at ? new Date(s.expires_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '-'}</td>
                 <td>
-                    <button class="btn btn-danger btn-sm" onclick="deleteAttendanceSession('${s.id}')">🗑️</button>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="selectSessionForManualMarking('${s.id}')">📝 Mark</button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="deleteAttendanceSession('${s.id}')">🗑️</button>
                 </td>
             </tr>`;
         }
         html += '</tbody></table></div>';
         container.innerHTML = html;
     } catch (err) {
-        container.innerHTML = '<div class="empty-state"><p>Error loading sessions.</p></div>';
+        container.innerHTML = '<div class="empty-state"><p>Error loading sessions: ' + err.message + '</p></div>';
     }
 }
+
+window.selectSessionForManualMarking = function(sessionId) {
+    const select = document.getElementById('manualSessionSelect');
+    if (select) {
+        select.value = sessionId;
+        openMarkAttendanceModal();
+    }
+};
 
 async function loadManualSessions() {
     const select = document.getElementById('manualSessionSelect');
     try {
-        const sectionIds = (await supabase.from('sections').select('id').in('course_id', instructorCourses.map(c => c.id))).data?.map(s => s.id) || [];
+        const { data: sections } = await supabase.from('sections').select('id, name, course_id, courses(code, name)').in('course_id', instructorCourses.map(c => c.id));
+        const sectionIds = sections?.map(s => s.id) || [];
         const { data: sessions } = await supabase
             .from('attendance_sessions')
-            .select('id, date, start_time, end_time')
+            .select('id, date, start_time, end_time, section_id, code')
             .in('section_id', sectionIds)
             .order('date', { ascending: false });
         select.innerHTML = '<option value="">Choose a session...</option>';
         if (sessions) {
             for (const s of sessions) {
+                const sec = sections?.find(sec => sec.id === s.section_id);
+                const courseCode = sec?.courses?.code || '';
                 const opt = document.createElement('option');
                 opt.value = s.id;
-                opt.textContent = `${s.date} ${s.start_time}-${s.end_time}`;
+                opt.textContent = `${courseCode ? '[' + courseCode + '] ' : ''}${s.date} (${s.start_time}-${s.end_time}) - Code: ${s.code}`;
                 select.appendChild(opt);
             }
         }
     } catch (err) {}
 }
 
+// 2. CHECK & MARK ATTENDANCE MANUALLY BY INSTRUCTOR (PRESENT, LATE, ABSENT)
 window.openMarkAttendanceModal = async function() {
     const sessionId = document.getElementById('manualSessionSelect').value;
-    if (!sessionId) { alert('Please select a session.'); return; }
+    if (!sessionId) { alert('Please select a session first.'); return; }
     currentManualSessionId = sessionId;
     const { data: session } = await supabase.from('attendance_sessions').select('*').eq('id', sessionId).single();
     if (!session) return;
 
-    const sessionEndDateTime = new Date(`${session.date}T${session.end_time}`);
-    const now = new Date();
-    const isPastEnd = now > sessionEndDateTime;
+    const { data: section } = await supabase
+        .from('sections')
+        .select('course_id, courses(code, name)')
+        .eq('id', session.section_id)
+        .single();
 
     document.getElementById('markAttendanceInfo').innerHTML = `
-        <p><strong>Session:</strong> ${session.date} ${session.start_time} - ${session.end_time}</p>
-        ${isPastEnd ? '<p style="color:#ef4444;"><strong>⚠️ This session has ended. Editing is no longer allowed.</strong></p>' : ''}
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem;">
+            <div>
+                <p style="margin:0;"><strong>Course:</strong> ${section?.courses?.code || ''} - ${section?.courses?.name || ''}</p>
+                <p style="margin:0; color:#475569;"><strong>Session:</strong> ${session.date} (${session.start_time} - ${session.end_time}) | Code: <code>${session.code}</code></p>
+            </div>
+            <div style="display:flex; gap:0.4rem; align-items:center;">
+                <span class="text-sm fw-600">Quick Mark All:</span>
+                <button type="button" class="btn btn-outline btn-sm" onclick="setAllAttendanceStatus('present')">✅ All Present</button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="setAllAttendanceStatus('late')">⏰ All Late</button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="setAllAttendanceStatus('absent')">❌ All Absent</button>
+            </div>
+        </div>
     `;
 
-    const { data: section } = await supabase.from('sections').select('course_id').eq('id', session.section_id).single();
-    if (!section) return;
+    // Fetch students enrolled in the course
     const { data: enrollments } = await supabase
         .from('course_enrollments')
         .select('student_id')
         .eq('course_id', section.course_id);
+
     const studentIds = enrollments?.map(e => e.student_id) || [];
+
+    if (studentIds.length === 0) {
+        document.getElementById('markAttendanceBody').innerHTML = `
+            <tr>
+                <td colspan="4" class="empty-state" style="text-align:center; padding:2rem;">
+                    <p>No students are currently enrolled in <strong>${section?.courses?.code || 'this course'}</strong>.</p>
+                    <p style="font-size:0.85rem; color:#64748b;">Please go to the <strong>Enroll</strong> section to enroll students first.</p>
+                </td>
+            </tr>
+        `;
+        document.getElementById('saveManualAttendanceBtn').disabled = true;
+        document.getElementById('markAttendanceModal').classList.add('active');
+        return;
+    }
+
+    const { data: students } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, student_id, email')
+        .in('id', studentIds);
+
+    // Fetch existing attendance records for this session
     const { data: records } = await supabase
         .from('attendance_records')
-        .select('student_id, status')
+        .select('id, student_id, status')
         .eq('session_id', sessionId);
+
     const recordMap = {};
     if (records) {
         for (const r of records) {
             recordMap[r.student_id] = r.status;
         }
     }
-    const { data: students } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name')
-        .in('id', studentIds);
+
+    const sortedStudents = (students || []).sort((a, b) =>
+        (a.last_name || '').localeCompare(b.last_name || '')
+    );
 
     const statusOptions = ['present', 'late', 'absent', 'excused'];
-    const statusLabels = { 'present': 'Present', 'late': 'Late', 'absent': 'Absent', 'excused': 'Absent with Valid Reason' };
+    const statusLabels = { 'present': 'PRESENT', 'late': 'LATE', 'absent': 'ABSENT', 'excused': 'EXCUSED' };
+    const badgeClasses = { 'present': 'badge-approved', 'late': 'badge-pending', 'absent': 'badge-rejected', 'excused': 'badge-period' };
 
     let html = '';
     for (const sid of studentIds) {
-        const s = students?.find(p => p.id === sid);
-        const name = s ? `${s.first_name} ${s.last_name}` : sid;
+        const s = sortedStudents.find(p => p.id === sid);
+        const name = s ? `${s.last_name}, ${s.first_name}` : sid;
+        const studentIdNum = s?.student_id ? ` <small class="text-muted">(${s.student_id})</small>` : '';
         const currentStatus = recordMap[sid] || 'absent';
+
         html += `<tr>
-            <td>${name}</td>
-            <td><span class="badge badge-${currentStatus === 'present' ? 'approved' : currentStatus === 'late' ? 'pending' : 'rejected'}">${statusLabels[currentStatus] || currentStatus}</span></td>
+            <td><strong>${name}</strong>${studentIdNum}</td>
+            <td><span class="badge ${badgeClasses[currentStatus] || 'badge-pending'}">${statusLabels[currentStatus] || currentStatus.toUpperCase()}</span></td>
             <td>
-                <select class="att-status-select" data-student="${sid}" ${isPastEnd ? 'disabled' : ''}>
+                <select class="att-status-select" data-student="${sid}" style="padding:0.4rem 0.6rem; border-radius:6px;">
                     ${statusOptions.map(opt => `<option value="${opt}" ${currentStatus === opt ? 'selected' : ''}>${statusLabels[opt]}</option>`).join('')}
                 </select>
             </td>
-            <td>${isPastEnd ? '🔒' : `<button class="btn btn-outline btn-sm" onclick="markSingleAttendance('${sid}', this)">Update</button>`}</td>
+            <td>
+                <button type="button" class="btn btn-outline btn-sm" onclick="markSingleAttendance('${sid}', this)">Save</button>
+            </td>
         </tr>`;
     }
     document.getElementById('markAttendanceBody').innerHTML = html;
-    document.getElementById('saveManualAttendanceBtn').disabled = isPastEnd;
+    document.getElementById('saveManualAttendanceBtn').disabled = false;
     document.getElementById('markAttendanceModal').classList.add('active');
 };
 
@@ -1380,31 +1515,115 @@ window.closeMarkAttendanceModal = function() {
     document.getElementById('markAttendanceModal').classList.remove('active');
 };
 
+window.setAllAttendanceStatus = function(status) {
+    document.querySelectorAll('#markAttendanceBody .att-status-select').forEach(sel => {
+        sel.value = status;
+    });
+};
+
 window.markSingleAttendance = async function(studentId, btn) {
     const select = btn.closest('tr').querySelector('.att-status-select');
     const status = select.value;
     const sessionId = currentManualSessionId;
     if (!sessionId) return;
-    await supabase
-        .from('attendance_records')
-        .upsert({ session_id: sessionId, student_id: studentId, status: status }, { onConflict: 'session_id,student_id' });
-    await openMarkAttendanceModal();
+
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    try {
+        const { data: existing } = await supabase
+            .from('attendance_records')
+            .select('id')
+            .eq('session_id', sessionId)
+            .eq('student_id', studentId)
+            .maybeSingle();
+
+        if (existing?.id) {
+            const { error } = await supabase
+                .from('attendance_records')
+                .update({ status: status, marked_at: new Date().toISOString() })
+                .eq('id', existing.id);
+            if (error) throw error;
+        } else {
+            const { error } = await supabase
+                .from('attendance_records')
+                .insert({
+                    session_id: sessionId,
+                    student_id: studentId,
+                    status: status,
+                    marked_at: new Date().toISOString()
+                });
+            if (error) throw error;
+        }
+
+        const badgeSpan = btn.closest('tr').querySelector('.badge');
+        const statusLabels = { 'present': 'PRESENT', 'late': 'LATE', 'absent': 'ABSENT', 'excused': 'EXCUSED' };
+        const badgeClasses = { 'present': 'badge-approved', 'late': 'badge-pending', 'absent': 'badge-rejected', 'excused': 'badge-period' };
+        if (badgeSpan) {
+            badgeSpan.className = `badge ${badgeClasses[status] || 'badge-pending'}`;
+            badgeSpan.textContent = statusLabels[status] || status.toUpperCase();
+        }
+
+        btn.textContent = 'Saved!';
+        setTimeout(() => {
+            btn.disabled = false;
+            btn.textContent = 'Save';
+        }, 1200);
+    } catch (err) {
+        alert('Error marking attendance: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = 'Save';
+    }
 };
 
 window.saveManualAttendance = async function() {
     const sessionId = currentManualSessionId;
     if (!sessionId) return;
-    const selects = document.querySelectorAll('#markAttendanceBody .att-status-select:not([disabled])');
-    const updates = [];
-    for (const sel of selects) {
-        updates.push({ session_id: sessionId, student_id: sel.dataset.student, status: sel.value });
+    const saveBtn = document.getElementById('saveManualAttendanceBtn');
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving All...';
     }
-    for (const u of updates) {
-        await supabase.from('attendance_records').upsert(u, { onConflict: 'session_id,student_id' });
+
+    try {
+        const selects = document.querySelectorAll('#markAttendanceBody .att-status-select');
+        for (const sel of selects) {
+            const studentId = sel.dataset.student;
+            const status = sel.value;
+            const { data: existing } = await supabase
+                .from('attendance_records')
+                .select('id')
+                .eq('session_id', sessionId)
+                .eq('student_id', studentId)
+                .maybeSingle();
+
+            if (existing?.id) {
+                await supabase
+                    .from('attendance_records')
+                    .update({ status: status, marked_at: new Date().toISOString() })
+                    .eq('id', existing.id);
+            } else {
+                await supabase
+                    .from('attendance_records')
+                    .insert({
+                        session_id: sessionId,
+                        student_id: studentId,
+                        status: status,
+                        marked_at: new Date().toISOString()
+                    });
+            }
+        }
+        alert('✅ All attendance records saved successfully!');
+        await loadAttendanceSessions();
+        closeMarkAttendanceModal();
+    } catch (err) {
+        alert('Error saving attendance records: ' + err.message);
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = '💾 Save All Attendance';
+        }
     }
-    alert('All attendance records saved!');
-    await loadAttendanceSessions();
-    closeMarkAttendanceModal();
 };
 
 window.deleteAttendanceSession = async function(sessionId) {
@@ -1463,7 +1682,6 @@ async function ensureDraftExists() {
     const duration = parseInt(document.getElementById('assessDuration').value) || 60;
     const maxScore = parseFloat(document.getElementById('assessMaxScore').value) || 100;
     
-    // Always fallback to current ISO date if not provided
     const date = new Date().toISOString();
     
     const startDate = document.getElementById('assessStartDate').value || null;
@@ -1714,7 +1932,6 @@ window.saveDraft = async function() {
     const duration = parseInt(document.getElementById('assessDuration').value) || 60;
     const maxScore = parseFloat(document.getElementById('assessMaxScore').value) || 100;
     
-    // Always save current timestamp for Date Created
     const date = new Date().toISOString();
     
     const startDate = document.getElementById('assessStartDate').value || null;
@@ -1819,7 +2036,6 @@ async function loadAssessmentsList() {
                 }
             }
             
-            // Format dates clearly with readable month names (Aug 4, 2026 – Aug 8, 2026)
             let timeFrameStr = 'Open';
             if (a.start_date || a.end_date) {
                 const startFormatted = a.start_date 
@@ -1830,7 +2046,6 @@ async function loadAssessmentsList() {
                     : 'End';
                 timeFrameStr = `${startFormatted} – ${endFormatted}`;
                 
-                // If an existing DB record has inverted dates, flag it visually
                 if (a.start_date && a.end_date && new Date(a.end_date) < new Date(a.start_date)) {
                     timeFrameStr += ` <span class="badge badge-rejected" style="margin-left:0.4rem;">⚠️ Inverted Dates</span>`;
                 }
@@ -2000,7 +2215,6 @@ document.getElementById('editAssessmentForm').addEventListener('submit', async f
     const maxScore = parseFloat(document.getElementById('editAssessMaxScore').value) || 100;
     const passing = parseInt(document.getElementById('editAssessPassing').value) || 60;
     
-    // Always preserve Date Created as ISO
     const utcDate = new Date().toISOString();
     
     const startDate = document.getElementById('editAssessStartDate').value;
@@ -3208,7 +3422,6 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
     const emailsRaw = document.getElementById('enrollEmails').value;
     if (!courseId || !emailsRaw) return;
 
-    // Normalize emails: support commas, semicolons, whitespace, and line breaks
     const emails = [...new Set(
         emailsRaw.split(/[\r\n,;;\s]+/)
             .map(em => em.trim().toLowerCase())
@@ -3226,7 +3439,6 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
 
     for (const email of emails) {
         try {
-            // Step 1: Check if profile already exists (case-insensitive check)
             let { data: profile } = await supabase
                 .from('profiles')
                 .select('id, email')
@@ -3235,12 +3447,10 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
 
             let profileId = profile?.id || null;
 
-            // Step 2: If profile doesn't exist, register via Auth API so auth.users gets the ID first
             if (!profileId) {
                 let authUserId = null;
                 let authErrorMsg = '';
 
-                // 2a. Attempt Registration via GoTrue REST API
                 if (url && key) {
                     try {
                         const signupRes = await fetch(`${url}/auth/v1/signup`, {
@@ -3274,8 +3484,6 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
                         authErrorMsg = errAuth.message;
                     }
 
-                    // 2b. If signup returned empty because user ALREADY EXISTS in auth.users,
-                    // recover their ID via token login with default password '111111'
                     if (!authUserId) {
                         try {
                             const loginRes = await fetch(`${url}/auth/v1/token?grant_type=password`, {
@@ -3304,7 +3512,6 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
                     }
                 }
 
-                // 2c. If fetch couldn't register or login, use supabase.auth.signUp as fallback
                 if (!authUserId) {
                     try {
                         const { data: signUpRes, error: signUpErr } = await supabase.auth.signUp({
@@ -3336,7 +3543,6 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
 
                 const tempStudentId = 'ID-' + Math.floor(100000 + Math.random() * 900000);
 
-                // Attempt to insert/upsert into profiles
                 const { data: insertedProfile, error: insertError } = await supabase
                     .from('profiles')
                     .upsert({
@@ -3354,7 +3560,6 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
                     .maybeSingle();
 
                 if (insertError) {
-                    // Check if it failed because email already exists in profiles under different case
                     let { data: retryProfile } = await supabase
                         .from('profiles')
                         .select('id')
@@ -3372,7 +3577,6 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
                 }
             }
 
-            // Step 3: Enroll student into course_enrollments
             if (profileId) {
                 const { error: enrollError } = await supabase
                     .from('course_enrollments')
@@ -3394,7 +3598,6 @@ document.getElementById('enrollForm')?.addEventListener('submit', async function
         }
     }
 
-    // Report feedback
     if (errors.length > 0) {
         alert(`Enrolled ${successCount} student(s).\n\nErrors encountered:\n` + errors.join('\n'));
     } else {
