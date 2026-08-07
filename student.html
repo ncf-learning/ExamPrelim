@@ -1564,20 +1564,10 @@ async function loadDashboardPeriodGrades() {
         const activePeriod = (c.active_period || 'prelim').toLowerCase();
         const pGrade = periodGrades?.find(g => g.course_id === c.id && (g.period || 'prelim').toLowerCase() === activePeriod);
         
-        // FORMAT: SAMPLE 2.3 / 100% — Shows raw percentage/numerical rating against the 100% target scale
         let gradeDisplay = 'Not Computed';
         if (pGrade && pGrade.grade !== null && pGrade.grade !== undefined) {
             const rawVal = Number(pGrade.grade);
-            const gpaEquivalent = rawVal >= 97 ? '1.0' :
-                                  rawVal >= 94 ? '1.25' :
-                                  rawVal >= 91 ? '1.5' :
-                                  rawVal >= 88 ? '1.75' :
-                                  rawVal >= 85 ? '2.0' :
-                                  rawVal >= 82 ? '2.25' :
-                                  rawVal >= 79 ? '2.5' :
-                                  rawVal >= 76 ? '2.75' :
-                                  rawVal >= 75 ? '3.0' : '5.0';
-            gradeDisplay = `${gpaEquivalent} (${rawVal.toFixed(2)}%) / 100%`;
+            gradeDisplay = `${rawVal.toFixed(2)}%`;
         }
 
         const isLocked = pGrade?.locked;
