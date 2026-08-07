@@ -281,7 +281,7 @@
             <!-- Current Period Grade Overview -->
             <div class="card" style="border-left: 4px solid #3b82f6;">
                 <div class="card-header">
-                    <h3>🏆 Current Period Grades (Currently Acquired)</h3>
+                    <h3>🏆 Current Period Grades (Currently Acquired Credit)</h3>
                     <span class="badge badge-info">Active Period Controlled by Instructor</span>
                 </div>
                 <div id="dashPeriodGradesContainer"><div class="empty-state">Loading period grades...</div></div>
@@ -1558,7 +1558,7 @@ async function loadDashboardPeriodGrades() {
         return;
     }
 
-    let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Active Period</th><th>Current Acquired Grade</th><th>Status</th></tr></thead><tbody>';
+    let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Active Period</th><th>Current Earned Credit (%)</th><th>Status</th></tr></thead><tbody>';
     
     for (const c of enrolledCourses) {
         const activePeriod = (c.active_period || 'prelim').toLowerCase();
@@ -1567,7 +1567,7 @@ async function loadDashboardPeriodGrades() {
         let gradeDisplay = 'Not Computed';
         if (pGrade && pGrade.grade !== null && pGrade.grade !== undefined) {
             const rawVal = Number(pGrade.grade);
-            gradeDisplay = `${rawVal.toFixed(2)}%`;
+            gradeDisplay = `<strong>${rawVal.toFixed(2)}%</strong> <small class="text-muted">Earned Credit</small>`;
         }
 
         const isLocked = pGrade?.locked;
@@ -1751,13 +1751,18 @@ async function loadDetailedCriteriaGrades() {
             }
         });
 
-        recitations?.forEach((r, idx) => {
-            if (r.rating !== null && r.rating !== undefined) {
-                const rVal = Number(r.rating || 0);
-                const pct = (rVal / 5) * 100;
-                caseScores.push({ label: `Recitation (${r.date || 'Log #' + (idx+1)})`, score: rVal, max: 5, pct });
-            }
-        });
+        const totalSessionsCount = Math.max(sessionIds.length, 1);
+        if ((recitations && recitations.length > 0) || sessionIds.length > 0) {
+            const totalRecitScore = (recitations || []).reduce((acc, r) => acc + Number(r.rating || 0), 0);
+            const recitAvgScore = totalRecitScore / totalSessionsCount;
+            const recitPct = (recitAvgScore / 5) * 100;
+            caseScores.push({
+                label: `Recitation Average (Sum divided by ${totalSessionsCount} total sessions)`,
+                score: Number(recitAvgScore.toFixed(2)),
+                max: 5,
+                pct: recitPct
+            });
+        }
 
         const totalAtt = sessionIds.length;
         const presentAtt = attendance?.filter(r => r.status === 'present').length || 0;
