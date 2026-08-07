@@ -281,7 +281,7 @@
             <!-- Current Period Grade Overview -->
             <div class="card" style="border-left: 4px solid #3b82f6;">
                 <div class="card-header">
-                    <h3>🏆 Current Period Grades (Currently Acquired Credit)</h3>
+                    <h3>🏆 Current Period Grades (Live Earned Grade So Far)</h3>
                     <span class="badge badge-info">Active Period Controlled by Instructor</span>
                 </div>
                 <div id="dashPeriodGradesContainer"><div class="empty-state">Loading period grades...</div></div>
@@ -1536,7 +1536,7 @@ window.viewAssessmentRatings = async function(assessmentId, assessmentTitle) {
 };
 
 // ============================================================
-// 9. DASHBOARD PERIOD GRADES (CURRENTLY ACQUIRED FORMAT) & GRADES BREAKDOWN
+// 9. DASHBOARD PERIOD GRADES (LIVE EARNED WEIGHTED GRADE SO FAR) & GRADES BREAKDOWN
 // ============================================================
 async function loadDashboardPeriodGrades() {
     const container = document.getElementById('dashPeriodGradesContainer');
@@ -1552,28 +1552,160 @@ async function loadDashboardPeriodGrades() {
         .in('course_id', courseIds)
         .eq('student_id', currentUser.id);
 
+    // Fetch data required to compute live earned grade so far
+    const { data: types } = await supabase
+        .from('assessment_types')
+        .select('id, name, course_id')
+        .in('course_id', courseIds);
+    const typeMap = {};
+    types?.forEach(t => { typeMap[t.id] = t.name; });
+
+    const { data: assessments } = await supabase
+        .from('assessments')
+        .select('id, title, assessment_type_id, max_score, period, course_id, assessment_types(name)')
+        .in('course_id', courseIds);
+
+    const { data: grades } = await supabase
+        .from('grades')
+        .select('assessment_id, score, max_score, course_id')
+        .in('course_id', courseIds)
+        .eq('student_id', currentUser.id);
+
+    const { data: manualGrades } = await supabase
+        .from('manual_grades')
+        .select('assessment_type_id, score, max_score, course_id')
+        .in('course_id', courseIds)
+        .eq('student_id', currentUser.id);
+
+    const { data: recitations } = await supabase
+        .from('recitations')
+        .select('rating, course_id')
+        .in('course_id', courseIds)
+        .eq('student_id', currentUser.id);
+
+    const { data: sections } = await supabase
+        .from('sections')
+        .select('id, course_id')
+        .in('course_id', courseIds);
+
+    const sectionIds = sections?.map(s => s.id) || [];
+    const { data: sessions } = await supabase
+        .from('attendance_sessions')
+        .select('id, section_id')
+        .in('section_id', sectionIds);
+
+    const sessionIds = sessions?.map(s => s.id) || [];
+    const { data: attendance } = await supabase
+        .from('attendance_records')
+        .select('status, session_id')
+        .in('session_id', sessionIds)
+        .eq('student_id', currentUser.id);
+
+    const { data: interventions } = await supabase
+        .from('interventions')
+        .select('adjustment_value, course_id')
+        .in('course_id', courseIds)
+        .eq('student_id', currentUser.id);
+
     if (error) {
         console.error('Error fetching period grades:', error);
         container.innerHTML = '<div class="empty-state">Error loading period grades.</div>';
         return;
     }
 
-    let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Active Period</th><th>Current Earned Credit (%)</th><th>Status</th></tr></thead><tbody>';
+    let html = '<div class="table-wrap"><table><thead><tr><th>Course</th><th>Active Period</th><th>Current Earned Grade (So Far)</th><th>Status</th></tr></thead><tbody>';
     
     for (const c of enrolledCourses) {
         const activePeriod = (c.active_period || 'prelim').toLowerCase();
         const pGrade = periodGrades?.find(g => g.course_id === c.id && (g.period || 'prelim').toLowerCase() === activePeriod);
         
-        let gradeDisplay = 'Not Computed';
-        if (pGrade && pGrade.grade !== null && pGrade.grade !== undefined) {
+        // Live weighted grade calculation across components for active period
+        const periodAssessments = (assessments || []).filter(a => a.course_id === c.id && (a.period || 'prelim').trim().toLowerCase() === activePeriod);
+        const assessIds = periodAssessments.map(a => a.id);
+
+        const quizScores = [];
+        const caseScores = [];
+        const examScores = [];
+
+        grades?.filter(g => g.course_id === c.id && assessIds.includes(g.assessment_id)).forEach(g => {
+            const assess = periodAssessments.find(a => a.id === g.assessment_id);
+            if (!assess) return;
+            const categoryName = (assess.assessment_types?.name || typeMap[assess.assessment_type_id] || '').trim().toLowerCase();
+            const titleLower = (assess.title || '').trim().toLowerCase();
+            const maxVal = Number(g.max_score || assess.max_score || 100);
+            const scoreVal = Number(g.score || 0);
+            const pct = maxVal > 0 ? (scoreVal / maxVal) * 100 : 0;
+            const entry = { pct };
+
+            if (categoryName.includes('exam') || categoryName.includes('major') || titleLower.includes('exam') || titleLower.includes('major')) {
+                examScores.push(entry);
+            } else if (categoryName.includes('case') || categoryName.includes('recitation') || categoryName.includes('reflection') || titleLower.includes('case') || titleLower.includes('recit')) {
+                caseScores.push(entry);
+            } else {
+                quizScores.push(entry);
+            }
+        });
+
+        manualGrades?.filter(mg => mg.course_id === c.id).forEach(mg => {
+            const categoryName = (typeMap[mg.assessment_type_id] || '').trim().toLowerCase();
+            const maxVal = Number(mg.max_score || 100);
+            const scoreVal = Number(mg.score || 0);
+            const pct = maxVal > 0 ? (scoreVal / maxVal) * 100 : 0;
+            const entry = { pct };
+
+            if (categoryName.includes('exam') || categoryName.includes('major')) {
+                examScores.push(entry);
+            } else if (categoryName.includes('case') || categoryName.includes('recitation') || categoryName.includes('reflection')) {
+                caseScores.push(entry);
+            } else {
+                quizScores.push(entry);
+            }
+        });
+
+        const courseSectionIds = (sections || []).filter(s => s.course_id === c.id).map(s => s.id);
+        const courseSessions = (sessions || []).filter(s => courseSectionIds.includes(s.section_id));
+        const courseSessionIds = courseSessions.map(s => s.id);
+        const totalSessionsCount = Math.max(courseSessionIds.length, 1);
+
+        const courseRecitations = (recitations || []).filter(r => r.course_id === c.id);
+        if ((courseRecitations && courseRecitations.length > 0) || courseSessionIds.length > 0) {
+            const totalRecitScore = courseRecitations.reduce((acc, r) => acc + Number(r.rating || 0), 0);
+            const recitAvgScore = totalRecitScore / totalSessionsCount;
+            const recitPct = (recitAvgScore / 5) * 100;
+            caseScores.push({ pct: recitPct });
+        }
+
+        const totalAtt = courseSessionIds.length;
+        const presentAtt = (attendance || []).filter(r => courseSessionIds.includes(r.session_id) && r.status === 'present').length;
+        const attPct = totalAtt > 0 ? (presentAtt / totalAtt) * 100 : 0;
+
+        const calcCategoryAvg = (arr) => {
+            if (!arr || arr.length === 0) return 0;
+            const sum = arr.reduce((acc, item) => acc + item.pct, 0);
+            return sum / arr.length;
+        };
+
+        const quizAvg = calcCategoryAvg(quizScores);
+        const caseAvg = calcCategoryAvg(caseScores);
+        const examAvg = calcCategoryAvg(examScores);
+
+        let interventionAdj = 0;
+        (interventions || []).filter(iv => iv.course_id === c.id).forEach(iv => {
+            interventionAdj += parseFloat(iv.adjustment_value) || 0;
+        });
+
+        const liveWeightedGrade = (quizAvg * 0.15) + (caseAvg * 0.25) + (attPct * 0.10) + (examAvg * 0.50) + interventionAdj;
+
+        let gradeDisplay = `<strong>${liveWeightedGrade.toFixed(2)}%</strong> <small class="text-muted">Live Earned Grade</small>`;
+        if (pGrade && pGrade.grade !== null && pGrade.grade !== undefined && pGrade.locked) {
             const rawVal = Number(pGrade.grade);
-            gradeDisplay = `<strong>${rawVal.toFixed(2)}%</strong> <small class="text-muted">Earned Credit</small>`;
+            gradeDisplay = `<strong>${rawVal.toFixed(2)}%</strong> <small class="text-muted">Official Locked Grade</small>`;
         }
 
         const isLocked = pGrade?.locked;
         const lockBadge = isLocked 
             ? '<span class="badge badge-approved">🔒 LOCKED (OFFICIAL)</span>' 
-            : '<span class="badge badge-warning">⏳ UNLOCKED (IN PROGRESS)</span>';
+            : '<span class="badge badge-warning">⏳ LIVE CALCULATED</span>';
 
         html += `<tr>
             <td><strong>${c.code}</strong> – ${c.name}</td>
