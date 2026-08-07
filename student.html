@@ -1696,7 +1696,7 @@ async function loadDashboardPeriodGrades() {
 
         const liveWeightedGrade = (quizAvg * 0.15) + (caseAvg * 0.25) + (attPct * 0.10) + (examAvg * 0.50) + interventionAdj;
 
-        let gradeDisplay = `<strong>${liveWeightedGrade.toFixed(2)}%</strong> <small class="text-muted">Live Earned Grade</small>`;
+        let gradeDisplay = `<strong>${liveWeightedGrade.toFixed(2)}%</strong>`;
         if (pGrade && pGrade.grade !== null && pGrade.grade !== undefined && pGrade.locked) {
             const rawVal = Number(pGrade.grade);
             gradeDisplay = `<strong>${rawVal.toFixed(2)}%</strong> <small class="text-muted">Official Locked Grade</small>`;
