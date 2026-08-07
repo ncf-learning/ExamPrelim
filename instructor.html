@@ -103,20 +103,6 @@
         @media (max-width:480px) { .stats-grid { grid-template-columns:1fr; } .page-header { flex-direction:column; align-items:flex-start; } }
         .qr-code img { max-width:80px; height:auto; border:1px solid #e2e8f0; border-radius:4px; }
 
-        /* RECITATION BUTTON STYLES */
-        .recit-btn-group { display:inline-flex; gap:0.35rem; align-items:center; }
-        .btn-recit {
-            width: 34px; height: 34px; border-radius: 8px; border: 1px solid #cbd5e1;
-            background: #f8fafc; color: #475569; font-weight: 700; font-size: 0.85rem;
-            cursor: pointer; transition: all 0.15s ease; display:inline-flex; align-items:center; justify-content:center;
-        }
-        .btn-recit:hover { background: #e2e8f0; transform: translateY(-1px); }
-        .btn-recit.active-5 { background: #16a34a; color: #fff; border-color: #16a34a; box-shadow: 0 2px 4px rgba(22,163,74,0.25); }
-        .btn-recit.active-4 { background: #22c55e; color: #fff; border-color: #22c55e; box-shadow: 0 2px 4px rgba(34,197,94,0.25); }
-        .btn-recit.active-3 { background: #3b82f6; color: #fff; border-color: #3b82f6; box-shadow: 0 2px 4px rgba(59,130,246,0.25); }
-        .btn-recit.active-2 { background: #f59e0b; color: #fff; border-color: #f59e0b; box-shadow: 0 2px 4px rgba(245,158,11,0.25); }
-        .btn-recit.active-1 { background: #ef4444; color: #fff; border-color: #ef4444; box-shadow: 0 2px 4px rgba(239,68,68,0.25); }
-
         @media print {
             body * { visibility: hidden; }
             #printLetterArea, #printLetterArea *,
@@ -142,7 +128,6 @@
             <div class="nav-label">Management</div>
             <div class="nav-item" data-section="attendance"><span class="icon">📋</span> Attendance</div>
             <div class="nav-item" data-section="schedule"><span class="icon">📅</span> Schedule</div>
-            <div class="nav-item" data-section="recitation"><span class="icon">🗣️</span> Recitation</div>
             <div class="nav-item" data-section="assessments"><span class="icon">✏️</span> Assessments</div>
             <div class="nav-label">Grading</div>
             <div class="nav-item" data-section="gradebook"><span class="icon">📈</span> Gradebook</div>
@@ -203,7 +188,7 @@
             </div>
 
             <div class="card"><div class="card-header"><h3>⏳ Pending Approvals</h3></div><div id="pendingApprovalsList"><div class="empty-state"><p>Loading...</p></div></div></div>
-            <div class="card"><div class="card-header"><h3>🚀 Quick Actions</h3></div><div class="flex gap-2" style="flex-wrap:wrap;"><button class="btn btn-outline" onclick="switchSection('attendance')">📋 Take Attendance</button><button class="btn btn-outline" onclick="switchSection('recitation')">🗣️ Grade Recitation</button><button class="btn btn-outline" onclick="createNewAssessment()">✏️ Create Assessment</button><button class="btn btn-outline" onclick="switchSection('gradebook')">📈 View Grades</button><button class="btn btn-outline" onclick="switchSection('enroll')">👥 Enroll Student</button></div></div>
+            <div class="card"><div class="card-header"><h3>🚀 Quick Actions</h3></div><div class="flex gap-2" style="flex-wrap:wrap;"><button class="btn btn-outline" onclick="switchSection('attendance')">📋 Take Attendance</button><button class="btn btn-outline" onclick="createNewAssessment()">✏️ Create Assessment</button><button class="btn btn-outline" onclick="switchSection('gradebook')">📈 View Grades</button><button class="btn btn-outline" onclick="switchSection('enroll')">👥 Enroll Student</button></div></div>
         </section>
 
         <!-- ===== COURSES ===== -->
@@ -260,50 +245,6 @@
                 </form>
             </div>
             <div class="card"><div class="card-header"><h3>Current Schedules</h3></div><div id="scheduleList"><div class="empty-state"><p>No schedules set.</p></div></div></div>
-        </section>
-
-        <!-- ===== RECITATION GRADER ===== -->
-        <section id="section-recitation" class="page-section">
-            <div class="page-header">
-                <div>
-                    <h1>Recitation Grader <small>Grade student class recitations per session (1 to 5 points)</small></h1>
-                </div>
-            </div>
-
-            <!-- SESSION & DATE SELECTION CARD -->
-            <div class="card">
-                <div class="card-header"><h3>Select Course Session for Recitation Grading</h3></div>
-                <div class="form-grid">
-                    <div class="form-group"><label>Course</label><select id="recitCourseSelect" required></select></div>
-                    <div class="form-group"><label>Session Date</label><input type="date" id="recitDateInput" required /></div>
-                    <div class="form-group full"><label>Class Schedule / Session (Optional)</label><select id="recitScheduleSelect"><option value="">General Class Session</option></select></div>
-                    <div class="form-group full">
-                        <button type="button" class="btn btn-primary" onclick="loadRecitationStudents()">🗣️ Load Students & Grade Recitation</button>
-                        <button type="button" class="btn btn-outline" onclick="loadRecitationStudents()">🔄 Refresh</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- INTERACTIVE RECITATION GRADING TABLE CARD -->
-            <div class="card">
-                <div class="card-header">
-                    <div>
-                        <h3>Per-Session Recitation Grading</h3>
-                        <p class="text-muted text-sm">Click any score button (1 to 5) to automatically record and save the student's recitation grade to the database.</p>
-                    </div>
-                </div>
-                <div id="recitationTableWrap">
-                    <div class="empty-state"><p>Select a course and session date above to start grading recitations.</p></div>
-                </div>
-            </div>
-
-            <!-- RECITATION HISTORY CARD -->
-            <div class="card">
-                <div class="card-header"><h3>Recitation History for Selected Session</h3></div>
-                <div id="recitationHistoryList">
-                    <div class="empty-state"><p>No recitations recorded yet for this session.</p></div>
-                </div>
-            </div>
         </section>
 
         <!-- ===== ASSESSMENTS ===== -->
@@ -746,9 +687,6 @@ function setupNavigation() {
                 if (typeof loadManualSessions === 'function') loadManualSessions();
                 if (typeof loadExcuseLetters === 'function') loadExcuseLetters();
             }
-            if (targetSection === 'recitation' && typeof loadRecitationSection === 'function') {
-                loadRecitationSection();
-            }
         });
     });
 }
@@ -1109,7 +1047,7 @@ async function populateCourseSelects() {
     const selectIds = [
         'attCourse', 'scheduleCourse', 'assessCourses', 'weightsCourse',
         'computeCourse', 'finalCourse', 'reportCourse', 'intervCourse', 'enrollCourse',
-        'editAssessCourse', 'recitCourseSelect'
+        'editAssessCourse'
     ];
     for (const id of selectIds) {
         const el = document.getElementById(id);
@@ -1203,325 +1141,6 @@ document.getElementById('scheduleForm').addEventListener('submit', async (e) => 
     await loadSchedules();
     document.getElementById('scheduleForm').reset();
 });
-
-// ============================================================
-// RECITATION GRADER (PER SESSION, CLICKABLE 5, 4, 3, 2, 1)
-// ============================================================
-
-window.loadRecitationSection = async function() {
-    const dateInput = document.getElementById('recitDateInput');
-    if (dateInput && !dateInput.value) {
-        const today = new Date().toISOString().slice(0, 10);
-        dateInput.value = today;
-    }
-    const courseSelect = document.getElementById('recitCourseSelect');
-    if (courseSelect && !courseSelect.value && instructorCourses.length > 0) {
-        courseSelect.value = instructorCourses[0].id;
-        await loadRecitationSchedules();
-        await loadRecitationStudents();
-    }
-};
-
-document.getElementById('recitCourseSelect')?.addEventListener('change', async function() {
-    await loadRecitationSchedules();
-    await loadRecitationStudents();
-});
-
-document.getElementById('recitDateInput')?.addEventListener('change', async function() {
-    await loadRecitationStudents();
-});
-
-document.getElementById('recitScheduleSelect')?.addEventListener('change', async function() {
-    await loadRecitationStudents();
-});
-
-async function loadRecitationSchedules() {
-    const courseId = document.getElementById('recitCourseSelect')?.value;
-    const scheduleSelect = document.getElementById('recitScheduleSelect');
-    if (!scheduleSelect) return;
-
-    scheduleSelect.innerHTML = '<option value="">General Class Session</option>';
-    if (!courseId) return;
-
-    try {
-        const { data: sections } = await supabase.from('sections').select('id').eq('course_id', courseId);
-        const sectionIds = sections?.map(s => s.id) || [];
-        if (sectionIds.length === 0) return;
-
-        const { data: schedules } = await supabase
-            .from('schedules')
-            .select('id, day_of_week, start_time, end_time, room')
-            .in('section_id', sectionIds);
-
-        if (schedules && schedules.length > 0) {
-            schedules.forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s.id;
-                opt.textContent = `${s.day_of_week} (${s.start_time} - ${s.end_time})${s.room ? ' - Room ' + s.room : ''}`;
-                scheduleSelect.appendChild(opt);
-            });
-        }
-    } catch (err) {
-        console.error('Error loading schedules for recitation:', err);
-    }
-}
-
-window.loadRecitationStudents = async function() {
-    const courseId = document.getElementById('recitCourseSelect')?.value;
-    const dateVal = document.getElementById('recitDateInput')?.value;
-    const scheduleId = document.getElementById('recitScheduleSelect')?.value || null;
-    const container = document.getElementById('recitationTableWrap');
-
-    if (!courseId || !dateVal) {
-        container.innerHTML = '<div class="empty-state"><p>Please select both a Course and Session Date above.</p></div>';
-        return;
-    }
-
-    container.innerHTML = '<div class="empty-state"><p>Loading students and recitation records...</p></div>';
-
-    try {
-        // Fetch enrolled students
-        const { data: enrollments } = await supabase
-            .from('course_enrollments')
-            .select('student_id')
-            .eq('course_id', courseId);
-
-        const studentIds = enrollments?.map(e => e.student_id) || [];
-        if (studentIds.length === 0) {
-            container.innerHTML = '<div class="empty-state"><p>No students enrolled in this course yet.</p></div>';
-            await loadRecitationHistory();
-            return;
-        }
-
-        const { data: students } = await supabase
-            .from('profiles')
-            .select('id, first_name, last_name, student_id, email')
-            .in('id', studentIds);
-
-        const sortedStudents = (students || []).sort((a, b) =>
-            (a.last_name || '').localeCompare(b.last_name || '')
-        );
-
-        // Fetch existing recitations for this course and date
-        let query = supabase
-            .from('recitations')
-            .select('id, student_id, rating')
-            .eq('course_id', courseId)
-            .eq('date', dateVal);
-
-        if (scheduleId) {
-            query = query.eq('schedule_id', scheduleId);
-        }
-
-        const { data: recitations } = await query;
-        const recitMap = {};
-        if (recitations) {
-            for (const r of recitations) {
-                recitMap[r.student_id] = r.rating;
-            }
-        }
-
-        let html = `
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Student Name & ID</th>
-                            <th>Current Session Rating</th>
-                            <th>Grade Recitation (Click to Auto-Save)</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-
-        for (const s of sortedStudents) {
-            const name = `${s.last_name}, ${s.first_name}`;
-            const idNum = s.student_id ? ` <small class="text-muted">(${s.student_id})</small>` : '';
-            const currentRating = recitMap[s.id] !== undefined && recitMap[s.id] !== null ? Number(recitMap[s.id]) : null;
-            const badgeHtml = currentRating
-                ? `<span class="badge badge-approved" id="badge-${s.id}">${currentRating} Point${currentRating > 1 ? 's' : ''}</span>`
-                : `<span class="badge badge-pending" id="badge-${s.id}">Not Rated</span>`;
-
-            html += `
-                <tr>
-                    <td><strong>${name}</strong>${idNum}</td>
-                    <td>${badgeHtml}</td>
-                    <td>
-                        <div class="recit-btn-group">
-                            <button type="button" class="btn-recit ${currentRating === 5 ? 'active-5' : ''}" onclick="saveRecitationScore('${s.id}', 5, this)">5</button>
-                            <button type="button" class="btn-recit ${currentRating === 4 ? 'active-4' : ''}" onclick="saveRecitationScore('${s.id}', 4, this)">4</button>
-                            <button type="button" class="btn-recit ${currentRating === 3 ? 'active-3' : ''}" onclick="saveRecitationScore('${s.id}', 3, this)">3</button>
-                            <button type="button" class="btn-recit ${currentRating === 2 ? 'active-2' : ''}" onclick="saveRecitationScore('${s.id}', 2, this)">2</button>
-                            <button type="button" class="btn-recit ${currentRating === 1 ? 'active-1' : ''}" onclick="saveRecitationScore('${s.id}', 1, this)">1</button>
-                        </div>
-                    </td>
-                    <td>
-                        <span class="text-muted text-sm" id="status-${s.id}">Ready</span>
-                    </td>
-                </tr>
-            `;
-        }
-
-        html += '</tbody></table></div>';
-        container.innerHTML = html;
-        await loadRecitationHistory();
-    } catch (err) {
-        console.error('Error loading recitation students:', err);
-        container.innerHTML = `<div class="empty-state"><p>Error loading recitation table: ${err.message}</p></div>`;
-    }
-};
-
-window.saveRecitationScore = async function(studentId, score, btnElement) {
-    const courseId = document.getElementById('recitCourseSelect')?.value;
-    const dateVal = document.getElementById('recitDateInput')?.value;
-    const scheduleId = document.getElementById('recitScheduleSelect')?.value || null;
-    const nowTime = new Date().toTimeString().split(' ')[0];
-
-    if (!courseId || !dateVal) {
-        alert('Please select both a Course and Date before grading.');
-        return;
-    }
-
-    const statusEl = document.getElementById(`status-${studentId}`);
-    const badgeEl = document.getElementById(`badge-${studentId}`);
-    if (statusEl) statusEl.textContent = 'Saving...';
-
-    try {
-        // Check if an entry already exists for this student, course, and date
-        let checkQuery = supabase
-            .from('recitations')
-            .select('id')
-            .eq('student_id', studentId)
-            .eq('course_id', courseId)
-            .eq('date', dateVal);
-
-        if (scheduleId) {
-            checkQuery = checkQuery.eq('schedule_id', scheduleId);
-        }
-
-        const { data: existing } = await checkQuery.maybeSingle();
-
-        if (existing?.id) {
-            const { error } = await supabase
-                .from('recitations')
-                .update({
-                    rating: score,
-                    schedule_id: scheduleId || null,
-                    time: nowTime,
-                    recorded_at: new Date().toISOString()
-                })
-                .eq('id', existing.id);
-            if (error) throw error;
-        } else {
-            const { error } = await supabase
-                .from('recitations')
-                .insert({
-                    student_id: studentId,
-                    course_id: courseId,
-                    schedule_id: scheduleId || null,
-                    date: dateVal,
-                    time: nowTime,
-                    rating: score,
-                    recorded_at: new Date().toISOString()
-                });
-            if (error) throw error;
-        }
-
-        // Highlight selected score button visually
-        const btnGroup = btnElement.closest('.recit-btn-group');
-        if (btnGroup) {
-            btnGroup.querySelectorAll('.btn-recit').forEach(btn => {
-                btn.className = 'btn-recit';
-            });
-            btnElement.classList.add(`active-${score}`);
-        }
-
-        // Update badge
-        if (badgeEl) {
-            badgeEl.className = 'badge badge-approved';
-            badgeEl.textContent = `${score} Point${score > 1 ? 's' : ''}`;
-        }
-
-        if (statusEl) {
-            statusEl.textContent = 'Saved! ✅';
-            statusEl.style.color = '#16a34a';
-            setTimeout(() => {
-                if (statusEl) {
-                    statusEl.textContent = 'Ready';
-                    statusEl.style.color = '#94a3b8';
-                }
-            }, 1500);
-        }
-
-        await loadRecitationHistory();
-    } catch (err) {
-        console.error('Error saving recitation score:', err);
-        alert('Failed to save recitation score: ' + err.message);
-        if (statusEl) statusEl.textContent = 'Error';
-    }
-};
-
-async function loadRecitationHistory() {
-    const courseId = document.getElementById('recitCourseSelect')?.value;
-    const dateVal = document.getElementById('recitDateInput')?.value;
-    const scheduleId = document.getElementById('recitScheduleSelect')?.value || null;
-    const historyContainer = document.getElementById('recitationHistoryList');
-
-    if (!historyContainer || !courseId || !dateVal) return;
-
-    try {
-        let query = supabase
-            .from('recitations')
-            .select('*, profiles(first_name, last_name, student_id)')
-            .eq('course_id', courseId)
-            .eq('date', dateVal)
-            .order('recorded_at', { ascending: false });
-
-        if (scheduleId) {
-            query = query.eq('schedule_id', scheduleId);
-        }
-
-        const { data: records, error } = await query;
-        if (error) throw error;
-
-        if (!records || records.length === 0) {
-            historyContainer.innerHTML = '<div class="empty-state"><p>No recitations recorded yet for this session.</p></div>';
-            return;
-        }
-
-        let html = '<div class="table-wrap"><table><thead><tr><th>Time Recorded</th><th>Student</th><th>Rating Score</th><th>Actions</th></tr></thead><tbody>';
-        for (const r of records) {
-            const stName = r.profiles ? `${r.profiles.last_name}, ${r.profiles.first_name}` : r.student_id;
-            const stIdNum = r.profiles?.student_id ? ` <small class="text-muted">(${r.profiles.student_id})</small>` : '';
-            const scoreVal = Number(r.rating);
-            html += `
-                <tr>
-                    <td>${r.time || (r.recorded_at ? new Date(r.recorded_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '-')}</td>
-                    <td><strong>${stName}</strong>${stIdNum}</td>
-                    <td><span class="badge badge-approved" style="font-size:0.8rem;">${scoreVal} Point${scoreVal > 1 ? 's' : ''}</span></td>
-                    <td>
-                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteRecitationRecord('${r.id}')">🗑️ Remove</button>
-                    </td>
-                </tr>
-            `;
-        }
-        html += '</tbody></table></div>';
-        historyContainer.innerHTML = html;
-    } catch (err) {
-        historyContainer.innerHTML = `<div class="empty-state"><p>Error loading recitation history: ${err.message}</p></div>`;
-    }
-}
-
-window.deleteRecitationRecord = async function(recitId) {
-    if (!confirm('Remove this recitation score record?')) return;
-    try {
-        await supabase.from('recitations').delete().eq('id', recitId);
-        await loadRecitationStudents();
-    } catch (err) {
-        alert('Error removing record: ' + err.message);
-    }
-};
 
 // ============================================================
 // EXCUSE LETTERS VIEWING & APPROVAL ON DASHBOARD
@@ -3482,9 +3101,14 @@ document.getElementById('computeForm').addEventListener('submit', async function
             }
         });
 
-        recitations?.filter(r => r.student_id === sid && r.rating !== null && r.rating !== undefined).forEach(r => {
-            caseScores.push(Number(r.rating) * 20);
-        });
+        const studentRecits = recitations?.filter(r => r.student_id === sid && r.rating !== null && r.rating !== undefined) || [];
+        const totalSessionsCount = Math.max(sessionIds.length, 1);
+        if (studentRecits.length > 0 || sessionIds.length > 0) {
+            const totalRecitScore = studentRecits.reduce((acc, r) => acc + Number(r.rating || 0), 0);
+            const recitAvgScore = totalRecitScore / totalSessionsCount;
+            const recitPct = (recitAvgScore / 5) * 100;
+            caseScores.push(recitPct);
+        }
 
         const calcAvg = (arr) => {
             if (!arr || arr.length === 0) return 0;
